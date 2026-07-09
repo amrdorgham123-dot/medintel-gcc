@@ -1198,6 +1198,51 @@ def seed(conn):
         cur.execute("INSERT INTO company_distributors (manufacturer_id, distributor_id) VALUES (?,?)", (v2_ids["Leica Biosystems (a Danaher company)"], cur.lastrowid))
 
     cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','bulk_insert','v2.0: Added contact fields (phone/email/contact_url) to manufacturers -- shown only on manufacturer cards per requirement. Added 3 new manufacturers across 3 new lab departments: Euroimmun (Immunology & Serology), Randox Laboratories (Clinical Chemistry), Leica Biosystems (Histopathology & Cytology). This is a first batch (3 of the requested ~15); remaining categories/companies to be researched in follow-up rounds.')")
+
+    # --- v2.1: DiaSorin + Radiometer + Abbott i-STAT extension ---
+    v21_manufacturers = [
+        dict(name="DiaSorin", headquarters="Italy", origin="European", website="diasorin.com",
+             portfolio="LIAISON family of CLIA immunoassay analyzers for infectious disease, autoimmune, and specialty testing; molecular diagnostics via Luminex acquisition",
+             ksa_status="Unclear -- DiaSorin's own distributor page lists Saudi Arabia among markets served by its 200+ independent distributor network, but no specific named KSA distributor entity was found in public sources reviewed",
+             status_tag="unclear", opportunity_note="Medium -- served market confirmed but exact local distributor not yet identified", confidence_tier="silver",
+             sources="diasorin.com/en/company/worldwide-contacts/immunodiagnostics-distributors; us.diasorin.com product pages", category="Immunology & Serology"),
+        dict(name="Radiometer (a Danaher company)", headquarters="Denmark", origin="European", website="radiometer.com",
+             portfolio="ABL blood gas analyzer family (ABL80/90/800/900 FLEX) for point-of-care and central lab blood gas, electrolyte, and metabolite testing",
+             ksa_status="Covered -- independent KSA academic study (Majmaah University, Prince Mohammed bin Abdulaziz Hospital Riyadh) confirms active clinical use of ABL90 (24% of surveyed POCT devices) and ABL800 (20.9%) in Saudi hospitals; no specific distributor entity named in the source reviewed",
+             status_tag="covered", opportunity_note="Low -- real clinical installed base confirmed in KSA hospitals, though the specific distributor entity is not yet identified", confidence_tier="silver",
+             sources="Al-shahrani & Khan, 'Evaluation of ABL90 and ABL800 Radiometer Blood Gas Analyzers... in Saudi Arabia', Healthcare 2025, 13(3), 331, DOI: 10.3390/healthcare13030331", category="Clinical Chemistry"),
+    ]
+    v21_ids = {}
+    for m in v21_manufacturers:
+        cur.execute("""INSERT INTO manufacturers
+            (name, headquarters, website, portfolio, ksa_status, status_tag, opportunity_note, confidence_tier, sources, category, origin)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (m["name"], m["headquarters"], m["website"], m["portfolio"], m["ksa_status"], m["status_tag"],
+             m["opportunity_note"], m["confidence_tier"], m["sources"], m["category"], m["origin"]))
+        v21_ids[m["name"]] = cur.lastrowid
+
+    v21_products = [
+        ("DiaSorin", "LIAISON XL", "CLIA immunoassay analyzer", "High-throughput fully automated chemiluminescence analyzer with Reagent Integral cartridge format, connects to lab automation tracks", "us.diasorin.com/en/immunodiagnostics/tools/liaison-xl"),
+        ("DiaSorin", "LIAISON QuantiFERON-TB Gold Plus", "TB immunoassay", "Latent tuberculosis detection assay on the LIAISON XL platform", "us.diasorin.com/en/immunodiagnostics/tools/liaison-xl"),
+        ("DiaSorin", "LIAISON Calprotectin", "GI immunoassay", "Aid in diagnosis and differentiation of inflammatory bowel disease (Crohn's/ulcerative colitis) from IBS", "us.diasorin.com/en/immunodiagnostics"),
+        ("Radiometer (a Danaher company)", "ABL90 FLEX", "Portable blood gas analyzer", "Bedside/POCT blood gas analyzer designed for speed and portability", "sciencedirect.com/topics/chemistry/blood-gas-analysis"),
+        ("Radiometer (a Danaher company)", "ABL800 FLEX", "Central lab blood gas analyzer", "Comprehensive blood gas analyzer designed for scalability in centralized laboratory operations, automated sampling", "researchgate.net (Al-shahrani & Khan 2025 study)"),
+    ]
+    for mname, pname, ptype, desc, src in v21_products:
+        cur.execute("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)",
+                    (v21_ids[mname], pname, ptype, desc, src, [m["category"] for m in v21_manufacturers if m["name"]==mname][0]))
+
+    cur.execute("INSERT INTO evidence (manufacturer_id, claim, evidence_type, source_detail) VALUES (?,?,?,?)",
+                (v21_ids["Radiometer (a Danaher company)"], "Independent peer-reviewed KSA study confirms ABL90 (24% of surveyed devices) and ABL800 (20.9%) in active clinical use at Prince Mohammed bin Abdulaziz Hospital, Riyadh", "peer-reviewed publication", "Al-shahrani & Khan, Healthcare 2025, 13(3), 331, DOI: 10.3390/healthcare13030331"))
+
+    abbott_row = cur.execute("SELECT id FROM manufacturers WHERE name = 'Abbott Core Diagnostics'").fetchone()
+    if abbott_row:
+        cur.execute("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)",
+            (abbott_row[0], "i-STAT System", "Handheld POCT blood gas/chemistry analyzer",
+             "Handheld point-of-care analyzer using single-use cartridges for blood gas, electrolytes, chemistries; ~65uL whole blood sample, validated against central lab analyzers in KSA sepsis-triage research",
+             "pubmed.ncbi.nlm.nih.gov/36696550 (i-STAT vs Radiometer ABL800 comparability study)", "Hematology"))
+
+    cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','bulk_insert','v2.1: Added DiaSorin (Immunology & Serology) and Radiometer (Clinical Chemistry/POCT blood gas, verified via independent peer-reviewed KSA study) + extended existing Abbott Core Diagnostics with i-STAT POCT product line.')")
     conn.commit()
 
 if __name__ == "__main__":
