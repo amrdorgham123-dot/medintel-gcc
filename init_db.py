@@ -24,7 +24,10 @@ CREATE TABLE IF NOT EXISTS manufacturers (
     is_published INTEGER DEFAULT 1,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     verified_by TEXT DEFAULT 'manual research, see sources',
-    origin TEXT
+    origin TEXT,
+    phone TEXT,
+    email TEXT,
+    contact_url TEXT
 );
 
 CREATE TABLE IF NOT EXISTS technologies (
@@ -1124,6 +1127,77 @@ def seed(conn):
             pass
 
     cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','schema_migration','v1.9: Added origin classification (American/European/Chinese/Asian-other), extended products (department/throughput/certifications), created and populated company_distributors many-to-many join table (72 links total, including 23 formalized from prior text-only ksa_status mentions)')")
+
+    # --- v2.0: manufacturer contact fields (phone/email/contact_url) + 3 new lab departments ---
+    v2_manufacturers = [
+        dict(name="Euroimmun (a PerkinElmer company)", headquarters="Germany", origin="European", website="euroimmun.com",
+             portfolio="Autoimmune, infection, and allergy diagnostics: ELISA, IFA, immunoblot (EUROLINE), and chemiluminescence (ChLIA) test systems and automation",
+             ksa_status="Covered -- Samir Trading & Marketing CJSC named as the official KSA distributor on Euroimmun's own distributor-locator page, with verified contact details",
+             status_tag="covered", opportunity_note="Low -- already has confirmed KSA distribution via Samir Trading & Marketing", confidence_tier="gold",
+             sources="euroimmun.com official distributor page (EUROIMMUN Analyzer I / EUROLabWorkstation ELISA pages) -- lists Samir Trading & Marketing CJSC, Jeddah/Al Khobar, phone +966 8942674, email jalal.stouhi@samirgroup.com",
+             category="Immunology & Serology", phone=None, email=None, contact_url="https://www.euroimmun.com/contact/"),
+        dict(name="Randox Laboratories", headquarters="United Kingdom", origin="European", website="randox.com",
+             portfolio="Clinical chemistry analyzers (RX series), Biochip Array Technology for multiplex immunoassay, Acusera third-party quality control materials",
+             ksa_status="Unclear -- Randox's own distributor pages confirm Saudi Arabia as a served market, but no specific named KSA distributor entity was found in public sources reviewed",
+             status_tag="unclear", opportunity_note="Medium -- served market confirmed but exact local distributor not yet identified; worth a direct outreach to Randox to confirm their current KSA partner", confidence_tier="silver",
+             sources="randox.com; medicaldevices.icij.org (FDA device registration listing Saudi Arabia in Randox's foreign distribution list); bgi.com/us/IVD-Partner-Randox",
+             category="Clinical Chemistry", phone=None, email=None, contact_url="https://www.randox.com/contact-us/"),
+        dict(name="Leica Biosystems (a Danaher company)", headquarters="Germany", origin="European", website="leicabiosystems.com",
+             portfolio="Anatomical pathology workflow: HistoCore tissue processors/embedding/microtomes/cryostats, Aperio digital pathology scanners, IHC/ISH staining automation",
+             ksa_status="Covered -- Beckman Coulter Saudi Arabia CO.LT confirmed as NUPCO-awarded vendor for a Leica Biosystems Nussloch GmbH part (tissue processor carbon filter)",
+             status_tag="covered", opportunity_note="Low -- already has confirmed KSA distribution via Beckman Coulter Saudi Arabia CO.LT", confidence_tier="silver",
+             sources="NUPCO Tender NPT0003/25 (Lab Supplies Supplement), item citing 'Beckman Coulter Saudi Arabia CO.LT -Orig- Leica Biosystems Nussloch GmBH' for part 14049543860 -- uploaded by user. Only one part-level confirmation found; broader instrument-level distribution not independently verified -- tier held at silver.",
+             category="Histopathology & Cytology", phone=None, email=None, contact_url="https://www.leicabiosystems.com/contact-us/"),
+    ]
+    v2_ids = {}
+    for m in v2_manufacturers:
+        cur.execute("""INSERT INTO manufacturers
+            (name, headquarters, website, portfolio, ksa_status, status_tag, opportunity_note, confidence_tier, sources, category, origin, phone, email, contact_url)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (m["name"], m["headquarters"], m["website"], m["portfolio"], m["ksa_status"], m["status_tag"],
+             m["opportunity_note"], m["confidence_tier"], m["sources"], m["category"], m["origin"], m["phone"], m["email"], m["contact_url"]))
+        v2_ids[m["name"]] = cur.lastrowid
+
+    v2_products = [
+        ("Euroimmun (a PerkinElmer company)", "EUROLINE", "Multiplex immunoblot", "Multiplex line immunoblot technology for simultaneous detection of multiple autoantibodies on a single strip", "euroimmun.com"),
+        ("Euroimmun (a PerkinElmer company)", "EUROIMMUN Analyzer I", "Automated ELISA processor", "Fully automated ELISA processing, up to 7 microplates / 180 samples per run", "euroimmun.com/products/automation/elisa/euroimmun-analyzer-i/"),
+        ("Euroimmun (a PerkinElmer company)", "EUROLabWorkstation ELISA", "Automated ELISA processor", "High-throughput automated ELISA workstation, up to 15 microplates / 700 samples, 200 tests/hour", "euroimmun.com/products/automation/elisa/eurolabworkstation-elisa/"),
+        ("Randox Laboratories", "RX monaco", "Clinical chemistry analyzer", "Fully automated clinical chemistry analyzer for low-to-mid volume laboratories", "randox.com/core-disciplines/chemistry"),
+        ("Randox Laboratories", "Biochip Array Technology", "Multiplex immunoassay platform", "Simultaneous detection of multiple analytes from a single patient sample on a biochip", "selectscience.net/company/randox-laboratories-ltd"),
+        ("Randox Laboratories", "Acusera QC materials", "Quality control reagent", "Third-party quality control materials, including Acusera 24-7 Live Online interlaboratory data management", "selectscience.net/company/randox-laboratories-ltd"),
+        ("Leica Biosystems (a Danaher company)", "HistoCore PELORIS 3", "Automated tissue processor", "Automated sample preparation system for histology laboratories", "medicalexpo.com/prod/leica-biosystems-95735.html"),
+        ("Leica Biosystems (a Danaher company)", "HistoCore PEGASUS Plus", "Automated tissue processor", "Floor-standing automated tissue processor for histology", "medicalexpo.com/prod/leica-biosystems-95735.html"),
+        ("Leica Biosystems (a Danaher company)", "Aperio GT 450 / GT 180 DX", "Digital pathology scanner", "Whole-slide digital pathology scanners; GT 180 DX is a compact 180-slide-capacity scanner with AI-powered QC", "leicabiosystems.com"),
+        ("Leica Biosystems (a Danaher company)", "HistoCore AUTOCUT / BIOCUT / MULTICUT", "Microtome", "Fully automated, semi-automated, and manual rotary microtomes for tissue sectioning", "leicabiosystems.com/histology-equipment/"),
+    ]
+    for mname, pname, ptype, desc, src in v2_products:
+        cur.execute("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)",
+                    (v2_ids[mname], pname, ptype, desc, src, [m["category"] for m in v2_manufacturers if m["name"]==mname][0]))
+
+    v2_evidence = [
+        ("Euroimmun (a PerkinElmer company)", "Samir Trading & Marketing CJSC named as official KSA distributor with verified phone/email on Euroimmun's own distributor-locator page", "distributor's own manufacturer listing", "euroimmun.com distributor pages (EUROIMMUN Analyzer I, EUROLabWorkstation ELISA)"),
+        ("Leica Biosystems (a Danaher company)", "Beckman Coulter Saudi Arabia CO.LT named as NUPCO-awarded vendor for a Leica Biosystems Nussloch GmbH part", "tender_award", "NPT0003/25, part 14049543860, source: uploaded PDF"),
+    ]
+    cur.executemany("INSERT INTO evidence (manufacturer_id, claim, evidence_type, source_detail) VALUES (?,?,?,?)",
+                     [(v2_ids[n], c, et, sd) for n, c, et, sd in v2_evidence])
+
+    cur.execute("UPDATE distributors SET represents = represents || ', Euroimmun' WHERE name LIKE 'Samir Trading%'")
+    samir_id_row = cur.execute("SELECT id FROM distributors WHERE name LIKE 'Samir Trading%'").fetchone()
+    if samir_id_row:
+        cur.execute("INSERT INTO company_distributors (manufacturer_id, distributor_id) VALUES (?,?)", (v2_ids["Euroimmun (a PerkinElmer company)"], samir_id_row[0]))
+
+    beckman_ksa_row = cur.execute("SELECT id FROM distributors WHERE name LIKE '%Beckman Coulter Saudi Arabia%'").fetchone()
+    if beckman_ksa_row:
+        cur.execute("INSERT INTO company_distributors (manufacturer_id, distributor_id) VALUES (?,?)", (v2_ids["Leica Biosystems (a Danaher company)"], beckman_ksa_row[0]))
+    else:
+        cur.execute("""INSERT INTO distributors (name, country, represents, source, market_strength_tier, market_strength_basis)
+            VALUES (?,?,?,?,?,?)""",
+            ("Beckman Coulter Saudi Arabia CO.LT", "Saudi Arabia", "Leica Biosystems (a Danaher company), Cepheid (a Danaher company)",
+             "NUPCO Tender NPT0003/25 and NPT0028/24 -- uploaded by user", "Tenure-verified (partial)",
+             "Confirmed principal for both Leica Biosystems and Cepheid (both Danaher divisions). Not independently confirmed for overall company size."))
+        cur.execute("INSERT INTO company_distributors (manufacturer_id, distributor_id) VALUES (?,?)", (v2_ids["Leica Biosystems (a Danaher company)"], cur.lastrowid))
+
+    cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','bulk_insert','v2.0: Added contact fields (phone/email/contact_url) to manufacturers -- shown only on manufacturer cards per requirement. Added 3 new manufacturers across 3 new lab departments: Euroimmun (Immunology & Serology), Randox Laboratories (Clinical Chemistry), Leica Biosystems (Histopathology & Cytology). This is a first batch (3 of the requested ~15); remaining categories/companies to be researched in follow-up rounds.')")
     conn.commit()
 
 if __name__ == "__main__":

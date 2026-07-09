@@ -337,6 +337,10 @@
   .dir-dist-contact{font-family:var(--sans);font-size:12px;color:var(--ent-cyan);margin-top:6px;}
   .dir-dist-contact.muted{color:var(--ink-muted);font-style:italic;}
   .dir-products{display:flex;flex-wrap:wrap;gap:6px;}
+  .contact-row{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+  .contact-chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--sans);font-size:11.5px;font-weight:600;padding:6px 11px;border-radius:8px;background:var(--ent-emerald-soft);color:var(--ent-emerald);border:1px solid var(--ent-emerald);text-decoration:none;}
+  .contact-chip:hover{background:var(--ent-emerald);color:#fff;}
+  .contact-chip svg{width:13px;height:13px;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -429,10 +433,8 @@ const tabDefs = [
   {id:"opportunities", label:"Opportunities", search:false, group:"Market"},
   {id:"distributors", label:"Distributors", search:false, group:"Market"},
   {id:"conferences", label:"Conferences", search:false, group:"Market"},
-  {id:"tenders", label:"Tender intelligence", search:false, group:"Market"},
   {id:"events", label:"Market events", search:false, group:"Market"},
   {id:"attieh", label:"Attieh Medico", search:false, group:"Company"},
-  {id:"hospitals", label:"Hospitals", search:false, group:"Company"},
   {id:"quality", label:"Data quality", search:false, group:"Admin"},
   {id:"review", label:"Review queue", search:false, group:"Admin"},
 ];
@@ -473,6 +475,14 @@ function originFlag(origin){
   const s = ORIGIN_STYLES[origin];
   if(!s) return '';
   return `<span class="origin-flag" style="background:${s.bg};color:${s.fg}">${s.label}</span>`;
+}
+function manufacturerContactRow(m){
+  if(!m.phone && !m.email && !m.contact_url) return '';
+  const parts = [];
+  if(m.phone) parts.push(`<a class="contact-chip" href="tel:${m.phone}" onclick="event.stopPropagation()" title="Call ${m.phone}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>Call</a>`);
+  if(m.email) parts.push(`<a class="contact-chip" href="mailto:${m.email}" onclick="event.stopPropagation()" title="Email ${m.email}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg>Email</a>`);
+  if(m.contact_url) parts.push(`<a class="contact-chip" href="${m.contact_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Manufacturer contact form"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg>Contact form</a>`);
+  return `<div class="contact-row">${parts.join('')}</div>`;
 }
 
 function renderNav(){
@@ -635,6 +645,7 @@ async function loadManufacturerGrid(){
             ${badge(m.confidence_tier, m.confidence_tier.toUpperCase())}
           </div>
         </div>
+        ${manufacturerContactRow(m)}
       </div>
     `).join('');
   } catch(err){ grid.innerHTML = `<div class="conn-error">${err.message}</div>`; }
@@ -667,6 +678,7 @@ async function renderCompanyDetail(){
         <div class="row"><span class="label">Portfolio</span><span class="val">${m.portfolio}</span></div>
         <div class="row"><span class="label">KSA status</span><span class="val">${m.ksa_status}</span></div>
         <div class="row"><span class="label">Sources</span><span class="val">${m.sources}</span></div>
+        ${manufacturerContactRow(m)}
       `;
     } else if(detailSubTab === 'products'){
       panel.innerHTML = (m.products && m.products.length) ? m.products.map(p => `<div class="row"><span class="label">${p.product_name}</span><span class="val">${p.product_type} — ${p.description}</span></div>`).join('')
@@ -1164,7 +1176,6 @@ function render(){
   if(activeTab==='technologies') renderTechnologies();
   if(activeTab==='quality') renderDataQuality();
   if(activeTab==='attieh') renderAttiehPortfolio();
-  if(activeTab==='tenders') renderTenders();
   if(activeTab==='kg') renderKnowledgeGraph();
   if(activeTab==='regulatory') renderRegulatory();
   if(activeTab==='updates') renderUpdates();
@@ -1317,7 +1328,6 @@ async function renderMarketEvents(){
 }
 
   if(activeTab==='products') renderProducts();
-  if(activeTab==='hospitals') renderHospitalsPage();
   if(activeTab==='events') renderMarketEvents();
 }
 

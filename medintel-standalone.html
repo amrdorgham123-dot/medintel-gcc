@@ -337,6 +337,10 @@
   .dir-dist-contact{font-family:var(--sans);font-size:12px;color:var(--ent-cyan);margin-top:6px;}
   .dir-dist-contact.muted{color:var(--ink-muted);font-style:italic;}
   .dir-products{display:flex;flex-wrap:wrap;gap:6px;}
+  .contact-row{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+  .contact-chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--sans);font-size:11.5px;font-weight:600;padding:6px 11px;border-radius:8px;background:var(--ent-emerald-soft);color:var(--ent-emerald);border:1px solid var(--ent-emerald);text-decoration:none;}
+  .contact-chip:hover{background:var(--ent-emerald);color:#fff;}
+  .contact-chip svg{width:13px;height:13px;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -409,9 +413,12 @@ const DB = {
     "sources": "grifols.com/en/saudi-arabia; afmssc.com distributor page",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [
       {
         "tid": 1,
@@ -511,9 +518,12 @@ const DB = {
     "sources": "werfen.com company/office pages",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [
       {
         "tid": 3,
@@ -629,9 +639,12 @@ const DB = {
     "sources": "SEC Form 8-K (Neogen Corp, filed Aug 2025) explicitly states Immucor was acquired by Werfen in 2023; immucor.com contact page redirects to transfusionandtransplant.werfen.com",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [
       {
         "tid": 3,
@@ -731,9 +744,12 @@ const DB = {
     "sources": "macopharma.com; samirgroup.com",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [
       {
         "tid": 4,
@@ -746,7 +762,7 @@ const DB = {
         "id": 2,
         "name": "Samir Trading & Marketing (also known as Samir Group)",
         "country": "Saudi Arabia",
-        "represents": "Macopharma, Ortho Clinical Diagnostics (Vision/MAX line), HORIBA Medical (Yumizen/Pentra/Micros), Alba Bioscience Ltd, ANTITOXIN GmbH",
+        "represents": "Macopharma, Ortho Clinical Diagnostics (Vision/MAX line), HORIBA Medical (Yumizen/Pentra/Micros), Alba Bioscience Ltd, ANTITOXIN GmbH, Euroimmun",
         "source": "samirgroup.com",
         "market_strength_tier": "Tenure-verified (partial)",
         "market_strength_basis": "FIVE confirmed principals now via NUPCO tender award records (NPT0038/24 + NPT0032-25) -- the broadest portfolio in this dataset. Still not independently confirmed for overall company size or revenue.",
@@ -846,9 +862,12 @@ const DB = {
     "sources": "lornelabs.com/distributors/saudi-arabia; calibrescientificgroup.com",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [
       {
         "tid": 1,
@@ -979,9 +998,12 @@ const DB = {
     "sources": "lmaco.com/distributors/saudi-medical-services",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -1046,9 +1068,12 @@ const DB = {
     "sources": "stago.com/worldwide/distributors + stago.com affiliate directory listing Riyadh address; cross-validated via NUPCO Tender NPT0038/24 which lists 'Diagnostic Saudi Arabia Trading Com' as the awarded vendor for Stago's STA/StheMO reagent lines -- same KSA entity, not a third-party distributor",
     "category": "Coagulation",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -1129,9 +1154,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025), primary government source",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -1190,16 +1218,19 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
         "id": 2,
         "name": "Samir Trading & Marketing (also known as Samir Group)",
         "country": "Saudi Arabia",
-        "represents": "Macopharma, Ortho Clinical Diagnostics (Vision/MAX line), HORIBA Medical (Yumizen/Pentra/Micros), Alba Bioscience Ltd, ANTITOXIN GmbH",
+        "represents": "Macopharma, Ortho Clinical Diagnostics (Vision/MAX line), HORIBA Medical (Yumizen/Pentra/Micros), Alba Bioscience Ltd, ANTITOXIN GmbH, Euroimmun",
         "source": "samirgroup.com",
         "market_strength_tier": "Tenure-verified (partial)",
         "market_strength_basis": "FIVE confirmed principals now via NUPCO tender award records (NPT0038/24 + NPT0032-25) -- the broadest portfolio in this dataset. Still not independently confirmed for overall company size or revenue.",
@@ -1251,9 +1282,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -1338,9 +1372,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -1412,9 +1449,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025); cross-validated with independent web research",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -1473,9 +1513,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -1604,9 +1647,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Molecular Diagnostics",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [
       {
         "tid": 6,
@@ -1693,9 +1739,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Hematology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "Asian (other)",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -1791,9 +1840,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Hematology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "Chinese",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -1891,9 +1943,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Hematology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -2027,9 +2082,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Hematology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -2114,9 +2172,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Hematology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -2250,16 +2311,19 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025); cross-validated with prior research",
     "category": "Hematology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
         "id": 2,
         "name": "Samir Trading & Marketing (also known as Samir Group)",
         "country": "Saudi Arabia",
-        "represents": "Macopharma, Ortho Clinical Diagnostics (Vision/MAX line), HORIBA Medical (Yumizen/Pentra/Micros), Alba Bioscience Ltd, ANTITOXIN GmbH",
+        "represents": "Macopharma, Ortho Clinical Diagnostics (Vision/MAX line), HORIBA Medical (Yumizen/Pentra/Micros), Alba Bioscience Ltd, ANTITOXIN GmbH, Euroimmun",
         "source": "samirgroup.com",
         "market_strength_tier": "Tenure-verified (partial)",
         "market_strength_basis": "FIVE confirmed principals now via NUPCO tender award records (NPT0038/24 + NPT0032-25) -- the broadest portfolio in this dataset. Still not independently confirmed for overall company size or revenue.",
@@ -2337,9 +2401,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Hematology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "Asian (other)",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -2424,9 +2491,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Hematology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -2498,9 +2568,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Hematology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -2572,9 +2645,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Coagulation",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -2659,9 +2735,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Coagulation",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -2746,9 +2825,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Coagulation",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -2846,9 +2928,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Coagulation",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -2946,9 +3031,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Stem Cell",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -3057,9 +3145,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -3154,9 +3245,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -3241,9 +3335,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "Asian (other)",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -3341,16 +3438,19 @@ const DB = {
     "sources": "NUPCO Tender NPT0038/24 Final Awardation (17/03/2025)",
     "category": "Hematology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
         "id": 2,
         "name": "Samir Trading & Marketing (also known as Samir Group)",
         "country": "Saudi Arabia",
-        "represents": "Macopharma, Ortho Clinical Diagnostics (Vision/MAX line), HORIBA Medical (Yumizen/Pentra/Micros), Alba Bioscience Ltd, ANTITOXIN GmbH",
+        "represents": "Macopharma, Ortho Clinical Diagnostics (Vision/MAX line), HORIBA Medical (Yumizen/Pentra/Micros), Alba Bioscience Ltd, ANTITOXIN GmbH, Euroimmun",
         "source": "samirgroup.com",
         "market_strength_tier": "Tenure-verified (partial)",
         "market_strength_basis": "FIVE confirmed principals now via NUPCO tender award records (NPT0038/24 + NPT0032-25) -- the broadest portfolio in this dataset. Still not independently confirmed for overall company size or revenue.",
@@ -3415,9 +3515,12 @@ const DB = {
     "sources": "afmssc.com/hologic dedicated distributor page (Salah Alden Road, Al Zahra District, Riyadh)",
     "category": "Molecular Diagnostics",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -3485,9 +3588,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0032-25 (Blood Bank GPPRR), Preliminary Awardation, 22/12/2025 -- uploaded by user",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "Asian (other)",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -3555,16 +3661,19 @@ const DB = {
     "sources": "NUPCO Tender NPT0032-25 (Blood Bank GPPRR), Preliminary Awardation, 22/12/2025 -- uploaded by user",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
         "id": 2,
         "name": "Samir Trading & Marketing (also known as Samir Group)",
         "country": "Saudi Arabia",
-        "represents": "Macopharma, Ortho Clinical Diagnostics (Vision/MAX line), HORIBA Medical (Yumizen/Pentra/Micros), Alba Bioscience Ltd, ANTITOXIN GmbH",
+        "represents": "Macopharma, Ortho Clinical Diagnostics (Vision/MAX line), HORIBA Medical (Yumizen/Pentra/Micros), Alba Bioscience Ltd, ANTITOXIN GmbH, Euroimmun",
         "source": "samirgroup.com",
         "market_strength_tier": "Tenure-verified (partial)",
         "market_strength_basis": "FIVE confirmed principals now via NUPCO tender award records (NPT0038/24 + NPT0032-25) -- the broadest portfolio in this dataset. Still not independently confirmed for overall company size or revenue.",
@@ -3662,16 +3771,19 @@ const DB = {
     "sources": "NUPCO Tender NPT0032-25 (Blood Bank GPPRR), Preliminary Awardation, 22/12/2025 -- uploaded by user -- website not independently verified so tier held at silver, not gold | Official company website confirmed (antitoxin-gmbh.de) -- tier upgraded from silver to gold.",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
         "id": 2,
         "name": "Samir Trading & Marketing (also known as Samir Group)",
         "country": "Saudi Arabia",
-        "represents": "Macopharma, Ortho Clinical Diagnostics (Vision/MAX line), HORIBA Medical (Yumizen/Pentra/Micros), Alba Bioscience Ltd, ANTITOXIN GmbH",
+        "represents": "Macopharma, Ortho Clinical Diagnostics (Vision/MAX line), HORIBA Medical (Yumizen/Pentra/Micros), Alba Bioscience Ltd, ANTITOXIN GmbH, Euroimmun",
         "source": "samirgroup.com",
         "market_strength_tier": "Tenure-verified (partial)",
         "market_strength_basis": "FIVE confirmed principals now via NUPCO tender award records (NPT0038/24 + NPT0032-25) -- the broadest portfolio in this dataset. Still not independently confirmed for overall company size or revenue.",
@@ -3745,9 +3857,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0032-25 (Blood Bank GPPRR), Preliminary Awardation, 22/12/2025 -- uploaded by user",
     "category": "Blood Bank",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -3828,9 +3943,12 @@ const DB = {
     "sources": "Internal: part of Amr's own product portfolio at Attieh Medico. External corroboration: snibe.com lists Saudi Arabia as a served market; snibe.com/en/news confirms a Dec 2025 Saudi MOH/NUPCO delegation visit and MOU signing at Snibe HQ. No independent public source names Attieh Medico specifically as the KSA distributor -- tier held at silver pending an external citation.",
     "category": "Molecular Diagnostics",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "Chinese",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [],
     "opportunity": null,
@@ -3908,9 +4026,12 @@ const DB = {
     "sources": "olamed.sa/catog/hematology (DH36, DH76 product listings with Jeddah sales contact +966568164597); dymind.com company site",
     "category": "Hematology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "Chinese",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -3991,9 +4112,12 @@ const DB = {
     "sources": "umc-medical.com/partners (Rukn Umayya Company partner page, explicitly names URIT-3000Plus)",
     "category": "Hematology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "Chinese",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -4061,9 +4185,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0028/24 (Microbiology GPPRR), SN 1, 51-55 -- uploaded by user. Product line verified via bd.com. Note: BD's diagnostics business is in the process of being acquired by Waters Corporation (transition ongoing as of official BD product pages reviewed).",
     "category": "Microbiology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -4155,9 +4282,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0028/24 (Microbiology GPPRR), SN 72-82 -- uploaded by user. Product line verified via copangroup.com and copanusa.com",
     "category": "Microbiology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -4225,9 +4355,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0028/24 (Microbiology GPPRR), SN 6-7 -- uploaded by user. Product category confirmed via tender item descriptions (fully automated urine analyzer, urine test strips); full external product catalogue not yet independently verified -- tier held at silver",
     "category": "Microbiology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -4273,9 +4406,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0028/24 (Microbiology GPPRR), SN 8-11 -- uploaded by user. Product category confirmed via tender item descriptions; full external product catalogue not yet independently verified -- tier held at silver",
     "category": "Microbiology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -4321,9 +4457,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0028/24 (Microbiology GPPRR), SN 8-14 -- uploaded by user. Product category confirmed via tender item descriptions; full external product catalogue not yet independently verified -- tier held at silver",
     "category": "Microbiology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -4369,9 +4508,12 @@ const DB = {
     "sources": "NUPCO Tender NPT0028/24 (Microbiology GPPRR), SN 33-50, 83-95 -- uploaded by user. Product category confirmed via tender item descriptions naming specific cartridge families",
     "category": "Microbiology",
     "is_published": 1,
-    "created_at": "2026-07-09 08:07:04",
+    "created_at": "2026-07-09 12:41:32",
     "verified_by": "manual research, see sources",
     "origin": "American",
+    "phone": null,
+    "email": null,
+    "contact_url": null,
     "technologies": [],
     "distributors": [
       {
@@ -4405,6 +4547,257 @@ const DB = {
         "description": "Random-access single-cartridge PCR system with a broad assay menu: MTB/RIF, CRE/carbapenemase, HIV, C. diff, MRSA, GBS, HPV, Strep-A, SARS-CoV-2/RSV/Flu combo",
         "source": "NUPCO Tender NPT0028/24, SN 33-50, 83-95",
         "department": "Microbiology",
+        "throughput": null,
+        "sample_types": null,
+        "certifications": null,
+        "brochure_url": null
+      }
+    ],
+    "regulatory": []
+  },
+  {
+    "id": 47,
+    "name": "Euroimmun (a PerkinElmer company)",
+    "headquarters": "Germany",
+    "website": "euroimmun.com",
+    "portfolio": "Autoimmune, infection, and allergy diagnostics: ELISA, IFA, immunoblot (EUROLINE), and chemiluminescence (ChLIA) test systems and automation",
+    "ksa_status": "Covered -- Samir Trading & Marketing CJSC named as the official KSA distributor on Euroimmun's own distributor-locator page, with verified contact details",
+    "status_tag": "covered",
+    "opportunity_note": "Low -- already has confirmed KSA distribution via Samir Trading & Marketing",
+    "confidence_tier": "gold",
+    "sources": "euroimmun.com official distributor page (EUROIMMUN Analyzer I / EUROLabWorkstation ELISA pages) -- lists Samir Trading & Marketing CJSC, Jeddah/Al Khobar, phone +966 8942674, email jalal.stouhi@samirgroup.com",
+    "category": "Immunology & Serology",
+    "is_published": 1,
+    "created_at": "2026-07-09 12:41:32",
+    "verified_by": "manual research, see sources",
+    "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": "https://www.euroimmun.com/contact/",
+    "technologies": [],
+    "distributors": [
+      {
+        "id": 2,
+        "name": "Samir Trading & Marketing (also known as Samir Group)",
+        "country": "Saudi Arabia",
+        "represents": "Macopharma, Ortho Clinical Diagnostics (Vision/MAX line), HORIBA Medical (Yumizen/Pentra/Micros), Alba Bioscience Ltd, ANTITOXIN GmbH, Euroimmun",
+        "source": "samirgroup.com",
+        "market_strength_tier": "Tenure-verified (partial)",
+        "market_strength_basis": "FIVE confirmed principals now via NUPCO tender award records (NPT0038/24 + NPT0032-25) -- the broadest portfolio in this dataset. Still not independently confirmed for overall company size or revenue.",
+        "contact_info": null
+      }
+    ],
+    "opportunity": null,
+    "evidence": [
+      {
+        "id": 30,
+        "manufacturer_id": 47,
+        "claim": "Samir Trading & Marketing CJSC named as official KSA distributor with verified phone/email on Euroimmun's own distributor-locator page",
+        "evidence_type": "distributor's own manufacturer listing",
+        "source_detail": "euroimmun.com distributor pages (EUROIMMUN Analyzer I, EUROLabWorkstation ELISA)",
+        "reviewed_date": "2026-07-05"
+      }
+    ],
+    "products": [
+      {
+        "id": 154,
+        "manufacturer_id": 47,
+        "product_name": "EUROLINE",
+        "product_type": "Multiplex immunoblot",
+        "description": "Multiplex line immunoblot technology for simultaneous detection of multiple autoantibodies on a single strip",
+        "source": "euroimmun.com",
+        "department": "Immunology & Serology",
+        "throughput": null,
+        "sample_types": null,
+        "certifications": null,
+        "brochure_url": null
+      },
+      {
+        "id": 155,
+        "manufacturer_id": 47,
+        "product_name": "EUROIMMUN Analyzer I",
+        "product_type": "Automated ELISA processor",
+        "description": "Fully automated ELISA processing, up to 7 microplates / 180 samples per run",
+        "source": "euroimmun.com/products/automation/elisa/euroimmun-analyzer-i/",
+        "department": "Immunology & Serology",
+        "throughput": null,
+        "sample_types": null,
+        "certifications": null,
+        "brochure_url": null
+      },
+      {
+        "id": 156,
+        "manufacturer_id": 47,
+        "product_name": "EUROLabWorkstation ELISA",
+        "product_type": "Automated ELISA processor",
+        "description": "High-throughput automated ELISA workstation, up to 15 microplates / 700 samples, 200 tests/hour",
+        "source": "euroimmun.com/products/automation/elisa/eurolabworkstation-elisa/",
+        "department": "Immunology & Serology",
+        "throughput": null,
+        "sample_types": null,
+        "certifications": null,
+        "brochure_url": null
+      }
+    ],
+    "regulatory": []
+  },
+  {
+    "id": 48,
+    "name": "Randox Laboratories",
+    "headquarters": "United Kingdom",
+    "website": "randox.com",
+    "portfolio": "Clinical chemistry analyzers (RX series), Biochip Array Technology for multiplex immunoassay, Acusera third-party quality control materials",
+    "ksa_status": "Unclear -- Randox's own distributor pages confirm Saudi Arabia as a served market, but no specific named KSA distributor entity was found in public sources reviewed",
+    "status_tag": "unclear",
+    "opportunity_note": "Medium -- served market confirmed but exact local distributor not yet identified; worth a direct outreach to Randox to confirm their current KSA partner",
+    "confidence_tier": "silver",
+    "sources": "randox.com; medicaldevices.icij.org (FDA device registration listing Saudi Arabia in Randox's foreign distribution list); bgi.com/us/IVD-Partner-Randox",
+    "category": "Clinical Chemistry",
+    "is_published": 1,
+    "created_at": "2026-07-09 12:41:32",
+    "verified_by": "manual research, see sources",
+    "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": "https://www.randox.com/contact-us/",
+    "technologies": [],
+    "distributors": [],
+    "opportunity": null,
+    "evidence": [],
+    "products": [
+      {
+        "id": 157,
+        "manufacturer_id": 48,
+        "product_name": "RX monaco",
+        "product_type": "Clinical chemistry analyzer",
+        "description": "Fully automated clinical chemistry analyzer for low-to-mid volume laboratories",
+        "source": "randox.com/core-disciplines/chemistry",
+        "department": "Clinical Chemistry",
+        "throughput": null,
+        "sample_types": null,
+        "certifications": null,
+        "brochure_url": null
+      },
+      {
+        "id": 158,
+        "manufacturer_id": 48,
+        "product_name": "Biochip Array Technology",
+        "product_type": "Multiplex immunoassay platform",
+        "description": "Simultaneous detection of multiple analytes from a single patient sample on a biochip",
+        "source": "selectscience.net/company/randox-laboratories-ltd",
+        "department": "Clinical Chemistry",
+        "throughput": null,
+        "sample_types": null,
+        "certifications": null,
+        "brochure_url": null
+      },
+      {
+        "id": 159,
+        "manufacturer_id": 48,
+        "product_name": "Acusera QC materials",
+        "product_type": "Quality control reagent",
+        "description": "Third-party quality control materials, including Acusera 24-7 Live Online interlaboratory data management",
+        "source": "selectscience.net/company/randox-laboratories-ltd",
+        "department": "Clinical Chemistry",
+        "throughput": null,
+        "sample_types": null,
+        "certifications": null,
+        "brochure_url": null
+      }
+    ],
+    "regulatory": []
+  },
+  {
+    "id": 49,
+    "name": "Leica Biosystems (a Danaher company)",
+    "headquarters": "Germany",
+    "website": "leicabiosystems.com",
+    "portfolio": "Anatomical pathology workflow: HistoCore tissue processors/embedding/microtomes/cryostats, Aperio digital pathology scanners, IHC/ISH staining automation",
+    "ksa_status": "Covered -- Beckman Coulter Saudi Arabia CO.LT confirmed as NUPCO-awarded vendor for a Leica Biosystems Nussloch GmbH part (tissue processor carbon filter)",
+    "status_tag": "covered",
+    "opportunity_note": "Low -- already has confirmed KSA distribution via Beckman Coulter Saudi Arabia CO.LT",
+    "confidence_tier": "silver",
+    "sources": "NUPCO Tender NPT0003/25 (Lab Supplies Supplement), item citing 'Beckman Coulter Saudi Arabia CO.LT -Orig- Leica Biosystems Nussloch GmBH' for part 14049543860 -- uploaded by user. Only one part-level confirmation found; broader instrument-level distribution not independently verified -- tier held at silver.",
+    "category": "Histopathology & Cytology",
+    "is_published": 1,
+    "created_at": "2026-07-09 12:41:32",
+    "verified_by": "manual research, see sources",
+    "origin": "European",
+    "phone": null,
+    "email": null,
+    "contact_url": "https://www.leicabiosystems.com/contact-us/",
+    "technologies": [],
+    "distributors": [
+      {
+        "id": 18,
+        "name": "Beckman Coulter Saudi Arabia Co. Ltd (direct entity)",
+        "country": "Saudi Arabia",
+        "represents": "Beckman Coulter",
+        "source": "Extracted from manufacturer.ksa_status (already-verified NUPCO/company data), formalized into structured table",
+        "market_strength_tier": "Insufficient data",
+        "market_strength_basis": "Distributor row newly formalized from prior text-only confirmation; principal count not yet fully audited.",
+        "contact_info": null
+      }
+    ],
+    "opportunity": null,
+    "evidence": [
+      {
+        "id": 31,
+        "manufacturer_id": 49,
+        "claim": "Beckman Coulter Saudi Arabia CO.LT named as NUPCO-awarded vendor for a Leica Biosystems Nussloch GmbH part",
+        "evidence_type": "tender_award",
+        "source_detail": "NPT0003/25, part 14049543860, source: uploaded PDF",
+        "reviewed_date": "2026-07-05"
+      }
+    ],
+    "products": [
+      {
+        "id": 160,
+        "manufacturer_id": 49,
+        "product_name": "HistoCore PELORIS 3",
+        "product_type": "Automated tissue processor",
+        "description": "Automated sample preparation system for histology laboratories",
+        "source": "medicalexpo.com/prod/leica-biosystems-95735.html",
+        "department": "Histopathology & Cytology",
+        "throughput": null,
+        "sample_types": null,
+        "certifications": null,
+        "brochure_url": null
+      },
+      {
+        "id": 161,
+        "manufacturer_id": 49,
+        "product_name": "HistoCore PEGASUS Plus",
+        "product_type": "Automated tissue processor",
+        "description": "Floor-standing automated tissue processor for histology",
+        "source": "medicalexpo.com/prod/leica-biosystems-95735.html",
+        "department": "Histopathology & Cytology",
+        "throughput": null,
+        "sample_types": null,
+        "certifications": null,
+        "brochure_url": null
+      },
+      {
+        "id": 162,
+        "manufacturer_id": 49,
+        "product_name": "Aperio GT 450 / GT 180 DX",
+        "product_type": "Digital pathology scanner",
+        "description": "Whole-slide digital pathology scanners; GT 180 DX is a compact 180-slide-capacity scanner with AI-powered QC",
+        "source": "leicabiosystems.com",
+        "department": "Histopathology & Cytology",
+        "throughput": null,
+        "sample_types": null,
+        "certifications": null,
+        "brochure_url": null
+      },
+      {
+        "id": 163,
+        "manufacturer_id": 49,
+        "product_name": "HistoCore AUTOCUT / BIOCUT / MULTICUT",
+        "product_type": "Microtome",
+        "description": "Fully automated, semi-automated, and manual rotary microtomes for tissue sectioning",
+        "source": "leicabiosystems.com/histology-equipment/",
+        "department": "Histopathology & Cytology",
         "throughput": null,
         "sample_types": null,
         "certifications": null,
@@ -4461,7 +4854,7 @@ const DB = {
     "id": 2,
     "name": "Samir Trading & Marketing (also known as Samir Group)",
     "country": "Saudi Arabia",
-    "represents": "Macopharma, Ortho Clinical Diagnostics (Vision/MAX line), HORIBA Medical (Yumizen/Pentra/Micros), Alba Bioscience Ltd, ANTITOXIN GmbH",
+    "represents": "Macopharma, Ortho Clinical Diagnostics (Vision/MAX line), HORIBA Medical (Yumizen/Pentra/Micros), Alba Bioscience Ltd, ANTITOXIN GmbH, Euroimmun",
     "source": "samirgroup.com",
     "market_strength_tier": "Tenure-verified (partial)",
     "market_strength_basis": "FIVE confirmed principals now via NUPCO tender award records (NPT0038/24 + NPT0032-25) -- the broadest portfolio in this dataset. Still not independently confirmed for overall company size or revenue.",
@@ -7631,6 +8024,176 @@ const DB = {
     "category": "Coagulation",
     "confidence_tier": "gold",
     "origin": "European"
+  },
+  {
+    "id": 154,
+    "manufacturer_id": 47,
+    "product_name": "EUROLINE",
+    "product_type": "Multiplex immunoblot",
+    "description": "Multiplex line immunoblot technology for simultaneous detection of multiple autoantibodies on a single strip",
+    "source": "euroimmun.com",
+    "department": "Immunology & Serology",
+    "throughput": null,
+    "sample_types": null,
+    "certifications": null,
+    "brochure_url": null,
+    "manufacturer_name": "Euroimmun (a PerkinElmer company)",
+    "category": "Immunology & Serology",
+    "confidence_tier": "gold",
+    "origin": "European"
+  },
+  {
+    "id": 155,
+    "manufacturer_id": 47,
+    "product_name": "EUROIMMUN Analyzer I",
+    "product_type": "Automated ELISA processor",
+    "description": "Fully automated ELISA processing, up to 7 microplates / 180 samples per run",
+    "source": "euroimmun.com/products/automation/elisa/euroimmun-analyzer-i/",
+    "department": "Immunology & Serology",
+    "throughput": null,
+    "sample_types": null,
+    "certifications": null,
+    "brochure_url": null,
+    "manufacturer_name": "Euroimmun (a PerkinElmer company)",
+    "category": "Immunology & Serology",
+    "confidence_tier": "gold",
+    "origin": "European"
+  },
+  {
+    "id": 156,
+    "manufacturer_id": 47,
+    "product_name": "EUROLabWorkstation ELISA",
+    "product_type": "Automated ELISA processor",
+    "description": "High-throughput automated ELISA workstation, up to 15 microplates / 700 samples, 200 tests/hour",
+    "source": "euroimmun.com/products/automation/elisa/eurolabworkstation-elisa/",
+    "department": "Immunology & Serology",
+    "throughput": null,
+    "sample_types": null,
+    "certifications": null,
+    "brochure_url": null,
+    "manufacturer_name": "Euroimmun (a PerkinElmer company)",
+    "category": "Immunology & Serology",
+    "confidence_tier": "gold",
+    "origin": "European"
+  },
+  {
+    "id": 157,
+    "manufacturer_id": 48,
+    "product_name": "RX monaco",
+    "product_type": "Clinical chemistry analyzer",
+    "description": "Fully automated clinical chemistry analyzer for low-to-mid volume laboratories",
+    "source": "randox.com/core-disciplines/chemistry",
+    "department": "Clinical Chemistry",
+    "throughput": null,
+    "sample_types": null,
+    "certifications": null,
+    "brochure_url": null,
+    "manufacturer_name": "Randox Laboratories",
+    "category": "Clinical Chemistry",
+    "confidence_tier": "silver",
+    "origin": "European"
+  },
+  {
+    "id": 158,
+    "manufacturer_id": 48,
+    "product_name": "Biochip Array Technology",
+    "product_type": "Multiplex immunoassay platform",
+    "description": "Simultaneous detection of multiple analytes from a single patient sample on a biochip",
+    "source": "selectscience.net/company/randox-laboratories-ltd",
+    "department": "Clinical Chemistry",
+    "throughput": null,
+    "sample_types": null,
+    "certifications": null,
+    "brochure_url": null,
+    "manufacturer_name": "Randox Laboratories",
+    "category": "Clinical Chemistry",
+    "confidence_tier": "silver",
+    "origin": "European"
+  },
+  {
+    "id": 159,
+    "manufacturer_id": 48,
+    "product_name": "Acusera QC materials",
+    "product_type": "Quality control reagent",
+    "description": "Third-party quality control materials, including Acusera 24-7 Live Online interlaboratory data management",
+    "source": "selectscience.net/company/randox-laboratories-ltd",
+    "department": "Clinical Chemistry",
+    "throughput": null,
+    "sample_types": null,
+    "certifications": null,
+    "brochure_url": null,
+    "manufacturer_name": "Randox Laboratories",
+    "category": "Clinical Chemistry",
+    "confidence_tier": "silver",
+    "origin": "European"
+  },
+  {
+    "id": 160,
+    "manufacturer_id": 49,
+    "product_name": "HistoCore PELORIS 3",
+    "product_type": "Automated tissue processor",
+    "description": "Automated sample preparation system for histology laboratories",
+    "source": "medicalexpo.com/prod/leica-biosystems-95735.html",
+    "department": "Histopathology & Cytology",
+    "throughput": null,
+    "sample_types": null,
+    "certifications": null,
+    "brochure_url": null,
+    "manufacturer_name": "Leica Biosystems (a Danaher company)",
+    "category": "Histopathology & Cytology",
+    "confidence_tier": "silver",
+    "origin": "European"
+  },
+  {
+    "id": 161,
+    "manufacturer_id": 49,
+    "product_name": "HistoCore PEGASUS Plus",
+    "product_type": "Automated tissue processor",
+    "description": "Floor-standing automated tissue processor for histology",
+    "source": "medicalexpo.com/prod/leica-biosystems-95735.html",
+    "department": "Histopathology & Cytology",
+    "throughput": null,
+    "sample_types": null,
+    "certifications": null,
+    "brochure_url": null,
+    "manufacturer_name": "Leica Biosystems (a Danaher company)",
+    "category": "Histopathology & Cytology",
+    "confidence_tier": "silver",
+    "origin": "European"
+  },
+  {
+    "id": 162,
+    "manufacturer_id": 49,
+    "product_name": "Aperio GT 450 / GT 180 DX",
+    "product_type": "Digital pathology scanner",
+    "description": "Whole-slide digital pathology scanners; GT 180 DX is a compact 180-slide-capacity scanner with AI-powered QC",
+    "source": "leicabiosystems.com",
+    "department": "Histopathology & Cytology",
+    "throughput": null,
+    "sample_types": null,
+    "certifications": null,
+    "brochure_url": null,
+    "manufacturer_name": "Leica Biosystems (a Danaher company)",
+    "category": "Histopathology & Cytology",
+    "confidence_tier": "silver",
+    "origin": "European"
+  },
+  {
+    "id": 163,
+    "manufacturer_id": 49,
+    "product_name": "HistoCore AUTOCUT / BIOCUT / MULTICUT",
+    "product_type": "Microtome",
+    "description": "Fully automated, semi-automated, and manual rotary microtomes for tissue sectioning",
+    "source": "leicabiosystems.com/histology-equipment/",
+    "department": "Histopathology & Cytology",
+    "throughput": null,
+    "sample_types": null,
+    "certifications": null,
+    "brochure_url": null,
+    "manufacturer_name": "Leica Biosystems (a Danaher company)",
+    "category": "Histopathology & Cytology",
+    "confidence_tier": "silver",
+    "origin": "European"
   }
 ],
   events: [
@@ -7777,7 +8340,7 @@ const DB = {
     "record_id": 0,
     "action": "init",
     "detail": "Initial seed from verified July 2026 research",
-    "timestamp": "2026-07-09 08:07:04"
+    "timestamp": "2026-07-09 12:41:32"
   },
   {
     "id": 2,
@@ -7785,7 +8348,7 @@ const DB = {
     "record_id": 0,
     "action": "update",
     "detail": "v1.3: Added 4 new Blood Bank manufacturers + enriched distributor records from NPT0032-25",
-    "timestamp": "2026-07-09 08:07:04"
+    "timestamp": "2026-07-09 12:41:32"
   },
   {
     "id": 3,
@@ -7793,7 +8356,7 @@ const DB = {
     "record_id": 0,
     "action": "update",
     "detail": "v1.4: Added 3 Chinese IVD suppliers (Snibe, Dymind, URIT Medical) per user request; Snibe flagged as internal-knowledge sourced, Dymind and URIT verified via distributor websites",
-    "timestamp": "2026-07-09 08:07:04"
+    "timestamp": "2026-07-09 12:41:32"
   },
   {
     "id": 4,
@@ -7801,7 +8364,7 @@ const DB = {
     "record_id": 0,
     "action": "bulk_insert",
     "detail": "v1.5: Web-researched and added real product catalogs for Macopharma, Diagast, Cerus, Lorne Laboratories, JMS (batch 1 of ongoing product-enrichment pass across all 40 manufacturers)",
-    "timestamp": "2026-07-09 08:07:04"
+    "timestamp": "2026-07-09 12:41:32"
   },
   {
     "id": 5,
@@ -7809,7 +8372,7 @@ const DB = {
     "record_id": 0,
     "action": "bulk_insert",
     "detail": "v1.6: Completed full product research pass (batches 2-5) across all 40 manufacturers -- 141 total products on file; Teleflex remains the sole documented zero-product exception",
-    "timestamp": "2026-07-09 08:07:04"
+    "timestamp": "2026-07-09 12:41:32"
   },
   {
     "id": 6,
@@ -7817,7 +8380,7 @@ const DB = {
     "record_id": 0,
     "action": "bulk_insert",
     "detail": "v1.7: Started Microbiology category expansion (BD, Copan, 77Elektronika, QIAGEN, BioFire, Cepheid) + extended bioMerieux with microbiology products, using previously-uploaded NPT0028/24 tender data cross-verified with live web research",
-    "timestamp": "2026-07-09 08:07:04"
+    "timestamp": "2026-07-09 12:41:32"
   },
   {
     "id": 7,
@@ -7825,7 +8388,7 @@ const DB = {
     "record_id": 0,
     "action": "bulk_insert",
     "detail": "v1.8: Added regulatory_status table, seeded only with FDA/CE facts already verified during prior product research (8 rows) -- not a comprehensive regulatory audit",
-    "timestamp": "2026-07-09 08:07:04"
+    "timestamp": "2026-07-09 12:41:32"
   },
   {
     "id": 8,
@@ -7833,11 +8396,19 @@ const DB = {
     "record_id": 0,
     "action": "schema_migration",
     "detail": "v1.9: Added origin classification (American/European/Chinese/Asian-other), extended products (department/throughput/certifications), created and populated company_distributors many-to-many join table (72 links total, including 23 formalized from prior text-only ksa_status mentions)",
-    "timestamp": "2026-07-09 08:07:04"
+    "timestamp": "2026-07-09 12:41:32"
+  },
+  {
+    "id": 9,
+    "table_name": "database",
+    "record_id": 0,
+    "action": "bulk_insert",
+    "detail": "v2.0: Added contact fields (phone/email/contact_url) to manufacturers -- shown only on manufacturer cards per requirement. Added 3 new manufacturers across 3 new lab departments: Euroimmun (Immunology & Serology), Randox Laboratories (Clinical Chemistry), Leica Biosystems (Histopathology & Cytology). This is a first batch (3 of the requested ~15); remaining categories/companies to be researched in follow-up rounds.",
+    "timestamp": "2026-07-09 12:41:32"
   }
 ],
   reviewQueue: [],
-  nextId: 500,
+  nextId: 600,
 };
 const TODAY = new Date();
 function daysFrom(d){ return Math.round((new Date(d) - TODAY) / 86400000); }
@@ -7903,6 +8474,14 @@ function originFlag(origin){
   const s = ORIGIN_STYLES[origin];
   if(!s) return '';
   return `<span class="origin-flag" style="background:${s.bg};color:${s.fg}">${s.label}</span>`;
+}
+function manufacturerContactRow(m){
+  if(!m.phone && !m.email && !m.contact_url) return '';
+  const parts = [];
+  if(m.phone) parts.push(`<a class="contact-chip" href="tel:${m.phone}" onclick="event.stopPropagation()" title="Call ${m.phone}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>Call</a>`);
+  if(m.email) parts.push(`<a class="contact-chip" href="mailto:${m.email}" onclick="event.stopPropagation()" title="Email ${m.email}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg>Email</a>`);
+  if(m.contact_url) parts.push(`<a class="contact-chip" href="${m.contact_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Manufacturer contact form"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg>Contact form</a>`);
+  return `<div class="contact-row">${parts.join('')}</div>`;
 }
 function dataCompleteness(){
   const resolved = DB.manufacturers.filter(m => m.status_tag === 'covered' || m.status_tag === 'open').length;
@@ -8064,6 +8643,7 @@ function loadManufacturerGrid(){
           ${badge(m.confidence_tier, m.confidence_tier.toUpperCase())}
         </div>
       </div>
+      ${manufacturerContactRow(m)}
     </div>
   `).join('');
 }
@@ -8092,6 +8672,7 @@ function renderCompanyDetail(){
       <div class="row"><span class="label">Portfolio</span><span class="val">${m.portfolio}</span></div>
       <div class="row"><span class="label">KSA status</span><span class="val">${m.ksa_status}</span></div>
       <div class="row"><span class="label">Sources</span><span class="val">${m.sources}</span></div>
+      ${manufacturerContactRow(m)}
     `;
   } else if(detailSubTab === 'products'){
     panel.innerHTML = (m.products && m.products.length) ? m.products.map(p => `<div class="row"><span class="label">${p.product_name}</span><span class="val">${p.product_type} — ${p.description}</span></div>`).join('') : `<div class="not-verified">No confirmed product on file for this company — a deliberate gap, not an oversight.</div>`;
