@@ -1243,6 +1243,208 @@ def seed(conn):
              "pubmed.ncbi.nlm.nih.gov/36696550 (i-STAT vs Radiometer ABL800 comparability study)", "Hematology"))
 
     cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','bulk_insert','v2.1: Added DiaSorin (Immunology & Serology) and Radiometer (Clinical Chemistry/POCT blood gas, verified via independent peer-reviewed KSA study) + extended existing Abbott Core Diagnostics with i-STAT POCT product line.')")
+
+    # --- Session 1 of 10-session roadmap: Immunoassay depth ---
+    cur.execute("""INSERT INTO manufacturers
+        (name, headquarters, website, portfolio, ksa_status, status_tag, opportunity_note, confidence_tier, sources, category, origin)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+        ("Fujirebio (an H.U. Group company)", "Japan", "fujirebio.com",
+         "LUMIPULSE G series CLEIA immunoassay analyzers for oncology, neurology (Alzheimer's biomarkers), thyroid, fertility, infectious disease markers",
+         "Unclear -- Fujirebio's own product pages direct buyers to 'contact your local Fujirebio representative' without naming a specific KSA distributor entity in sources reviewed",
+         "unclear", "Medium -- global company with broad menu but exact KSA distributor not yet identified", "silver",
+         "fujirebio.com product pages (LUMIPULSE G1200, G600II, various assay cartridges)", "Immunology & Serology", "Asian (other)"))
+    fujirebio_id = cur.lastrowid
+    cur.executemany("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,'Immunology & Serology')", [
+        (fujirebio_id, "LUMIPULSE G1200", "CLEIA immunoassay analyzer", "Mid-sized fully automated CLEIA analyzer, 120 tests/hour, mono test cartridge concept", "fujirebio.com/en/products-solutions/lumipulser-g1200"),
+        (fujirebio_id, "LUMIPULSE G600II", "CLEIA immunoassay analyzer", "Compact benchtop CLEIA analyzer, 60 tests/hour, same cartridge concept as G1200", "fujirebio.com/en/products-solutions/lumipulse-g600ii"),
+        (fujirebio_id, "Lumipulse G pTau 217 CSF assay", "Neurology biomarker assay", "Blood/CSF-based Alzheimer's disease biomarker assay, part of Fujirebio's expanding neurological pipeline", "fujirebio.com (2025 product announcement)"),
+    ])
+    ortho_row = cur.execute("SELECT id FROM manufacturers WHERE name LIKE 'Ortho Clinical%'").fetchone()
+    if ortho_row:
+        cur.execute("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)",
+            (ortho_row[0], "VITROS ECiQ Immunodiagnostic System", "Immunoassay analyzer",
+             "Compact immunoassay system with no plumbing/drains/deionized water requirement; menu includes SARS-CoV-2, HIV combo, procalcitonin, immunosuppressive drugs, drugs of abuse",
+             "cardinalhealth.com (Ortho VITROS ECiQ product page)", "Immunology & Serology"))
+    cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','bulk_insert','Session 1 (Immunoassay): Added Fujirebio (unclear KSA status) + extended Ortho Clinical Diagnostics with VITROS ECiQ immunoassay product')")
+
+    # --- Session 2 of 10-session roadmap: Flow Cytometry ---
+    bd_row = cur.execute("SELECT id FROM manufacturers WHERE name = 'BD (Becton, Dickinson and Company)'").fetchone()
+    beckman_row = cur.execute("SELECT id FROM manufacturers WHERE name = 'Beckman Coulter'").fetchone()
+    if bd_row and beckman_row:
+        cur.executemany("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)", [
+            (bd_row[0], "BD FACSLyric", "Flow cytometer", "High-performance clinical/research flow cytometer, 4/6/8/10/12-color configurations, BD FACSuite software with automation API for robotic integration", "bdbiosciences.com/en-us/products/instruments/flow-cytometers/clinical-cell-analyzers/facslyric", "Immunology & Serology"),
+            (bd_row[0], "BD Multitest Reagents / BD Trucount Tubes", "Flow cytometry reagent", "Absolute counting reagent system for immunological assessment (e.g. HIV immune deficiency monitoring) on FACSLyric", "bdbiosciences.com/en-us/products/instruments/flow-cytometers/clinical-cell-analyzers/facslyric", "Immunology & Serology"),
+            (beckman_row[0], "DxFLEX", "Flow cytometer", "Clinical flow cytometer derived from CytoFLEX platform, 13-color capability (10-color IVD-cleared with ClearLLab 10C in the US), APD detector technology, up to 25M events/file", "beckman.com/flow-cytometry/clinical-flow-cytometers/dxflex", "Hematology"),
+            (beckman_row[0], "ClearLLab 10C Reagent System", "Flow cytometry reagent panel", "IVD-cleared 10-color reagent panels for leukemia/lymphoma immunophenotyping on DxFLEX", "beckman.com/flow-cytometry/clinical-flow-cytometers/dxflex", "Hematology"),
+        ])
+    cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('products','0','bulk_insert','Session 2 (Flow Cytometry): Extended BD with FACSLyric flow cytometer + Multitest/Trucount reagents (Immunology & Serology dept), extended Beckman Coulter with DxFLEX + ClearLLab 10C (Hematology dept) -- both use existing confirmed KSA distributor links. Cytek Biosciences deferred to a follow-up session.')")
+
+    # --- Session 3 of 10-session roadmap: Urinalysis ---
+    siemens_row = cur.execute("SELECT id FROM manufacturers WHERE name = 'Siemens Healthineers'").fetchone()
+    if siemens_row:
+        cur.executemany("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)", [
+            (siemens_row[0], "CLINITEK Advantus", "Semi-automated urine chemistry analyzer", "Auto-Checks strip-reading analyzer, 7 sec/sample, up to 500 tests/hour, Multistix 10 SG strip family", "siemens-healthineers.com/en-us/urinalysis-products/urinalysis-systems/clinitek-advantus-urine-chemistry-analyzer", "Clinical Chemistry"),
+            (siemens_row[0], "CLINITEK Status+", "POCT urinalysis analyzer", "Automated point-of-care urinalysis + urine hCG pregnancy dual-purpose analyzer, results in 1 minute", "siemens-healthineers.com/en-us/poct-urinalysis/clinitek-status-plus", "Clinical Chemistry"),
+            (siemens_row[0], "Atellica 1500 Automated Urinalysis System", "Fully automated urinalysis system", "Combines CLINITEK Novus and Atellica UAS 800 into one fully automated urinalysis + sediment system; includes ACR (albumin-to-creatinine ratio) kidney-disease screening", "siemens-healthineers.com/en-sa/point-of-care-testing/featured-topics-in-poct/urinalysis-featured-topics/acr-urine-testing", "Clinical Chemistry"),
+        ])
+    cur.execute("""INSERT INTO manufacturers
+        (name, headquarters, website, portfolio, ksa_status, status_tag, opportunity_note, confidence_tier, sources, category, origin)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+        ("ARKRAY", "Japan", "arkray.eu",
+         "Urinalysis analyzers and test strips; also a major player in diabetes/glucose monitoring test strips",
+         "Unclear -- no specific KSA distributor entity found in public sources reviewed; Arkray operates regional sites (arkrayusa.com, arkray.eu) without a KSA-specific distributor page located",
+         "unclear", "Medium -- established global urinalysis brand, KSA distributor not yet identified", "bronze",
+         "arkrayusa.com/clinical-diagnostics/products/urinalysis/; arkray.eu/english/products/urinalysis_urine_testing/",
+         "Clinical Chemistry", "Asian (other)"))
+    cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','bulk_insert','Session 3 (Urinalysis): Extended Siemens Healthineers with CLINITEK Advantus/Status+ and Atellica 1500 urinalysis products (real Saudi-specific Siemens page found for ACR testing). Added ARKRAY as new manufacturer -- bronze tier since no KSA distributor found and portfolio confirmation was limited to general product category pages.')")
+
+    # --- Session 4: POCT ---
+    roche_row = cur.execute("SELECT id FROM manufacturers WHERE name = 'Roche Diagnostics (NAT/Molecular line)'").fetchone()
+    if roche_row:
+        cur.executemany("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)", [
+            (roche_row[0], "cobas pulse", "POCT blood glucose analyzer", "App-based blood glucose management system, meets CLSI POCT12-A3 criteria, tested against 140+ interferents", "diagnostics.roche.com/global/en/products/instruments/cobas-pulse-system.html", "Clinical Chemistry"),
+            (roche_row[0], "CoaguChek XS / Pro II / Vantus", "POCT coagulation analyzer", "Point-of-care INR/PT monitoring system family for anticoagulation therapy management, since 1992", "diagnostics.roche.com/us/en/products/product-category/brand/coaguchek.html", "Coagulation"),
+        ])
+    cur.execute("""INSERT INTO manufacturers
+        (name, headquarters, website, portfolio, ksa_status, status_tag, opportunity_note, confidence_tier, sources, category, origin)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+        ("QuidelOrtho", "USA", "quidelortho.com",
+         "Point-of-care and central lab diagnostics: rapid lateral flow tests, benchtop POCT instruments, and molecular solutions",
+         "Covered -- QuidelOrtho maintains a dedicated Saudi Arabia country site (quidelortho.com/sa/en/) confirming active KSA market presence, though a specific named local distributor entity was not identified in sources reviewed",
+         "unclear", "Low-Medium -- confirmed dedicated KSA web presence but specific distributor not yet identified", "silver",
+         "quidelortho.com/sa/en/laboratory-professionals/clinical-chemistry-immunoassay/lab-supplies/controls-and-supplies-labs; quidelortho.com/global/en/laboratory-professionals/point-of-care-testing",
+         "Clinical Chemistry", "American"))
+    quidel_id = cur.lastrowid
+    cur.execute("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)",
+        (quidel_id, "QuidelOrtho POCT Platform", "Point-of-care testing instruments + lateral flow tests", "Range of near-patient testing solutions from rapid lateral flow tests to portable benchtop instruments for clinics, urgent care, and pharmacy settings", "quidelortho.com/global/en/laboratory-professionals/point-of-care-testing", "Clinical Chemistry"))
+    cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','bulk_insert','Session 4 (POCT): Extended Roche Diagnostics with cobas pulse + CoaguChek POCT products. Added QuidelOrtho -- confirmed dedicated KSA country website but no named local distributor.')")
+
+    # --- Session 5: Laboratory Automation ---
+    la_manufacturers = [
+        dict(name="Inpeco", headquarters="Switzerland", origin="European", website="inpeco.com",
+             portfolio="FlexLab Total Laboratory Automation (TLA) system -- open track connecting 50+ analyzer types across 10+ specialties; ProTube pre-analytical sample automation suite",
+             ksa_status="Unclear -- no specific KSA distributor entity found in public sources reviewed",
+             status_tag="unclear", opportunity_note="Medium -- established global TLA leader (1700+ installations worldwide, Frost & Sullivan 2018 Company of the Year), KSA distributor not yet identified", confidence_tier="silver",
+             sources="inpeco.com/our-automation-solutions/lab-automation-system/; bio-rad.com (Inpeco-Bio-Rad FlexLab partnership announcement)", category="Clinical Chemistry"),
+        dict(name="Tecan", headquarters="Switzerland", origin="European", website="tecan.com",
+             portfolio="Laboratory automation instruments for life sciences and applied markets: liquid handling, plate readers (Spark Cyto), OEM automation solutions for clinical diagnostics",
+             ksa_status="Unclear -- Tecan's own distributor directory lists a Middle East/Gulf regional partner (Alqiffaf Scientific Co.) but the exact country scope was not clearly confirmed as KSA-specific in the source page reviewed",
+             status_tag="unclear", opportunity_note="Medium -- global automation leader; distributor relationship needs direct confirmation before treating as KSA-covered", confidence_tier="bronze",
+             sources="tecan.com/tecan-distributors-worldwide (regional distributor listing, KSA-specific scope not clearly confirmed)", category="Clinical Chemistry"),
+    ]
+    la_ids = {}
+    for m in la_manufacturers:
+        cur.execute("""INSERT INTO manufacturers
+            (name, headquarters, website, portfolio, ksa_status, status_tag, opportunity_note, confidence_tier, sources, category, origin)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (m["name"], m["headquarters"], m["website"], m["portfolio"], m["ksa_status"], m["status_tag"],
+             m["opportunity_note"], m["confidence_tier"], m["sources"], m["category"], m["origin"]))
+        la_ids[m["name"]] = cur.lastrowid
+    cur.executemany("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)", [
+        (la_ids["Inpeco"], "FlexLab", "Total Laboratory Automation (TLA) track system", "Open TLA system with 30+ pre/post-analytical modules and 50+ analyzer connections across 10+ specialties, full sample traceability", "inpeco.com/our-automation-solutions/lab-automation-system/", "Clinical Chemistry"),
+        (la_ids["Inpeco"], "ProTube Suite", "Pre-analytical sample automation", "Covers sample preparation, transportation, and delivery to the clinical laboratory", "inpeco.com/our-automation-solutions/", "Clinical Chemistry"),
+        (la_ids["Tecan"], "Spark Cyto", "Multi-mode plate reader", "Plate reader with fluorescence imaging and cytometry capabilities for cell-based research", "lifesciences.tecan.com/products", "Molecular Diagnostics"),
+    ])
+    cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','bulk_insert','Session 5 (Laboratory Automation): Added Inpeco and Tecan, both unclear KSA distribution.')")
+
+    # --- Session 9: Molecular/Chemistry re-attempt ---
+    s9_manufacturers = [
+        dict(name="Sansure Biotech", headquarters="China", origin="Chinese", website="sansureglobal.com",
+             portfolio="Molecular diagnostics: SLAN series real-time PCR systems, automated nucleic acid extraction, one-tube/magnetic-bead reagent technology for infectious disease, HPV, and NAT blood screening",
+             ksa_status="Unclear -- no specific KSA distributor entity found; company confirms presence in ~160 countries and certificates in 65+ countries (NMPA China, FDA EUA, ANVISA, TGA Australia) but Saudi Arabia not specifically named among sources reviewed",
+             status_tag="unclear", opportunity_note="Medium -- large global molecular diagnostics player with broad international certification footprint, KSA distributor not yet identified", confidence_tier="silver",
+             sources="sansureglobal.com; linkedin.com/company/sansure-biotech-inc; sansureglobal.com/product-category/instrument/real-time_pcr_system/", category="Molecular Diagnostics"),
+        dict(name="Maccura Biotechnology", headquarters="China", origin="Chinese", website="maccura.com",
+             portfolio="Broad IVD platform: i6000 chemiluminescent immunoassay analyzer, F680 hematology analyzer, C1000/C2000 clinical chemistry analyzers, LABAS MAX/MIX total laboratory automation, coagulation and molecular diagnostics lines",
+             ksa_status="Unclear -- confirmed regional presence via Medlab Middle East exhibition (Dubai) and a distributor gala event, but no specific KSA distributor entity named in sources reviewed",
+             status_tag="unclear", opportunity_note="Medium -- founded 1994, first Chinese IFCC member (2010), broad multi-department IVD portfolio; KSA distributor not yet identified", confidence_tier="silver",
+             sources="linkedin.com/company/maccura-biotechnology (Medlab ME Dubai exhibition, 2024 Distributor Gala); youtube.com/@maccurabiotechnology8935", category="Clinical Chemistry"),
+    ]
+    s9_ids = {}
+    for m in s9_manufacturers:
+        cur.execute("""INSERT INTO manufacturers
+            (name, headquarters, website, portfolio, ksa_status, status_tag, opportunity_note, confidence_tier, sources, category, origin)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (m["name"], m["headquarters"], m["website"], m["portfolio"], m["ksa_status"], m["status_tag"],
+             m["opportunity_note"], m["confidence_tier"], m["sources"], m["category"], m["origin"]))
+        s9_ids[m["name"]] = cur.lastrowid
+    cur.executemany("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)", [
+        (s9_ids["Sansure Biotech"], "SLAN Series Real-Time PCR System", "Real-time PCR instrument", "Fluorescence-based real-time PCR instruments for nucleic acid detection and quantification", "crunchbase.com/organization/sansure-biotech", "Molecular Diagnostics"),
+        (s9_ids["Sansure Biotech"], "iPonatic Portable Molecule Workstation", "Portable molecular POCT device", "Portable molecular diagnostics workstation for clinical emergency, health management, and field/military applications", "sansureglobal.com/product-category/instrument/real-time_pcr_system/", "Molecular Diagnostics"),
+        (s9_ids["Maccura Biotechnology"], "i6000", "Chemiluminescent immunoassay analyzer", "Automated CLIA immunoassay analyzer, part of Maccura's core diagnostic platform lineup", "linkedin.com/company/maccura-biotechnology", "Immunology & Serology"),
+        (s9_ids["Maccura Biotechnology"], "F680", "Hematology analyzer", "Automated hematology analyzer from Maccura's diagnostic platform range", "linkedin.com/company/maccura-biotechnology", "Hematology"),
+        (s9_ids["Maccura Biotechnology"], "LABAS MAX / MIX", "Total laboratory automation", "Total laboratory automation system managing sporadic and continuous sample submissions across multiple analyzer positions", "linkedin.com/company/maccura-biotechnology", "Clinical Chemistry"),
+    ])
+    cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','bulk_insert','Session 9 (Molecular/Chemistry re-attempt): Added Sansure Biotech and Maccura Biotechnology -- honestly marked unclear KSA distribution.')")
+
+    # --- Session 6: Cytology & Digital Pathology ---
+    hologic_row = cur.execute("SELECT id FROM manufacturers WHERE name = 'Hologic'").fetchone()
+    bd_row2 = cur.execute("SELECT id FROM manufacturers WHERE name = 'BD (Becton, Dickinson and Company)'").fetchone()
+    if hologic_row and bd_row2:
+        cur.executemany("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)", [
+            (hologic_row[0], "ThinPrep Pap Test", "Liquid-based cytology test", "Most widely used liquid-based cytology test globally (1B+ performed); FDA-approved for HPV, chlamydia/gonorrhea, trichomoniasis testing from same vial", "hologic.com/hologic-products/collection-devices/thinprep-pap-test", "Histopathology & Cytology"),
+            (hologic_row[0], "ThinPrep 5000 / Genesis Processor", "Cytology specimen processor", "Automated liquid-based cytology specimen preparation, up to 8 hours walkaway time, automated chain-of-custody", "hologic.com/hologic-products/cytology/thinprep-processors", "Histopathology & Cytology"),
+            (bd_row2[0], "BD SurePath Liquid-Based Pap Test", "Liquid-based cytology test", "FDA-approved liquid-based cervical cytology system, alternative to ThinPrep, compatible with multiple HPV testing platforms", "academic.oup.com/ajcp (BD SurePath DTS cervical cytology study, 2024)", "Histopathology & Cytology"),
+            (bd_row2[0], "BD FocalPoint Slide Profiler", "Automated cytology screening system", "Automated imaging system for cervical cytology slide screening/ranking, compared against ThinPrep Imaging System in clinical studies", "science.gov/topicpages/b/bd+surepath+cytology", "Histopathology & Cytology"),
+        ])
+    cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('products','0','bulk_insert','Session 6 (Cytology/Digital Pathology): Extended Hologic + BD with cytology products.')")
+
+    # --- Session 7: Rapid Tests ---
+    s7_manufacturers = [
+        dict(name="SD Biosensor", headquarters="South Korea", origin="Asian (other)", website="sdbiosensor.com",
+             portfolio="STANDARD Q rapid lateral flow tests, STANDARD F fluorescence immunoassay, STANDARD E ELISA, STANDARD M point-of-care molecular diagnostics; WHO-listed for latent TB testing",
+             ksa_status="Unclear -- no specific KSA distributor entity found in public sources reviewed",
+             status_tag="unclear", opportunity_note="Medium -- WHO-recognized global rapid diagnostics leader, KSA distributor not yet identified", confidence_tier="silver",
+             sources="sdbiosensor.com; sdbiosensor.com/product/main?bcode=11", category="Microbiology"),
+        dict(name="Wondfo (Guangzhou Wondfo Biotech)", headquarters="China", origin="Chinese", website="en.wondfo.com",
+             portfolio="Finecare fluorescence immunoassay rapid tests (D-dimer, ProBNP, NGAL, etc.), BGA-101 portable blood gas reader, lateral flow POCT products",
+             ksa_status="Unclear -- no specific KSA distributor entity found in public sources reviewed",
+             status_tag="unclear", opportunity_note="Medium -- leading Chinese POCT manufacturer, KSA distributor not yet identified", confidence_tier="silver",
+             sources="en.wondfo.com; alliedhospitalsupply.com/catalog (Wondfo BGA-101 listing, distributor region not confirmed as KSA)", category="Clinical Chemistry"),
+    ]
+    s7_ids = {}
+    for m in s7_manufacturers:
+        cur.execute("""INSERT INTO manufacturers
+            (name, headquarters, website, portfolio, ksa_status, status_tag, opportunity_note, confidence_tier, sources, category, origin)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (m["name"], m["headquarters"], m["website"], m["portfolio"], m["ksa_status"], m["status_tag"],
+             m["opportunity_note"], m["confidence_tier"], m["sources"], m["category"], m["origin"]))
+        s7_ids[m["name"]] = cur.lastrowid
+    cur.executemany("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)", [
+        (s7_ids["SD Biosensor"], "STANDARD Q", "Rapid lateral flow test", "Rapid diagnostic test line with high sensitivity/specificity, covers infectious disease parameters", "sdbiosensor.com/product/main?bcode=11", "Microbiology"),
+        (s7_ids["SD Biosensor"], "STANDARD M", "POCT molecular diagnostics system", "Point-of-care molecular diagnostics (MDx) system for near-patient clinical decision making", "sdbiosensor.com", "Microbiology"),
+        (s7_ids["Wondfo (Guangzhou Wondfo Biotech)"], "Finecare D-Dimer / ProBNP / NGAL Tests", "Fluorescence immunoassay rapid test", "Rapid quantitative fluorescence immunoassay tests for cardiac and renal biomarkers", "tradeindia.com (Wondfo Finecare D-dimer listing)", "Clinical Chemistry"),
+        (s7_ids["Wondfo (Guangzhou Wondfo Biotech)"], "BGA-101", "Portable blood gas analyzer", "Portable POCT blood gas reader: oxygenation, pH, electrolytes in ~30 seconds", "alliedhospitalsupply.com/catalog", "Clinical Chemistry"),
+    ])
+    cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','bulk_insert','Session 7 (Rapid Tests): Added SD Biosensor and Wondfo.')")
+
+    # --- Session 8: Laboratory Equipment ---
+    s8_manufacturers = [
+        dict(name="Thermo Fisher Scientific", headquarters="USA", origin="American", website="thermofisher.com",
+             portfolio="Broad lab equipment portfolio: centrifuges (mini to industrial floor-standing), thermal cyclers, shakers/incubators, molecular biology reagents",
+             ksa_status="Unclear -- independent market research report lists Saudi Arabia within Thermo Fisher's Middle East & Africa regional market coverage for centrifuge equipment, but no specific named KSA distributor entity identified",
+             status_tag="unclear", opportunity_note="Medium -- major global lab equipment leader (75+ years in centrifugation), KSA distributor not yet identified", confidence_tier="silver",
+             sources="thermofisher.com/us/en/home/life-science/lab-equipment/lab-centrifuges.html; digitaljournal.com (Laboratory Centrifuge Equipment Market report, names Saudi Arabia in MEA region)", category="Clinical Chemistry"),
+        dict(name="Eppendorf", headquarters="Germany", origin="European", website="eppendorf.com",
+             portfolio="Pipettes, centrifuges (5702/5810R/5430R/MiniSpin series), thermal cyclers, shakers/incubator shakers, cell culture and bioprocess systems",
+             ksa_status="Unclear -- Eppendorf maintains a Middle East & Africa regional site (eppendorf.com/ae-en) but no specific named KSA distributor entity identified in sources reviewed",
+             status_tag="unclear", opportunity_note="Medium -- established global lab equipment brand with dedicated MEA presence, KSA distributor not yet identified", confidence_tier="silver",
+             sources="eppendorf.com/ae-en; fishersci.com/us/en/brands/I9C8LVGA/eppendorf-north-america.html", category="Clinical Chemistry"),
+    ]
+    s8_ids = {}
+    for m in s8_manufacturers:
+        cur.execute("""INSERT INTO manufacturers
+            (name, headquarters, website, portfolio, ksa_status, status_tag, opportunity_note, confidence_tier, sources, category, origin)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (m["name"], m["headquarters"], m["website"], m["portfolio"], m["ksa_status"], m["status_tag"],
+             m["opportunity_note"], m["confidence_tier"], m["sources"], m["category"], m["origin"]))
+        s8_ids[m["name"]] = cur.lastrowid
+    cur.executemany("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)", [
+        (s8_ids["Thermo Fisher Scientific"], "Thermo Scientific X Pro Centrifuge Series", "General purpose centrifuge", "General purpose centrifuge series with Auto-Door, Auto-Lock rotor exchange, ClickSeal biocontainment lids", "thermofisher.com/us/en/home/life-science/lab-equipment/lab-centrifuges.html", "Clinical Chemistry"),
+        (s8_ids["Eppendorf"], "Eppendorf Centrifuge 5810 R", "Refrigerated centrifuge", "Refrigerated day-to-day centrifuge for medium-throughput labs, compact footprint, tube and plate format compatible", "fishersci.com/us/en/browse/90180031/centrifuges", "Clinical Chemistry"),
+        (s8_ids["Eppendorf"], "Eppendorf MiniSpin / MiniSpin plus", "Microcentrifuge", "Entry-level compact microcentrifuges suitable for individual workstations, molecular biology separations", "fishersci.com/us/en/browse/90180031/centrifuges", "Molecular Diagnostics"),
+    ])
+    cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','bulk_insert','Session 8 (Lab Equipment): Added Thermo Fisher Scientific and Eppendorf.')")
     conn.commit()
 
 if __name__ == "__main__":
