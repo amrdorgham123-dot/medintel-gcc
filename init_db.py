@@ -1514,6 +1514,269 @@ def seed(conn):
         print(f"  Login: {admin_email} / ChangeMe-Local-Only-2026")
         print("  Set ADMIN_EMAIL and ADMIN_PASSWORD env vars before deploying anywhere real.")
 
+    # --- New category: General Laboratory Equipment ---
+    gle_manufacturers = [
+        dict(name="Mettler Toledo", headquarters="Switzerland", origin="European", website="mt.com",
+             portfolio="Precision instruments for weighing, measuring, and analyzing: analytical/precision/micro balances, titrators, density meters, pH/ion meters, moisture analyzers, thermal analysis",
+             ksa_status="Covered -- Mettler Toledo's own official Saudi Arabia site names Diamond Spectrum for Scientific and Laboratory Equipment (Jeddah) as the local partner, with a direct KSA sales phone number",
+             status_tag="covered", opportunity_note="Low -- already has confirmed, manufacturer-named KSA distribution", confidence_tier="gold",
+             sources="mt.com/sa/en/home.html (official Mettler Toledo Saudi Arabia page) -- names Diamond Spectrum for Scientific and Laboratory Equipment, Hammam Commercial Center, Al Batrji Street, Jeddah 21444, phone +966 12 691 9740", category="General Laboratory Equipment"),
+        dict(name="Esco Lifesciences", headquarters="Singapore", origin="Asian (other)", website="escolifesciences.com",
+             portfolio="Biosafety cabinets (Class I/II/III), laminar flow cabinets, PCR cabinets, CO2 incubators, cold storage (lab refrigerators/ULT freezers), fume hoods, IVF/ART equipment",
+             ksa_status="Unclear -- Esco confirmed a Riyadh conference presence (Dec 2024) and third-party GCC resellers claim coverage, but no manufacturer-named official KSA distributor was found in sources reviewed",
+             status_tag="unclear", opportunity_note="Medium -- active regional presence (Riyadh conference) suggests real KSA interest, but exact authorized distributor not yet identified", confidence_tier="silver",
+             sources="escolifesciences.com; cleanroomtechnology.com/esco-lifesciences-group-176893 (confirms 8-10 Dec 2024 conference presence in Riyadh, Saudi Arabia)", category="General Laboratory Equipment"),
+    ]
+    gle_ids = {}
+    for m in gle_manufacturers:
+        cur.execute("""INSERT INTO manufacturers
+            (name, headquarters, website, portfolio, ksa_status, status_tag, opportunity_note, confidence_tier, sources, category, origin)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (m["name"], m["headquarters"], m["website"], m["portfolio"], m["ksa_status"], m["status_tag"],
+             m["opportunity_note"], m["confidence_tier"], m["sources"], m["category"], m["origin"]))
+        gle_ids[m["name"]] = cur.lastrowid
+    cur.executemany("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)", [
+        (gle_ids["Mettler Toledo"], "XPR Analytical Balance (Excellence Level)", "Analytical balance", "Highest-precision analytical balance line, readability 0.002mg-0.1mg, capacity up to 320g, automatic internal calibration (FACT)", "mt.com (Excellence Level Balances)", "General Laboratory Equipment"),
+        (gle_ids["Mettler Toledo"], "MS-TS / ML-T Analytical Balances (Advanced Level)", "Analytical balance", "MonoBloc weighing cell with FACT auto-calibration, color touchscreen, capacity up to 320g, readability down to 0.01mg", "taawon.com/en/KSA (Mettler Toledo Analytical Balances)", "General Laboratory Equipment"),
+        (gle_ids["Mettler Toledo"], "MX/XS Precision Balance Series", "Precision balance", "Precision balances for industrial/lab use, capacities from hundreds of grams to several kg, internal calibration, NTEP-certified options", "dscbalances.com (Mettler Toledo precision balance listings)", "General Laboratory Equipment"),
+        (gle_ids["Esco Lifesciences"], "Labculture G4 Class II Type A2 BSC", "Biosafety cabinet", "NSF-certified Class II Type A2 biological safety cabinet, latest generation", "escolifesciences.com (Labculture G4 announcement)", "General Laboratory Equipment"),
+        (gle_ids["Esco Lifesciences"], "Streamline Class II Biosafety Cabinet Series", "Biosafety cabinet", "Class II Type A2/B2 biosafety cabinets, ergonomic and energy-saving design, EN 12469:2000 and NSF 49 tested", "escolifesciences.com/products/biological-safety-cabinet", "General Laboratory Equipment"),
+        (gle_ids["Esco Lifesciences"], "CO2 Incubators", "CO2 incubator", "Cell culture CO2 incubators, part of Esco's cold storage/incubation equipment line", "escolifesciences.com/resources", "General Laboratory Equipment"),
+    ])
+    cur.execute("INSERT INTO evidence (manufacturer_id, claim, evidence_type, source_detail) VALUES (?,?,?,?)",
+                (gle_ids["Mettler Toledo"], "Official manufacturer site names Diamond Spectrum for Scientific and Laboratory Equipment as the KSA partner across all product divisions, with direct sales phone number", "official company website", "mt.com/sa/en/home.html"))
+    cur.execute("""INSERT INTO distributors (name, country, represents, source, market_strength_tier, market_strength_basis)
+        VALUES (?,?,?,?,?,?)""",
+        ("Diamond Spectrum for Scientific and Laboratory Equipment", "Saudi Arabia", "Mettler Toledo",
+         "mt.com/sa/en/home.html -- verified via web search", "Tenure-verified (partial)",
+         "Named directly on Mettler Toledo's own official KSA site across weighing, titration, and analytical divisions."))
+    diamond_id = cur.lastrowid
+    cur.execute("INSERT INTO company_distributors (manufacturer_id, distributor_id) VALUES (?,?)", (gle_ids["Mettler Toledo"], diamond_id))
+    cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','bulk_insert','New category General Laboratory Equipment: Added Mettler Toledo (gold) and Esco Lifesciences (silver)')")
+    conn.commit()
+
+    # --- General Laboratory Equipment batch 2: Attieh's own principals ---
+    gle2_manufacturers = [
+        dict(name="Carl Zeiss", headquarters="Germany", origin="European", website="zeiss.com",
+             portfolio="Microscopy systems for IVF (embryo assessment), cytogenetics, and hematology applications",
+             ksa_status="Covered -- Attieh Medico confirmed as NUPCO-awarded vendor across 5 separate tenders (NPT0007/21, NPT0009/18, NPT0011/21, NPT 0013-19, NPT 0050/20)",
+             status_tag="covered", opportunity_note="N/A -- existing Attieh Medico principal", confidence_tier="gold",
+             sources="NUPCO Final Awardation records, vendor = Attieh Medico -- NPT0007/21, NPT0009/18, NPT0011/21, NPT 0013-19, NPT 0050/20", category="General Laboratory Equipment"),
+        dict(name="Memmert", headquarters="Germany", origin="European", website="memmert.com",
+             portfolio="Laboratory water baths, incubators, ovens (IFbw blanket warmer, IOB-505 line)",
+             ksa_status="Covered -- Attieh Medico confirmed as NUPCO-awarded vendor (NPT0028/22, NPT0007/21)",
+             status_tag="covered", opportunity_note="N/A -- existing Attieh Medico principal", confidence_tier="gold",
+             sources="NUPCO Final Awardation records, vendor = Attieh Medico -- NPT0028/22, NPT0007/21", category="General Laboratory Equipment"),
+        dict(name="Azbil Telstar", headquarters="Spain", origin="European", website="telstar.com",
+             portfolio="Biosafety cabinets, freeze dryers (lyophilizers)",
+             ksa_status="Covered -- Attieh Medico confirmed as NUPCO-awarded vendor across 3 tenders (NPT 0013-19, NPT0028/22, NPT0007/21)",
+             status_tag="covered", opportunity_note="N/A -- existing Attieh Medico principal", confidence_tier="gold",
+             sources="NUPCO Final Awardation records, vendor = Attieh Medico -- NPT 0013-19, NPT0028/22, NPT0007/21", category="General Laboratory Equipment"),
+        dict(name="Haier Biomedical", headquarters="China (Qingdao)", origin="Chinese", website="haiermedical.com",
+             portfolio="Full cold-chain range -196C to +8C: ULT freezers, blood bank refrigerators, pharmacy refrigerators, biosafety cabinets, CO2 incubators, centrifuges",
+             ksa_status="Covered -- this is one of Attieh Medico's own principals per internal company knowledge (used in real capex/quotation work, e.g. DW-30L818BP model selection); no independent public source names Attieh Medico specifically as the KSA distributor",
+             status_tag="covered", opportunity_note="N/A -- existing Attieh Medico principal, not an outreach lead", confidence_tier="silver",
+             sources="Internal: part of Amr's own procurement/quotation work at Attieh Medico. External corroboration: haiermedical.com confirms global cold-chain portfolio and international tender history -- no public source names the specific KSA distributor entity, tier held at silver", category="General Laboratory Equipment"),
+        dict(name="Philipp Kirsch GmbH", headquarters="Germany", origin="European", website="kirsch-medical.com",
+             portfolio="Pharmaceutical and medical refrigerators/freezers (MED 468, MED 200 PRO-ACTIVE lines)",
+             ksa_status="Covered -- this is one of Attieh Medico's own principals per internal company knowledge (used in real quotation preparation work); no independent public source names Attieh Medico specifically as the KSA distributor",
+             status_tag="covered", opportunity_note="N/A -- existing Attieh Medico principal, not an outreach lead", confidence_tier="silver",
+             sources="Internal: part of Amr's own procurement/quotation work at Attieh Medico. External corroboration: kirsch-medical.com confirms pharmaceutical refrigerator product line -- no public source names the specific KSA distributor entity, tier held at silver", category="General Laboratory Equipment"),
+    ]
+    gle2_ids = {}
+    for m in gle2_manufacturers:
+        cur.execute("""INSERT INTO manufacturers
+            (name, headquarters, website, portfolio, ksa_status, status_tag, opportunity_note, confidence_tier, sources, category, origin)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (m["name"], m["headquarters"], m["website"], m["portfolio"], m["ksa_status"], m["status_tag"],
+             m["opportunity_note"], m["confidence_tier"], m["sources"], m["category"], m["origin"]))
+        gle2_ids[m["name"]] = cur.lastrowid
+    cur.executemany("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)", [
+        (gle2_ids["Carl Zeiss"], "Axiovert 5 / Primovert", "Inverted microscope", "Inverted microscopes used for IVF embryo assessment and cell culture observation", "zeiss.com/microscopy", "General Laboratory Equipment"),
+        (gle2_ids["Carl Zeiss"], "Axio Imager", "Research microscope", "Upright research-grade microscope used in cytogenetics and hematology applications", "zeiss.com/microscopy", "General Laboratory Equipment"),
+        (gle2_ids["Memmert"], "IFbw Blanket Warmer", "Blanket/fluid warming cabinet", "Forced-convection warming cabinet for blankets and fluids in clinical settings", "memmert.com", "General Laboratory Equipment"),
+        (gle2_ids["Memmert"], "IOB-505", "Incubator", "Laboratory incubator, distinct product line from the IFbw warming cabinet", "memmert.com", "General Laboratory Equipment"),
+        (gle2_ids["Azbil Telstar"], "Bio II Advance Biosafety Cabinet", "Biosafety cabinet", "Class II biosafety cabinet line from Telstar's Life Science division", "telstar.com", "General Laboratory Equipment"),
+        (gle2_ids["Azbil Telstar"], "LyoBeta Freeze Dryer Series", "Freeze dryer / lyophilizer", "Pharmaceutical and lab-scale freeze-drying (lyophilization) systems", "telstar.com", "General Laboratory Equipment"),
+        (gle2_ids["Haier Biomedical"], "DW-30L818BP", "Ultra-low temperature freezer", "-86C ultra-low temperature biomedical freezer, evaluated and recommended in real Attieh Medico capex matching work", "Attieh Medico internal procurement work", "General Laboratory Equipment"),
+        (gle2_ids["Haier Biomedical"], "HYC-series Blood Bank / Pharmacy Refrigerators", "Blood bank / pharmacy refrigerator", "2-8C refrigerator line for blood components and pharmaceuticals, microprocessor control with multi-alarm system", "haiermedical.com/pharmacy-refrigerator", "General Laboratory Equipment"),
+        (gle2_ids["Philipp Kirsch GmbH"], "MED 468", "Pharmaceutical refrigerator", "Pharmaceutical-grade refrigerator, specified in real Attieh Medico quotation work", "Attieh Medico internal procurement work", "General Laboratory Equipment"),
+        (gle2_ids["Philipp Kirsch GmbH"], "MED 200 PRO-ACTIVE", "Pharmaceutical refrigerator", "Pharmaceutical-grade refrigerator with active monitoring, specified in real Attieh Medico quotation work", "Attieh Medico internal procurement work", "General Laboratory Equipment"),
+    ])
+    attieh_dist_row = cur.execute("SELECT id FROM distributors WHERE name LIKE '%Attieh%'").fetchone()
+    if not attieh_dist_row:
+        cur.execute("""INSERT INTO distributors (name, country, represents, source, market_strength_tier, market_strength_basis)
+            VALUES (?,?,?,?,?,?)""",
+            ("Attieh Medico", "Saudi Arabia", "Carl Zeiss, Memmert, Azbil Telstar, Haier Biomedical, Philipp Kirsch GmbH",
+             "NUPCO Final Awardation records (Zeiss/Memmert/Telstar) + internal knowledge (Haier/Kirsch)",
+             "Tenure-verified (partial)", "5 confirmed principals -- 3 via real NUPCO tender records, 2 via internal Attieh Medico procurement history"))
+        attieh_dist_id2 = cur.lastrowid
+    else:
+        attieh_dist_id2 = attieh_dist_row[0]
+        cur.execute("UPDATE distributors SET represents = ? WHERE id = ?",
+                    ("Carl Zeiss, Memmert, Azbil Telstar, Haier Biomedical, Philipp Kirsch GmbH", attieh_dist_id2))
+    for name in ["Carl Zeiss", "Memmert", "Azbil Telstar", "Haier Biomedical", "Philipp Kirsch GmbH"]:
+        try:
+            cur.execute("INSERT INTO company_distributors (manufacturer_id, distributor_id) VALUES (?,?)", (gle2_ids[name], attieh_dist_id2))
+        except sqlite3.IntegrityError:
+            pass
+    cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','bulk_insert','General Laboratory Equipment batch 2: Added Carl Zeiss, Memmert, Azbil Telstar (gold -- real NUPCO tender records) and Haier Biomedical, Philipp Kirsch GmbH (silver -- internal knowledge)')")
+    conn.commit()
+
+    # --- NPT0023-25: Refrigerators/Freezers framework agreement ---
+    for name in ["Haier Biomedical", "Philipp Kirsch GmbH"]:
+        row = cur.execute("SELECT id, sources FROM manufacturers WHERE name = ?", (name,)).fetchone()
+        if row:
+            mid, old_sources = row
+            new_sources = old_sources + " | UPGRADED: independently confirmed via NUPCO Tender NPT0023-25 (Open Framework Agreement for Refrigerators and Freezers), Preliminary Result -- names 'ATTIEH MEDICO CO. LTD.' directly as the awarded supplier -- uploaded by user"
+            cur.execute("UPDATE manufacturers SET confidence_tier = 'gold', sources = ? WHERE id = ?", (new_sources, mid))
+            cur.execute("INSERT INTO evidence (manufacturer_id, claim, evidence_type, source_detail) VALUES (?,?,?,?)",
+                        (mid, "Independently confirmed as NUPCO-awarded vendor via Attieh Medico Co. Ltd. in a separate real tender (refrigerators/freezers framework agreement)", "tender_award", "NUPCO Tender NPT0023-25, Preliminary Result -- uploaded by user"))
+
+    npt23_manufacturers = [
+        dict(name="Alphavita", headquarters="China", origin="Chinese", website="Not independently verified",
+             portfolio="Low-temperature and ultra-low temperature freezers (MDF series), laboratory refrigerators",
+             ksa_status="Covered -- Universal Trading & I.T. Co. confirmed as NUPCO-awarded vendor", status_tag="covered", confidence_tier="silver"),
+        dict(name="Biobase Biotech", headquarters="China", origin="Chinese", website="biobase.cc",
+             portfolio="Laboratory low-temperature freezers (BDF series)",
+             ksa_status="Covered -- Ideal Idea Medical Equipment Technology and Medical Vision Est. confirmed as NUPCO-awarded vendors (multiple lots)", status_tag="covered", confidence_tier="silver"),
+        dict(name="DS Industries", headquarters="Italy", origin="European", website="Not independently verified",
+             portfolio="Solid door lab refrigerators, low-temperature freezers (DSI series)",
+             ksa_status="Covered -- Arabian Medical Supplies Co confirmed as NUPCO-awarded vendor", status_tag="covered", confidence_tier="silver"),
+        dict(name="Effimed", headquarters="Spain", origin="European", website="Not independently verified",
+             portfolio="Laboratory refrigerators, low/ultra-low temperature freezers (LF/MPR/UFV series)",
+             ksa_status="Covered -- Pioneer Medical Services Company confirmed as NUPCO-awarded vendor", status_tag="covered", confidence_tier="silver"),
+        dict(name="Frimed", headquarters="Italy", origin="European", website="Not independently verified",
+             portfolio="Blood bank refrigerators, medication refrigerators, low-temperature freezers (SB/AF/PN series)",
+             ksa_status="Covered -- Salehiya Trading Co confirmed as NUPCO-awarded vendor", status_tag="covered", confidence_tier="silver"),
+        dict(name="Helmer Scientific", headquarters="United States", origin="American", website="helmerinc.com",
+             portfolio="Laboratory and blood bank refrigerators, medication refrigerators, pass-thru refrigerators (i.Series)",
+             ksa_status="Covered -- Mena Saudi Medical Co., Al-Jeel Medical & Trading Co., and Al-Asasyah Basic Electronics confirmed as NUPCO-awarded vendors (multiple lots)", status_tag="covered", confidence_tier="gold"),
+        dict(name="Infrico Medcare", headquarters="Spain", origin="European", website="infrico.com",
+             portfolio="Blood bank refrigerators, medication refrigerators, low/ultra-low freezers (LER/LTUF/ULT series)",
+             ksa_status="Covered -- Al Khateeb United Trading confirmed as NUPCO-awarded vendor", status_tag="covered", confidence_tier="silver"),
+        dict(name="KW Apparecchi Scientifici", headquarters="Italy", origin="European", website="kwapparecchiscientifici.it",
+             portfolio="Blood bank refrigerators (HAEMO series), lab solid-door refrigerators",
+             ksa_status="Covered -- Quality Measurements Company for M.E. confirmed as NUPCO-awarded vendor", status_tag="covered", confidence_tier="gold"),
+        dict(name="Labtech", headquarters="South Korea", origin="Asian (other)", website="labtechkorea.com",
+             portfolio="Solid door laboratory refrigerators (LLR series)",
+             ksa_status="Covered -- Medical Vision Est. confirmed as NUPCO-awarded vendor", status_tag="covered", confidence_tier="silver"),
+        dict(name="Midea (medical/lab line)", headquarters="China", origin="Chinese", website="midea.com",
+             portfolio="Low-temperature and ultra-low temperature freezers (SA-MD/SR-MD series) -- medical/lab division of the consumer appliance group",
+             ksa_status="Covered -- National Suppliers Medical Company confirmed as NUPCO-awarded vendor", status_tag="covered", confidence_tier="silver"),
+        dict(name="Olitrem", headquarters="Portugal", origin="European", website="Not independently verified",
+             portfolio="Medication refrigerators, solid door refrigerators, low-temperature freezers (MPRA/MLFA/MLRA series)",
+             ksa_status="Covered -- Ideal Idea Medical Equipment Technology confirmed as NUPCO-awarded vendor", status_tag="covered", confidence_tier="silver"),
+        dict(name="Smeg (medical/scientific line)", headquarters="Italy", origin="European", website="smeg.com",
+             portfolio="Laboratory and medication refrigerators, low-temperature freezers -- scientific/medical division of the Italian appliance brand",
+             ksa_status="Covered -- Ajlan And Bros Medical Company confirmed as NUPCO-awarded vendor", status_tag="covered", confidence_tier="gold"),
+        dict(name="Timesco", headquarters="Indonesia", origin="Asian (other)", website="Not independently verified",
+             portfolio="Solid door refrigerators, low/ultra-low temperature freezers (HR/HF/UUS series)",
+             ksa_status="Covered -- Abdulla Fouad for Medical Supplies confirmed as NUPCO-awarded vendor", status_tag="covered", confidence_tier="silver"),
+        dict(name="Zhongke Meiling Cryogenics", headquarters="China", origin="Chinese", website="Not independently verified",
+             portfolio="Laboratory refrigerators, medication refrigerators, low-temperature freezers (YC/DW series)",
+             ksa_status="Covered -- Al-Asasyah Basic Electronics Co. confirmed as NUPCO-awarded vendor", status_tag="covered", confidence_tier="silver"),
+    ]
+    npt23_ids = {}
+    for m in npt23_manufacturers:
+        sources = "NUPCO Tender NPT0023-25 (Open Framework Agreement for Refrigerators and Freezers), Preliminary Result, dated 19-20 April 2026 -- uploaded by user"
+        if m["website"] != "Not independently verified":
+            sources += f"; {m['website']}"
+        cur.execute("""INSERT INTO manufacturers
+            (name, headquarters, website, portfolio, ksa_status, status_tag, opportunity_note, confidence_tier, sources, category, origin)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (m["name"], m["headquarters"], m["website"], m["portfolio"], m["ksa_status"], m["status_tag"],
+             "N/A -- already has confirmed KSA distribution", m["confidence_tier"], sources, "General Laboratory Equipment", m["origin"]))
+        npt23_ids[m["name"]] = cur.lastrowid
+
+    name_to_id_npt23 = {row[1]: row[0] for row in cur.execute("SELECT id, name FROM manufacturers").fetchall()}
+    npt23_products = [
+        ("Alphavita", "MDF-U781VHE", "Ultra-low temperature freezer", "700L ultra-low temperature freezer, up to -86C", "NUPCO NPT0023-25"),
+        ("Alphavita", "MDF-539-B", "Low-temperature freezer", "Low-temperature freezer, up to -20C", "NUPCO NPT0023-25"),
+        ("Biobase Biotech", "BDF-25V100", "Low-temperature freezer", "100L low-temperature freezer, up to -20C", "NUPCO NPT0023-25"),
+        ("Biobase Biotech", "BDF-40V708", "Low-temperature freezer", "700L low-temperature freezer, up to -40C", "NUPCO NPT0023-25"),
+        ("DS Industries", "DSI 1100/1 TN", "Solid door lab refrigerator", "1100L solid door laboratory refrigerator", "NUPCO NPT0023-25"),
+        ("DS Industries", "DISULTF/700", "Low-temperature freezer", "600L low-temperature freezer, up to -40C", "NUPCO NPT0023-25"),
+        ("Effimed", "LF-1400", "Low-temperature freezer", "1400L low-temperature freezer, up to -20C", "NUPCO NPT0023-25"),
+        ("Effimed", "UFV-552", "Ultra-low temperature freezer", "500L ultra-low temperature freezer, up to -86C", "NUPCO NPT0023-25"),
+        ("Frimed", "SB10 E", "Blood bank refrigerator", "100L blood bank refrigerator", "NUPCO NPT0023-25"),
+        ("Frimed", "AF14", "Medication refrigerator", "1400L medication refrigerator", "NUPCO NPT0023-25"),
+        ("Helmer Scientific", "IPR105-GX / IPR125-GX", "Medication refrigerator", "i.Series medication refrigerators, pass-thru and standard configurations", "NUPCO NPT0023-25"),
+        ("Helmer Scientific", "ILR105-GX", "Solid door lab refrigerator", "i.Series solid door laboratory refrigerator", "NUPCO NPT0023-25"),
+        ("Infrico Medcare", "LTUF80S", "Low-temperature freezer", "700L low-temperature freezer, up to -40C", "NUPCO NPT0023-25"),
+        ("Infrico Medcare", "ULT40", "Ultra-low temperature freezer", "300L ultra-low temperature freezer, up to -86C", "NUPCO NPT0023-25"),
+        ("KW Apparecchi Scientifici", "HAEMO 180V / HAEMO 1500V", "Blood bank refrigerator", "Blood bank refrigerator line, 100L-1500L configurations, market-leading quality score (99.4%) in NPT0023-25", "NUPCO NPT0023-25"),
+        ("Labtech", "LLR-304SR / LLR-312SR / LLR-303SR", "Solid door lab refrigerator", "Solid door laboratory refrigerator line, 350L-1100L configurations", "NUPCO NPT0023-25"),
+        ("Midea (medical/lab line)", "SA-MD-40L308", "Low-temperature freezer", "300L low-temperature freezer, up to -30C", "NUPCO NPT0023-25"),
+        ("Midea (medical/lab line)", "SR-MD-86L358", "Ultra-low temperature freezer", "300L ultra-low temperature freezer, up to -86C", "NUPCO NPT0023-25"),
+        ("Olitrem", "MPRA 350 S", "Medication refrigerator", "350L solid door medication refrigerator", "NUPCO NPT0023-25"),
+        ("Olitrem", "MLRA 1400 G", "Laboratory refrigerator", "1400L laboratory refrigerator", "NUPCO NPT0023-25"),
+        ("Smeg (medical/scientific line)", "FV30G1A / FV70G1A", "Medication / lab refrigerator", "Medication and laboratory refrigerator line, 350L-700L configurations", "NUPCO NPT0023-25"),
+        ("Smeg (medical/scientific line)", "C30S32C1A / C40S60C1A", "Low-temperature freezer", "Low-temperature freezer line, up to -30C/-40C", "NUPCO NPT0023-25"),
+        ("Timesco", "HR1-140S-8", "Solid door refrigerator", "100L solid door refrigerator", "NUPCO NPT0023-25"),
+        ("Timesco", "UUS-363B", "Ultra-low temperature freezer", "300L ultra-low temperature freezer, up to -86C", "NUPCO NPT0023-25"),
+        ("Zhongke Meiling Cryogenics", "YC-130L", "Laboratory / medication refrigerator", "130L laboratory/medication refrigerator", "NUPCO NPT0023-25"),
+        ("Zhongke Meiling Cryogenics", "DW-FL90", "Low-temperature freezer", "Low-temperature freezer, up to -30C", "NUPCO NPT0023-25"),
+    ]
+    for mname, pname, ptype, desc, src in npt23_products:
+        mid = name_to_id_npt23.get(mname)
+        if mid:
+            cur.execute("INSERT INTO products (manufacturer_id, product_name, product_type, description, source, department) VALUES (?,?,?,?,?,?)",
+                        (mid, pname, ptype, desc, src, "General Laboratory Equipment"))
+
+    npt23_distributors = [
+        ("Universal Trading & I.T. Co.", "Alphavita"),
+        ("Ideal Idea Medical Equipment Technology", "Biobase Biotech, Olitrem"),
+        ("Medical Vision Est.", "Biobase Biotech, Labtech"),
+        ("Arabian Medical Supplies Co", "DS Industries"),
+        ("Pioneer Medical Services Company", "Effimed"),
+        ("Salehiya Trading Co", "Frimed"),
+        ("Mena Saudi Medical Co.", "Helmer Scientific"),
+        ("Al Khateeb United Trading", "Infrico Medcare"),
+        ("Quality Measurements Company for M.E.", "KW Apparecchi Scientifici"),
+        ("National Suppliers Medical Company", "Midea (medical/lab line), Haier Biomedical"),
+        ("Ajlan And Bros Medical Company", "Smeg (medical/scientific line)"),
+        ("Al-Asasyah Basic Electronics Co.", "Zhongke Meiling Cryogenics, Helmer Scientific"),
+    ]
+    dist_name_to_id2 = {row[1]: row[0] for row in cur.execute("SELECT id, name FROM distributors").fetchall()}
+    for dname, represents in npt23_distributors:
+        did = dist_name_to_id2.get(dname)
+        if not did:
+            cur.execute("""INSERT INTO distributors (name, country, represents, source, market_strength_tier, market_strength_basis)
+                VALUES (?,?,?,?,?,?)""",
+                (dname, "Saudi Arabia", represents, "NUPCO Tender NPT0023-25 -- uploaded by user",
+                 "Insufficient data", "Confirmed via a single tender (NPT0023-25). Not independently confirmed for overall company size or revenue."))
+            did = cur.lastrowid
+            dist_name_to_id2[dname] = did
+        for mname in [x.strip() for x in represents.split(",")]:
+            mid = name_to_id_npt23.get(mname)
+            if mid:
+                try:
+                    cur.execute("INSERT INTO company_distributors (manufacturer_id, distributor_id) VALUES (?,?)", (mid, did))
+                except sqlite3.IntegrityError:
+                    pass
+
+    aljeel_row = cur.execute("SELECT id FROM distributors WHERE name LIKE 'Al-Jeel%'").fetchone()
+    if aljeel_row:
+        for mname in ["Helmer Scientific", "Thermo Fisher Scientific"]:
+            mid = name_to_id_npt23.get(mname)
+            if mid:
+                try:
+                    cur.execute("INSERT INTO company_distributors (manufacturer_id, distributor_id) VALUES (?,?)", (mid, aljeel_row[0]))
+                except sqlite3.IntegrityError:
+                    pass
+    fouad_row = cur.execute("SELECT id FROM distributors WHERE name LIKE 'Abdulla Fouad%'").fetchone()
+    if fouad_row:
+        mid = name_to_id_npt23.get("Timesco")
+        if mid:
+            try:
+                cur.execute("INSERT INTO company_distributors (manufacturer_id, distributor_id) VALUES (?,?)", (mid, fouad_row[0]))
+            except sqlite3.IntegrityError:
+                pass
+
+    cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','bulk_insert','NPT0023-25 batch: Added 14 new refrigerator/freezer manufacturers with real NUPCO-confirmed KSA distributors. Upgraded Haier Biomedical and Philipp Kirsch GmbH to gold tier via independent tender confirmation of Attieh Medico as awarded vendor.')")
+    conn.commit()
+
 if __name__ == "__main__":
     if os.path.exists(DB_PATH):
         os.remove(DB_PATH)
