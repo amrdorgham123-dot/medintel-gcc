@@ -378,6 +378,11 @@
   .lead-card-actions button{font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--ent-cyan);background:none;color:var(--ent-cyan);cursor:pointer;}
   .lead-form, .interaction-form{display:flex;flex-direction:column;gap:8px;background:var(--surface-sunk);border:1px solid var(--border);border-radius:10px;padding:14px;margin:10px 0;max-width:360px;}
   .lead-form select, .lead-form input, .interaction-form select, .interaction-form textarea, .interaction-form input{padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:12.5px;}
+  .pcard-specs{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0;}
+  .spec-chip{font-family:var(--mono);font-size:9.5px;background:var(--surface-sunk);color:var(--ink-soft);padding:2px 7px;border-radius:5px;border:1px solid var(--border);}
+  .pcard-certs{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+  .cert-badge{font-family:var(--sans);font-size:9.5px;font-weight:700;background:var(--ent-emerald-soft);color:var(--ent-emerald);padding:2px 8px;border-radius:999px;border:1px solid var(--ent-emerald);}
+  .deployments-block{background:var(--ent-emerald-soft);border:1px solid var(--ent-emerald);border-radius:10px;padding:12px 14px;margin-bottom:14px;}
 </style>
 </head>
 <body>
@@ -868,14 +873,24 @@ async function renderCompanyDetail(){
         panel.innerHTML = `<div class="not-verified">Not scored yet.</div>`;
       }
     } else if(detailSubTab === 'evidence'){
-      panel.innerHTML = m.evidence.length ? m.evidence.map(e => `
+      const sectorCodes = ['KAMC','KSU','MODA','NGHA','SFHR'];
+      const foundSectors = new Set();
+      m.evidence.forEach(e => sectorCodes.forEach(s => { if((e.claim+' '+e.source_detail).includes(s)) foundSectors.add(s); }));
+      panel.innerHTML = `
+        ${foundSectors.size ? `
+        <div class="deployments-block">
+          <div class="cf-title" style="margin-bottom:8px">Confirmed deployments (real NUPCO sector awards)</div>
+          <div class="pcard-specs">${[...foundSectors].map(s=>`<span class="cert-badge">${s}</span>`).join('')}</div>
+        </div>` : ''}
+        ${m.evidence.length ? m.evidence.map(e => `
         <div class="source-trace" style="margin-bottom:8px">
           <b style="color:var(--ink)">${e.claim}</b><br>
           Type: ${e.evidence_type}<br>
           Detail: ${e.source_detail}<br>
           Reviewed: ${e.reviewed_date}
         </div>`).join('')
-        : `<div class="not-verified">No structured evidence recorded yet.</div>`;
+        : `<div class="not-verified">No structured evidence recorded yet.</div>`}
+      `;
     } else if(detailSubTab === 'score'){
       const s = await apiGet(`/companies/${selectedCompanyId}/intelligence-score`);
       panel.innerHTML = `
@@ -1571,6 +1586,21 @@ const PRODUCT_TYPE_ICONS = {
   software: '<rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/>',
   default: '<circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/>',
 };
+function extractSpecs(text){
+  if(!text) return [];
+  const specs = [];
+  const cap = text.match(/(\d{2,5})\s*L\b/i);
+  if(cap) specs.push(cap[1] + 'L');
+  const temp = text.match(/-\d{2,3}\s*C\b/i);
+  if(temp) specs.push(temp[0].replace(/\s+/g,''));
+  const volt = text.match(/\d{2,3}(?:[~\-–]\d{2,3})?\s*V\b/i);
+  if(volt) specs.push(volt[0].replace(/\s+/g,''));
+  return [...new Set(specs)].slice(0,3);
+}
+function certBadges(certifications){
+  if(!certifications) return '';
+  return certifications.split(';').map(c => `<span class="cert-badge">${c.trim().split(':')[0]}</span>`).join('');
+}
 function productIcon(ptype){
   const t = (ptype||'').toLowerCase();
   if(t.includes('analyzer')||t.includes('instrument')||t.includes('platform')||t.includes('device')) return PRODUCT_TYPE_ICONS.analyzer;
@@ -1607,6 +1637,10 @@ async function renderProducts(){
           <div class="cf-title">Confidence tier</div>
           <select id="cf-tier"><option value="">All tiers</option><option value="gold">Gold</option><option value="silver">Silver</option><option value="bronze">Bronze</option></select>
         </div>
+        <div class="cf-group">
+          <div class="cf-title">Spec search</div>
+          <input type="text" id="cf-spec" placeholder="e.g. 500L, -86C, 220V">
+        </div>
       </aside>
       <div class="catalog-main">
         <div class="searchbar"><input type="text" id="search" placeholder="Search products or manufacturers"></div>
@@ -1626,14 +1660,18 @@ async function renderProducts(){
     const org = document.getElementById('cf-origin').value;
     const mfr = document.getElementById('cf-manufacturer').value;
     const tier = document.getElementById('cf-tier').value;
+    const specFilter = (document.getElementById('cf-spec')?.value || '').toLowerCase();
     const shown = items.filter(p =>
       (!f || p.product_name.toLowerCase().includes(f) || p.manufacturer_name.toLowerCase().includes(f)) &&
-      (!cat || p.category===cat) && (!org || p.origin===org) && (!mfr || p.manufacturer_name===mfr) && (!tier || p.confidence_tier===tier)
+      (!cat || p.category===cat) && (!org || p.origin===org) && (!mfr || p.manufacturer_name===mfr) && (!tier || p.confidence_tier===tier) &&
+      (!specFilter || (p.description||'').toLowerCase().includes(specFilter))
     );
     document.getElementById('catalog-count').textContent = `${shown.length} product${shown.length!==1?'s':''}`;
     const grid = document.getElementById('grid');
     if(shown.length===0){ grid.innerHTML = '<div class="empty">No matching products.</div>'; return; }
-    grid.innerHTML = shown.map(p => `
+    grid.innerHTML = shown.map(p => {
+      const specs = extractSpecs(p.description);
+      return `
       <div class="pcard">
         <label class="pcard-check" onclick="event.stopPropagation()">
           <input type="checkbox" ${compareIds.includes(p.id)?'checked':''} onchange="toggleCompare(${p.id})">
@@ -1644,11 +1682,14 @@ async function renderProducts(){
             <div class="pcard-type">${originFlag(p.origin)}${p.product_type||''}</div>
             <h3 class="pcard-title">${p.product_name}</h3>
             <div class="pcard-mfr">${p.manufacturer_name}</div>
+            ${specs.length ? `<div class="pcard-specs">${specs.map(s=>`<span class="spec-chip">${s}</span>`).join('')}</div>` : ''}
             <div class="pcard-desc">${p.description}</div>
+            ${p.certifications ? `<div class="pcard-certs">${certBadges(p.certifications)}</div>` : ''}
             <div class="pcard-foot">${badge(p.confidence_tier, p.confidence_tier.toUpperCase())}<span class="pcard-cat">${p.category}</span></div>
           </div>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     updateCompareBar();
   }
   document.getElementById('search').oninput = paint;
@@ -1656,6 +1697,7 @@ async function renderProducts(){
   document.getElementById('cf-origin').onchange = paint;
   document.getElementById('cf-manufacturer').onchange = paint;
   document.getElementById('cf-tier').onchange = paint;
+  document.getElementById('cf-spec').oninput = paint;
   window._productsPaint = paint;
   paint();
 }
