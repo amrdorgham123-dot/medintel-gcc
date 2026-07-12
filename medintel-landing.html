@@ -345,6 +345,36 @@
   .product-note{font-size:12px; color:var(--muted); text-align:center; margin-top:28px;}
   @media (max-width:860px){.product-grid{grid-template-columns:1fr 1fr;}}
   @media (max-width:560px){.product-grid{grid-template-columns:1fr;}}
+  /* ---------- LIVE SEARCH ---------- */
+  .hero-search{position:relative; max-width:520px; margin-bottom:32px;}
+  .hero-search-box{
+    display:flex; align-items:center; gap:10px;
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:14px 18px;
+  }
+  .hero-search-box:focus-within{border-color:var(--assay);}
+  .hero-search-box svg{width:18px; height:18px; stroke:var(--muted); fill:none; stroke-width:2; flex-shrink:0;}
+  .hero-search-box input{
+    flex:1; background:none; border:none; color:var(--paper); font-family:inherit; font-size:14.5px;
+  }
+  .hero-search-box input:focus{outline:none;}
+  .search-results{
+    position:absolute; top:calc(100% + 8px); right:0; left:0; z-index:50;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:14px;
+    max-height:360px; overflow-y:auto; box-shadow:0 20px 50px rgba(0,0,0,0.45);
+    display:none;
+  }
+  .search-results.open{display:block;}
+  .search-group-label{font-family:'IBM Plex Mono'; font-size:11px; color:var(--muted); letter-spacing:.5px; padding:10px 16px 4px;}
+  .search-item{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding:11px 16px; cursor:pointer; transition:background .15s;
+  }
+  .search-item:hover{background:var(--surface);}
+  .search-item .si-name{font-size:14px; font-weight:500;}
+  .search-item .si-sub{font-size:12px; color:var(--muted);}
+  .search-item .si-type{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--assay); flex-shrink:0;}
+  .search-empty, .search-loading{padding:16px; font-size:13px; color:var(--muted); text-align:center;}
 </style>
 </head>
 <body>
@@ -388,6 +418,13 @@
         <span class="eyebrow" data-ar="منصة استخبارات السوق · IVD & بنوك الدم" data-en="Market intelligence platform · IVD & blood bank">منصة استخبارات السوق · IVD & بنوك الدم</span>
         <h1 data-ar-html="كل مُصنّع، كل تقنية، <em>وكل فرصة توزيع</em> في سوق الخليج — قبل أن يصل إليها أحد غيرك." data-en-html="Every manufacturer. Every technology. <em>Every distribution opportunity</em> in the Gulf — before anyone else finds it.">كل مُصنّع، كل تقنية، <em>وكل فرصة توزيع</em> في سوق الخليج — قبل أن يصل إليها أحد غيرك.</h1>
         <p class="hero-sub" data-ar="MedForsa GCC ترصد سوق التشخيص المخبري في السعودية ودول الخليج، من الكيمياء المناعية إلى بنوك الدم، وتربط كل مُصنّع بحالة توزيعه الفعلية على أرض الواقع." data-en="MedForsa GCC tracks the in-vitro diagnostics market across Saudi Arabia and the Gulf, from immunoassay to blood banking, and connects every manufacturer to its real distribution status on the ground.">MedForsa GCC ترصد سوق التشخيص المخبري في السعودية ودول الخليج، من الكيمياء المناعية إلى بنوك الدم، وتربط كل مُصنّع بحالة توزيعه الفعلية على أرض الواقع.</p>
+        <div class="hero-search">
+          <div class="hero-search-box">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="text" id="heroSearch" data-ar-placeholder="ابحث عن شركة، منتج، أو موزّع…" data-en-placeholder="Search a company, product, or distributor…" placeholder="ابحث عن شركة، منتج، أو موزّع…" autocomplete="off">
+          </div>
+          <div class="search-results" id="searchResults"></div>
+        </div>
         <div class="hero-ctas">
           <a class="btn btn-primary" href="/app" target="_blank" rel="noopener" data-ar="استكشف المنصة ←" data-en="Explore the platform →">استكشف المنصة ←</a>
           <a class="btn btn-ghost" href="#categories" data-ar="تصفّح الفئات" data-en="Browse categories">تصفّح الفئات</a>
@@ -434,7 +471,7 @@
   </div>
   <div class="marquee">
     <div class="marquee-track" id="marqueeTrack">
-      <span>Roche</span><span>Abbott</span><span>Sysmex</span><span>Mindray</span><span>Snibe</span><span>BD</span><span>Bio-Rad</span><span>Grifols</span><span>Werfen</span><span>HORIBA Medical</span><span>QuidelOrtho</span><span>Haemonetics</span><span>Immucor</span><span>DiaSorin</span><span>Beckman Coulter</span><span>Siemens Healthineers</span>
+      <span>Roche</span><span>Abbott</span><span>Sysmex</span><span>Mindray</span><span>Snibe</span><span>BD</span><span>Bio-Rad</span><span>Grifols</span><span>Werfen</span><span>HORIBA Medical</span><span>QuidelOrtho</span><span>Haemonetics</span><span>Immucor</span><span>DiaSorin</span><span>Beckman Coulter</span><span>Siemens Healthineers</span><span>Attieh Medico</span>
     </div>
   </div>
 </section>
@@ -640,6 +677,137 @@ document.addEventListener('DOMContentLoaded', function(){
   counters.forEach(c=>io.observe(c));
 
   MedForsaLang.initLangToggle('ar');
+
+  const heroSearch = document.getElementById('heroSearch');
+  const searchResults = document.getElementById('searchResults');
+  let searchDebounce = null;
+
+  function siRow(name, sub, type, onClick){
+    const row = document.createElement('div');
+    row.className = 'search-item';
+    row.innerHTML = `<div><div class="si-name"></div><div class="si-sub"></div></div><span class="si-type">${type}</span>`;
+    row.querySelector('.si-name').textContent = name;
+    row.querySelector('.si-sub').textContent = sub || '';
+    row.addEventListener('click', onClick);
+    return row;
+  }
+
+  function goToCompanyByName(name){
+    fetch('/companies?q=' + encodeURIComponent(name) + '&limit=1')
+      .then(r=>r.json())
+      .then(data=>{
+        if(data.results && data.results[0]){
+          window.open('/app?company=' + data.results[0].id, '_blank');
+          return;
+        }
+        return fetch('/distributors')
+          .then(r=>r.json())
+          .then(dists=>{
+            const match = (dists||[]).find(d => (d.name||'').toLowerCase().includes(name.toLowerCase()));
+            window.open(match ? '/app?distributor=' + encodeURIComponent(match.name) : '/app', '_blank');
+          });
+      })
+      .catch(()=> window.open('/app', '_blank'));
+  }
+
+  async function runSearch(term){
+    searchResults.innerHTML = '<div class="search-loading">' + (MedForsaLang.getCurrentLang()==='ar' ? 'بحث...' : 'Searching...') + '</div>';
+    searchResults.classList.add('open');
+
+    const lang = MedForsaLang.getCurrentLang();
+    let companies = [], products = [], distributors = [];
+
+    try{
+      const cRes = await fetch('/companies?q=' + encodeURIComponent(term) + '&limit=6');
+      companies = (await cRes.json()).results || [];
+    }catch(e){}
+    try{
+      const pRes = await fetch('/products');
+      const allProducts = await pRes.json();
+      const t = term.toLowerCase();
+      products = (allProducts || []).filter(p =>
+        (p.product_name||'').toLowerCase().includes(t) || (p.manufacturer_name||'').toLowerCase().includes(t)
+      ).slice(0, 6);
+    }catch(e){}
+    try{
+      const dRes = await fetch('/distributors');
+      const allDist = await dRes.json();
+      const t = term.toLowerCase();
+      distributors = (allDist || []).filter(d => (d.name||'').toLowerCase().includes(t)).slice(0, 6);
+    }catch(e){}
+
+    searchResults.innerHTML = '';
+
+    if(!companies.length && !products.length && !distributors.length){
+      const empty = document.createElement('div');
+      empty.className = 'search-empty';
+      empty.textContent = lang==='ar'
+        ? 'لسه معندناش نتايج داخل المنصة نفسها. جرّب افتح المنصة وابحث فيها مباشرة.'
+        : "No results from the live platform yet. Try opening the platform and searching there directly.";
+      searchResults.appendChild(empty);
+      searchResults.classList.add('open');
+      return;
+    }
+
+    if(companies.length){
+      const label = document.createElement('div');
+      label.className = 'search-group-label';
+      label.textContent = lang==='ar' ? 'شركات' : 'Companies';
+      searchResults.appendChild(label);
+      companies.forEach(c=>{
+        searchResults.appendChild(siRow(c.name, c.category, lang==='ar'?'شركة':'Company', ()=>{
+          window.open('/app?company=' + c.id, '_blank');
+        }));
+      });
+    }
+    if(products.length){
+      const label = document.createElement('div');
+      label.className = 'search-group-label';
+      label.textContent = lang==='ar' ? 'منتجات' : 'Products';
+      searchResults.appendChild(label);
+      products.forEach(p=>{
+        searchResults.appendChild(siRow(p.product_name, p.manufacturer_name, lang==='ar'?'منتج':'Product', ()=>{
+          goToCompanyByName((p.manufacturer_name||'').split(' (')[0]);
+        }));
+      });
+    }
+    if(distributors.length){
+      const label = document.createElement('div');
+      label.className = 'search-group-label';
+      label.textContent = lang==='ar' ? 'موزّعون' : 'Distributors';
+      searchResults.appendChild(label);
+      distributors.forEach(d=>{
+        searchResults.appendChild(siRow(d.name, d.region || '', lang==='ar'?'موزّع':'Distributor', ()=>{
+          window.open('/app?distributor=' + encodeURIComponent(d.name), '_blank');
+        }));
+      });
+    }
+    searchResults.classList.add('open');
+  }
+
+  heroSearch.addEventListener('input', ()=>{
+    clearTimeout(searchDebounce);
+    const term = heroSearch.value.trim();
+    if(term.length < 2){ searchResults.classList.remove('open'); return; }
+    searchDebounce = setTimeout(()=> runSearch(term), 350);
+  });
+  document.addEventListener('click', e=>{
+    if(!e.target.closest('.hero-search')) searchResults.classList.remove('open');
+  });
+  heroSearch.addEventListener('keydown', e=>{
+    if(e.key === 'Escape') searchResults.classList.remove('open');
+  });
+
+  document.querySelectorAll('.marquee-track span').forEach(span=>{
+    span.style.cursor = 'pointer';
+    span.addEventListener('click', ()=> goToCompanyByName(span.textContent));
+  });
+  document.querySelectorAll('.product-card').forEach(card=>{
+    const maker = card.querySelector('.product-maker');
+    if(!maker) return;
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', ()=> goToCompanyByName(maker.textContent));
+  });
 
   const chatFab = document.getElementById('chatFab');
   const chatPanel = document.getElementById('chatPanel');

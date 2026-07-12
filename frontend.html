@@ -490,7 +490,6 @@ const tabDefs = [
   {id:"distributors", label:"Distributors", search:false, group:"Market"},
   {id:"conferences", label:"Conferences", search:false, group:"Market"},
   {id:"events", label:"Market events", search:false, group:"Market"},
-  {id:"attieh", label:"Attieh Medico", search:false, group:"Company"},
   {id:"quality", label:"Data quality", search:false, group:"Admin"},
   {id:"briefing", label:"Daily briefing", search:false, group:"Private"},
   {id:"leads", label:"Leads & follow-up", search:false, group:"Private"},
@@ -677,35 +676,12 @@ async function renderDashboard(){
   try{
     const dash = await apiGet('/dashboard');
     const confs = await apiGet('/conferences?upcoming_only=true');
-    const attiehItems = await apiGet('/attieh-portfolio');
     const dq = await apiGet('/data-quality');
     const reviewQueue = await apiGet('/review-queue');
     const allCompanies = await apiGet('/companies?limit=100');
     const countries = new Set(allCompanies.results.map(c => c.headquarters));
     const auditLog = await apiGet('/audit-log');
-    const snibeSearch = await apiGet('/companies?q=snibe');
-    const snibe = snibeSearch.results[0];
-    const snibeDetail = snibe ? await apiGet(`/companies/${snibe.id}`) : null;
-    const snibeProducts = snibeDetail ? snibeDetail.products.map(p => p.product_name.split(' / ')[0].split(' (')[0]) : [];
     main.innerHTML = `
-      ${snibe ? `
-      <div class="snibe-banner" onclick="activeTab='manufacturers';openCompany(${snibe.id})">
-        <div class="snibe-banner-left">
-          <div class="snibe-banner-eyebrow">Distributed in Saudi Arabia by Attieh Medico</div>
-          <div class="snibe-banner-title">Snibe MAGLUMI &mdash; chemiluminescence immunoassay</div>
-          <div class="snibe-banner-sub">High-throughput CLIA immunoassay systems from Snibe, one of Attieh Medico's own principals &mdash; MAGLUMI analyzers, Biossays chemistry, and Molecision molecular diagnostics.</div>
-          <div class="snibe-chips">${snibeProducts.map(p => `<span class="snibe-chip">${p}</span>`).join('')}</div>
-        </div>
-        <div class="snibe-banner-cta">View Snibe profile &rarr;</div>
-      </div>` : ''}
-      <div class="attieh-banner" onclick="activeTab='attieh';render()">
-        <div class="attieh-banner-left">
-          <div class="attieh-banner-eyebrow">Featured</div>
-          <div class="attieh-banner-title">Attieh Medico</div>
-          <div class="attieh-banner-sub">شركة عطيه للمعدات الطبية — ${attiehItems.length} confirmed principals · Jeddah HQ, 7 KSA regions, since 1992</div>
-        </div>
-        <div class="attieh-banner-cta">View portfolio →</div>
-      </div>
       <div class="metrics">
         <div class="metric"><div class="num">${dash.companies_tracked}</div><div class="label">Companies tracked</div></div>
         <div class="metric"><div class="num">${dq.companies_with_structured_evidence}/${dq.total_companies}</div><div class="label">Evidence coverage</div></div>
@@ -1569,7 +1545,6 @@ function render(){
   if(activeTab==='conferences') renderConferences();
   if(activeTab==='technologies') renderTechnologies();
   if(activeTab==='quality') renderDataQuality();
-  if(activeTab==='attieh') renderAttiehPortfolio();
   if(activeTab==='kg') renderKnowledgeGraph();
   if(activeTab==='regulatory') renderRegulatory();
   if(activeTab==='updates') renderUpdates();
@@ -1755,7 +1730,27 @@ async function renderMarketEvents(){
   if(activeTab==='events') renderMarketEvents();
 }
 
-render();
+(function boot(){
+  const params = new URLSearchParams(window.location.search);
+  const companyId = params.get('company');
+  const distributorName = params.get('distributor');
+  const tab = params.get('tab');
+
+  if(companyId){
+    activeTab = 'manufacturers';
+    openCompany(parseInt(companyId, 10));
+    return;
+  }
+  if(distributorName){
+    activeTab = 'distributors';
+    openDistributor(decodeURIComponent(distributorName));
+    return;
+  }
+  if(tab){
+    activeTab = tab;
+  }
+  render();
+})();
 </script>
 </body>
 </html>
