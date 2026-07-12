@@ -26,6 +26,10 @@
       el.innerHTML = lang === 'ar' ? el.dataset.arHtml : el.dataset.enHtml;
     });
 
+    document.querySelectorAll('[data-ar-placeholder]').forEach(function (el) {
+      el.setAttribute('placeholder', lang === 'ar' ? el.dataset.arPlaceholder : el.dataset.enPlaceholder);
+    });
+
     document.querySelectorAll('[data-lang-toggle]').forEach(function (btn) {
       btn.textContent = lang === 'ar' ? 'EN' : 'AR';
     });
