@@ -322,6 +322,13 @@
   .chat-send svg{width:17px; height:17px; stroke:#0A0E1C; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
   .chat-fallback{display:block; text-align:center; font-size:11.5px; color:var(--muted); margin-top:10px;}
   .chat-fallback a{color:var(--assay);}
+  .chat-chips{display:flex; flex-wrap:wrap; gap:8px; padding:2px 14px 12px; flex-shrink:0;}
+  .chat-chip{
+    background:var(--surface-2); border:1px solid var(--line); color:var(--paper);
+    font-size:12.5px; padding:8px 14px; border-radius:999px; cursor:pointer;
+    transition:border-color .2s, color .2s;
+  }
+  .chat-chip:hover{border-color:var(--assay); color:var(--assay);}
   @media (max-width:480px){
     .chat-panel{inset-inline-end:16px; bottom:90px; width:calc(100vw - 32px);}
     .chat-fab{inset-inline-end:16px; bottom:18px;}
@@ -393,7 +400,7 @@
       <a href="#why" data-ar="لماذا MedForsa GCC" data-en="Why MedForsa GCC">لماذا MedForsa GCC</a>
     </nav>
     <button class="lang-toggle" id="langToggle" data-lang-toggle>EN</button>
-    <a class="btn-cta nav-cta" href="/app" target="_blank" rel="noopener" data-ar="ادخل إلى المنصة" data-en="Enter the platform">ادخل إلى المنصة</a>
+    <a class="btn-cta nav-cta" href="/app" data-ar="ادخل إلى المنصة" data-en="Enter the platform">ادخل إلى المنصة</a>
     <button class="nav-toggle" id="navToggle" aria-label="فتح القائمة">☰</button>
   </div>
   <div class="mobile-menu" id="mobileMenu">
@@ -401,7 +408,7 @@
     <a href="#products" data-ar="المنتجات" data-en="Products">المنتجات</a>
     <a href="#spotlight" data-ar="الفرص الاستراتيجية" data-en="Strategic opportunities">الفرص الاستراتيجية</a>
     <a href="#why" data-ar="لماذا MedForsa GCC" data-en="Why MedForsa GCC">لماذا MedForsa GCC</a>
-    <a class="btn btn-primary" href="/app" target="_blank" rel="noopener" data-ar="ادخل إلى المنصة" data-en="Enter the platform">ادخل إلى المنصة</a>
+    <a class="btn btn-primary" href="/app" data-ar="ادخل إلى المنصة" data-en="Enter the platform">ادخل إلى المنصة</a>
     <button class="lang-toggle" id="langToggleMobile" data-lang-toggle>EN</button>
   </div>
 </header>
@@ -427,7 +434,7 @@
           <div class="search-results" id="searchResults"></div>
         </div>
         <div class="hero-ctas">
-          <a class="btn btn-primary" href="/app" target="_blank" rel="noopener" data-ar="استكشف المنصة ←" data-en="Explore the platform →">استكشف المنصة ←</a>
+          <a class="btn btn-primary" href="/app" data-ar="استكشف المنصة ←" data-en="Explore the platform →">استكشف المنصة ←</a>
           <a class="btn btn-ghost" href="#categories" data-ar="تصفّح الفئات" data-en="Browse categories">تصفّح الفئات</a>
         </div>
         <div class="stats-row">
@@ -485,32 +492,32 @@
       <p data-ar="كل فئة مرتبطة بمصنّعيها وموزّعيها الفعليين في السعودية والخليج — بلا تخمين، وبلا بيانات غير مؤكدة." data-en="Every category is mapped to its real manufacturers and distributors across Saudi Arabia and the Gulf — no guesswork, no unverified data.">كل فئة مرتبطة بمصنّعيها وموزّعيها الفعليين في السعودية والخليج — بلا تخمين، وبلا بيانات غير مؤكدة.</p>
     </div>
     <div class="cat-grid">
-      <a class="cat-card cat-blood" href="/app?tab=manufacturers&category=Blood%20Bank" target="_blank" rel="noopener">
+      <a class="cat-card cat-blood" href="/app?tab=manufacturers&category=Blood%20Bank">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><path d="M12 2c4 5 7 8.5 7 12.5A7 7 0 1 1 5 14.5C5 10.5 8 7 12 2Z"/></svg></div>
         <h3 data-ar="بنك الدم" data-en="Blood bank">بنك الدم</h3>
         <p data-ar="تبريد، أكياس دم، وكواشف مطابقة الأنسجة — أولوية العمل خلال دورة NUPCO 2027." data-en="Cold chain, blood bags, and tissue-typing reagents — the priority track for the 2027 NUPCO cycle.">تبريد، أكياس دم، وكواشف مطابقة الأنسجة — أولوية العمل خلال دورة NUPCO 2027.</p>
       </a>
-      <a class="cat-card cat-assay" href="/app?tab=manufacturers&category=Immunology%20%26%20Serology" target="_blank" rel="noopener">
+      <a class="cat-card cat-assay" href="/app?tab=manufacturers&category=Immunology%20%26%20Serology">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5.5 9.5A2 2 0 0 0 6.2 21h11.6a2 2 0 0 0 1.7-3.5L14 9V3"/><path d="M7.5 14h9"/></svg></div>
         <h3 data-ar="المناعة والمصليات" data-en="Immunology & serology">المناعة والمصليات</h3>
         <p data-ar="منصات المناعة الآلية، من التشخيص الهرموني إلى علامات الأورام." data-en="Automated immunology and serology platforms, from hormonal diagnostics to tumor markers.">منصات المناعة الآلية، من التشخيص الهرموني إلى علامات الأورام.</p>
       </a>
-      <a class="cat-card cat-gold" href="/app?tab=manufacturers&category=Hematology" target="_blank" rel="noopener">
+      <a class="cat-card cat-gold" href="/app?tab=manufacturers&category=Hematology">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.4M12 18.6V21M21 12h-2.4M5.4 12H3M18 6l-1.7 1.7M7.7 16.3 6 18M18 18l-1.7-1.7M7.7 7.7 6 6"/></svg></div>
         <h3 data-ar="أمراض الدم" data-en="Hematology">أمراض الدم</h3>
         <p data-ar="عدّادات الدم الكاملة والتصوير الرقمي للخلايا، من المخابر الصغيرة إلى المراكز المرجعية." data-en="Complete blood count analyzers and digital cell imaging, from small labs to reference centers.">عدّادات الدم الكاملة والتصوير الرقمي للخلايا، من المخابر الصغيرة إلى المراكز المرجعية.</p>
       </a>
-      <a class="cat-card cat-blood" href="/app?tab=manufacturers&category=Coagulation" target="_blank" rel="noopener">
+      <a class="cat-card cat-blood" href="/app?tab=manufacturers&category=Coagulation">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><path d="M4 12h4l2-7 4 14 2-7h4"/></svg></div>
         <h3 data-ar="التخثر" data-en="Coagulation">التخثر</h3>
         <p data-ar="تشخيص اضطرابات النزف والتجلط، ومتابعة العلاج المضاد للتخثر." data-en="Diagnosing bleeding and clotting disorders, and monitoring anticoagulant therapy.">تشخيص اضطرابات النزف والتجلط، ومتابعة العلاج المضاد للتخثر.</p>
       </a>
-      <a class="cat-card cat-assay" href="/app?tab=manufacturers&category=Microbiology" target="_blank" rel="noopener">
+      <a class="cat-card cat-assay" href="/app?tab=manufacturers&category=Microbiology">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><path d="M9 2v4M15 2v4M6 8h12l-1 5a5 5 0 0 1-10 0L6 8Z"/><path d="M9 20h6"/></svg></div>
         <h3 data-ar="الميكروبيولوجي" data-en="Microbiology">الميكروبيولوجي</h3>
         <p data-ar="الزراعة الآلية، اختبارات الحساسية، والكشف الجزيئي للممرضات." data-en="Automated culture, susceptibility testing, and molecular pathogen detection.">الزراعة الآلية، اختبارات الحساسية، والكشف الجزيئي للممرضات.</p>
       </a>
-      <a class="cat-card cat-gold" href="/app?tab=manufacturers&category=General%20Laboratory%20Equipment" target="_blank" rel="noopener">
+      <a class="cat-card cat-gold" href="/app?tab=manufacturers&category=General%20Laboratory%20Equipment">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M8 12h8"/></svg></div>
         <h3 data-ar="أجهزة الرعاية الطبية" data-en="General laboratory equipment">أجهزة الرعاية الطبية</h3>
         <p data-ar="أجهزة ومعدات مخبرية عامة تدعم عمل المختبر، من الطرد المركزي إلى التبريد والتخزين." data-en="General lab and equipment supporting daily lab operations, from centrifuges to cold storage.">أجهزة ومعدات مخبرية عامة تدعم عمل المختبر، من الطرد المركزي إلى التبريد والتخزين.</p>
@@ -534,7 +541,7 @@
         <div class="product-body">
           <span class="product-maker">Snibe</span>
           <h3>MAGLUMI X8</h3>
-          <p data-ar="محلل كيمياء مناعية آلي عالي الإنتاجية، ضمن خط MAGLUMI الموزّع في السعودية عبر عطية ميديكو." data-en="High-throughput automated chemiluminescence immunoassay analyzer, part of the MAGLUMI line distributed in Saudi Arabia through Attieh Medico.">محلل كيمياء مناعية آلي عالي الإنتاجية، ضمن خط MAGLUMI الموزّع في السعودية عبر عطية ميديكو.</p>
+          <p data-ar="محلل كيمياء مناعية آلي عالي الإنتاجية، ضمن خط MAGLUMI للكشف الكيميائي المضيء." data-en="High-throughput automated chemiluminescence immunoassay analyzer, part of the MAGLUMI line.">محلل كيمياء مناعية آلي عالي الإنتاجية، ضمن خط MAGLUMI للكشف الكيميائي المضيء.</p>
         </div>
       </div>
       <div class="product-card" style="--pv-color:var(--plasma); --pv-dim:var(--plasma-dim);">
@@ -554,7 +561,7 @@
         <div class="product-body">
           <span class="product-maker">Snibe</span>
           <h3>Molecision S6</h3>
-          <p data-ar="منصة تشخيص جزيئي آلية بالكامل، لتوسيع محفظة عطية ميديكو نحو الكشف الجزيئي." data-en="Fully automated molecular diagnostics platform, extending Attieh Medico's portfolio into molecular detection.">منصة تشخيص جزيئي آلية بالكامل، لتوسيع محفظة عطية ميديكو نحو الكشف الجزيئي.</p>
+          <p data-ar="منصة تشخيص جزيئي آلية بالكامل، للكشف الجزيئي عن الممرضات." data-en="Fully automated molecular diagnostics platform for pathogen detection.">منصة تشخيص جزيئي آلية بالكامل، للكشف الجزيئي عن الممرضات.</p>
         </div>
       </div>
     </div>
@@ -565,15 +572,15 @@
 <section class="spotlight" id="spotlight">
   <div class="wrap">
     <div class="sec-head">
-      <span class="sec-eyebrow" data-ar="فرصة استراتيجية قيد التنفيذ" data-en="Strategic opportunity in progress">فرصة استراتيجية قيد التنفيذ</span>
-      <h2 data-ar="ما الذي نبنيه الآن" data-en="What we're building now">ما الذي نبنيه الآن</h2>
+      <span class="sec-eyebrow" data-ar="ذكاء الفرص" data-en="Opportunity intelligence">ذكاء الفرص</span>
+      <h2 data-ar="مش مجرد رصد — قرار جاهز للتنفيذ" data-en="Not just tracking — a decision ready to act on">مش مجرد رصد — قرار جاهز للتنفيذ</h2>
     </div>
     <div class="spotlight-card">
       <div class="spotlight-text">
-        <span class="spotlight-tag mono">NUPCO · 2027</span>
-        <h3 data-ar="خط منتجات بنك الدم لعطية ميديكو — من التبريد إلى الكاشف المناعي" data-en="Attieh Medico's blood bank product line — from cold chain to immunohematology reagents">خط منتجات بنك الدم لعطية ميديكو — من التبريد إلى الكاشف المناعي</h3>
-        <p data-ar="خطة عمل مكتملة من 22 شريحة، تغطي أكثر من 300 بنك دم مرصود في السعودية، ومشهدًا تنافسيًا مؤكدًا بالكامل، استعدادًا لدورة المناقصات القادمة." data-en="A complete 22-slide business plan covering 300+ mapped blood banks in Saudi Arabia, with a fully verified competitive landscape, ready for the next tender cycle.">خطة عمل مكتملة من 22 شريحة، تغطي أكثر من 300 بنك دم مرصود في السعودية، ومشهدًا تنافسيًا مؤكدًا بالكامل، استعدادًا لدورة المناقصات القادمة.</p>
-        <a class="btn btn-ghost" href="/app" target="_blank" rel="noopener" data-ar="اطّلع على التفاصيل داخل المنصة ←" data-en="View details inside the platform →">اطّلع على التفاصيل داخل المنصة ←</a>
+        <span class="spotlight-tag mono" data-ar="الفرص المفتوحة" data-en="Open opportunities">الفرص المفتوحة</span>
+        <h3 data-ar="من فجوة في السوق إلى فرصة موثّقة بالكامل" data-en="From a market gap to a fully documented opportunity">من فجوة في السوق إلى فرصة موثّقة بالكامل</h3>
+        <p data-ar="كل فجوة توزيع غير مغطاة في السعودية والخليج بترصدها المنصة، توثّقها، وتربطها بالمشهد التنافسي الفعلي — جاهزة كخطوة عمل واضحة، مش مجرد تقرير يُقرأ ويُنسى." data-en="Every uncovered distribution gap across Saudi Arabia and the Gulf is tracked, documented, and mapped against the real competitive landscape — ready as a clear next step, not just a report that gets read once.">كل فجوة توزيع غير مغطاة في السعودية والخليج بترصدها المنصة، توثّقها، وتربطها بالمشهد التنافسي الفعلي — جاهزة كخطوة عمل واضحة، مش مجرد تقرير يُقرأ ويُنسى.</p>
+        <a class="btn btn-ghost" href="/app?tab=opportunities" data-ar="استكشف الفرص المفتوحة ←" data-en="Explore open opportunities →">استكشف الفرص المفتوحة ←</a>
       </div>
       <div class="spotlight-visual">
         <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
@@ -624,12 +631,11 @@
       <div class="footer-contact">
         <div class="role">Clinical Application & Sales Specialist</div>
         <div class="who" data-ar="عمرو المرشدي" data-en="Amr Elmorshedy">عمرو المرشدي</div>
-        <div class="co">Attieh Medico Ltd.</div>
         <a class="tel" href="tel:+966551387142">+966 55 138 7142</a>
       </div>
     </div>
     <div class="footer-fine">
-      <span data-ar="© 2026 MedForsa GCC — أداة استخبارات داخلية." data-en="© 2026 MedForsa GCC — internal intelligence tool.">© 2026 MedForsa GCC — أداة استخبارات داخلية.</span>
+      <span data-ar="© 2026 MedForsa GCC — منصة استخبارات سوق مستقلة." data-en="© 2026 MedForsa GCC — an independent market intelligence platform.">© 2026 MedForsa GCC — منصة استخبارات سوق مستقلة.</span>
       <span class="mono">v0.6 · design concept</span>
     </div>
   </div>
@@ -694,26 +700,21 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function goToCompanyByName(name){
-    const win = window.open('', '_blank');
     fetch('/companies?q=' + encodeURIComponent(name) + '&limit=1')
       .then(r=>r.json())
       .then(data=>{
         if(data.results && data.results[0]){
-          const url = '/app?company=' + data.results[0].id;
-          if(win) win.location.href = url; else window.location.href = url;
+          window.location.href = '/app?company=' + data.results[0].id;
           return;
         }
         return fetch('/distributors')
           .then(r=>r.json())
           .then(dists=>{
             const match = (dists||[]).find(d => (d.name||'').toLowerCase().includes(name.toLowerCase()));
-            const url = match ? '/app?distributor=' + encodeURIComponent(match.name) : '/app';
-            if(win) win.location.href = url; else window.location.href = url;
+            window.location.href = match ? '/app?distributor=' + encodeURIComponent(match.name) : '/app';
           });
       })
-      .catch(()=>{
-        if(win) win.location.href = '/app'; else window.location.href = '/app';
-      });
+      .catch(()=>{ window.location.href = '/app'; });
   }
 
   async function runSearch(term){
@@ -762,7 +763,7 @@ document.addEventListener('DOMContentLoaded', function(){
       searchResults.appendChild(label);
       companies.forEach(c=>{
         searchResults.appendChild(siRow(c.name, c.category, lang==='ar'?'شركة':'Company', ()=>{
-          window.open('/app?company=' + c.id, '_blank');
+          window.location.href = '/app?company=' + c.id;
         }));
       });
     }
@@ -784,7 +785,7 @@ document.addEventListener('DOMContentLoaded', function(){
       searchResults.appendChild(label);
       distributors.forEach(d=>{
         searchResults.appendChild(siRow(d.name, d.region || '', lang==='ar'?'موزّع':'Distributor', ()=>{
-          window.open('/app?distributor=' + encodeURIComponent(d.name), '_blank');
+          window.location.href = '/app?distributor=' + encodeURIComponent(d.name);
         }));
       });
     }
@@ -845,27 +846,26 @@ document.addEventListener('DOMContentLoaded', function(){
 
   const chatHistory = [];
 
-  async function sendChat(){
-    const text = chatInput.value.trim();
+  async function sendChat(presetText){
+    const text = (presetText !== undefined ? presetText : chatInput.value).trim();
     if(!text) return;
     addMessage(text, 'user');
     chatHistory.push({role:'user', content:text});
     chatInput.value = '';
     const typingEl = addTyping();
 
-    const systemPrompt = "You are the on-platform assistant for MedForsa GCC, a market-intelligence tool built by Amr Elmorshedy (Clinical Application & Sales Specialist at Attieh Medico Ltd, Jeddah, Saudi Arabia) for tracking IVD and blood bank manufacturers, products, and distribution status across Saudi Arabia and the GCC. Answer questions about IVD/diagnostics categories, manufacturers, and distribution opportunities helpfully and concisely. Always reply in the same language the visitor writes in (Arabic or English). Never invent specific distributor names, phone numbers, or confirmed partnership details you are not given — if unsure, say the information is unconfirmed. For pricing, contracts, or anything requiring a human decision, direct the visitor to contact Amr Elmorshedy directly at +966 55 138 7142 or via WhatsApp.";
+    const systemPrompt = "You are the on-platform assistant for MedForsa GCC, an independent market-intelligence tool built by Amr Elmorshedy for tracking IVD and blood bank manufacturers, products, and distribution status across Saudi Arabia and the GCC. Answer questions about IVD/diagnostics categories, manufacturers, and distribution opportunities helpfully and concisely. Always reply in the same language the visitor writes in (Arabic or English). Never invent specific distributor names, phone numbers, or confirmed partnership details you are not given — if unsure, say the information is unconfirmed. For pricing, contracts, or anything requiring a human decision, direct the visitor to contact Amr Elmorshedy directly at +966 55 138 7142 or via WhatsApp.";
 
     try{
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1000,
           system: systemPrompt,
           messages: chatHistory
         })
       });
+      if(!response.ok){ throw new Error('bad status ' + response.status); }
       const data = await response.json();
       const reply = (data.content || []).filter(b=>b.type==='text').map(b=>b.text).join('\n') || 'عذرًا، حصل خطأ في الرد.';
       typingEl.remove();
@@ -878,7 +878,18 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
 
-  chatSend.addEventListener('click', sendChat);
+  document.querySelectorAll('.chat-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      if(chip.dataset.action === 'whatsapp'){
+        window.open('https://wa.me/966551387142', '_blank');
+        return;
+      }
+      const lang = MedForsaLang.getCurrentLang();
+      sendChat(lang==='ar' ? chip.dataset.ar : chip.dataset.en);
+    });
+  });
+
+  chatSend.addEventListener('click', ()=> sendChat());
   chatInput.addEventListener('keydown', e=>{ if(e.key==='Enter') sendChat(); });
 });
 </script>
@@ -899,6 +910,12 @@ document.addEventListener('DOMContentLoaded', function(){
   </div>
   <div class="chat-body" id="chatBody">
     <div class="msg bot" data-ar="أهلاً! أنا مساعد MedForsa GCC. اسألني عن أي مصنّع، فئة تشخيصية، أو فرصة توزيع في السعودية والخليج." data-en="Hi! I'm the MedForsa GCC assistant. Ask me about any manufacturer, diagnostic category, or distribution opportunity in Saudi Arabia and the Gulf.">أهلاً! أنا مساعد MedForsa GCC. اسألني عن أي مصنّع، فئة تشخيصية، أو فرصة توزيع في السعودية والخليج.</div>
+  </div>
+  <div class="chat-chips">
+    <button class="chat-chip" data-ar="عايز أعرف عن بنك الدم" data-en="Tell me about blood bank">عايز أعرف عن بنك الدم</button>
+    <button class="chat-chip" data-ar="ورّيني الفرص المفتوحة" data-en="Show me open opportunities">ورّيني الفرص المفتوحة</button>
+    <button class="chat-chip" data-ar="إزاي أقارن بين شركتين؟" data-en="How do I compare two companies?">إزاي أقارن بين شركتين؟</button>
+    <button class="chat-chip" data-action="whatsapp" data-ar="عايز أتواصل مع حد مباشرة" data-en="I want to talk to a person">عايز أتواصل مع حد مباشرة</button>
   </div>
   <div class="chat-foot">
     <div class="chat-input-row">
