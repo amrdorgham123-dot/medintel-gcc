@@ -1,5 +1,5 @@
 /*
-  MedIntel GCC — Language Engine
+  MedForsa GCC — Language Engine
   ------------------------------
   Reusable AR/EN toggle for any page. Works with elements marked:
     data-ar="نص عربي"              data-en="English text"
@@ -7,7 +7,7 @@
     data-lang-toggle                on any button that should switch language
 
   Usage in your page's own script, after this file is loaded:
-    MedIntelLang.initLangToggle('ar');   // 'ar' or 'en' as the default/starting language
+    MedForsaLang.initLangToggle('ar');   // 'ar' or 'en' as the default/starting language
 */
 (function () {
   let currentLang = 'ar';
@@ -54,7 +54,7 @@
     applyLang(defaultLang);
   }
 
-  window.MedIntelLang = {
+  window.MedForsaLang = {
     applyLang: applyLang,
     toggleLang: toggleLang,
     initLangToggle: initLangToggle,
