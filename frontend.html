@@ -1735,6 +1735,7 @@ async function renderMarketEvents(){
   const companyId = params.get('company');
   const distributorName = params.get('distributor');
   const tab = params.get('tab');
+  const category = params.get('category');
 
   if(companyId){
     activeTab = 'manufacturers';
@@ -1748,8 +1749,22 @@ async function renderMarketEvents(){
   }
   if(tab){
     activeTab = tab;
+  } else if(category){
+    activeTab = 'manufacturers';
   }
   render();
+  if(category && activeTab === 'manufacturers'){
+    const trySetCategory = (attemptsLeft) => {
+      const sel = document.getElementById('category-filter');
+      if(sel){
+        sel.value = decodeURIComponent(category);
+        loadManufacturerGrid();
+      } else if(attemptsLeft > 0){
+        setTimeout(() => trySetCategory(attemptsLeft - 1), 150);
+      }
+    };
+    trySetCategory(20);
+  }
 })();
 </script>
 </body>

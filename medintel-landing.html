@@ -186,6 +186,7 @@
   /* ---------- CATEGORIES ---------- */
   .cat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
   .cat-card{
+    display:block;
     background:var(--surface); border:1px solid var(--line); border-radius:20px;
     padding:32px 26px; position:relative; overflow:hidden;
     transition:transform .35s cubic-bezier(.2,.8,.2,1), border-color .35s;
@@ -484,36 +485,36 @@
       <p data-ar="كل فئة مرتبطة بمصنّعيها وموزّعيها الفعليين في السعودية والخليج — بلا تخمين، وبلا بيانات غير مؤكدة." data-en="Every category is mapped to its real manufacturers and distributors across Saudi Arabia and the Gulf — no guesswork, no unverified data.">كل فئة مرتبطة بمصنّعيها وموزّعيها الفعليين في السعودية والخليج — بلا تخمين، وبلا بيانات غير مؤكدة.</p>
     </div>
     <div class="cat-grid">
-      <div class="cat-card cat-blood">
+      <a class="cat-card cat-blood" href="/app?tab=manufacturers&category=Blood%20Bank" target="_blank" rel="noopener">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><path d="M12 2c4 5 7 8.5 7 12.5A7 7 0 1 1 5 14.5C5 10.5 8 7 12 2Z"/></svg></div>
         <h3 data-ar="بنك الدم" data-en="Blood bank">بنك الدم</h3>
         <p data-ar="تبريد، أكياس دم، وكواشف مطابقة الأنسجة — أولوية العمل خلال دورة NUPCO 2027." data-en="Cold chain, blood bags, and tissue-typing reagents — the priority track for the 2027 NUPCO cycle.">تبريد، أكياس دم، وكواشف مطابقة الأنسجة — أولوية العمل خلال دورة NUPCO 2027.</p>
-      </div>
-      <div class="cat-card cat-assay">
+      </a>
+      <a class="cat-card cat-assay" href="/app?tab=manufacturers&category=Immunology%20%26%20Serology" target="_blank" rel="noopener">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5.5 9.5A2 2 0 0 0 6.2 21h11.6a2 2 0 0 0 1.7-3.5L14 9V3"/><path d="M7.5 14h9"/></svg></div>
-        <h3 data-ar="الكيمياء المناعية" data-en="Immunoassay">الكيمياء المناعية</h3>
-        <p data-ar="منصات المناعة الآلية الكاملة، من التشخيص الهرموني إلى علامات الأورام." data-en="Full automated immunoassay platforms, from hormonal diagnostics to tumor markers.">منصات المناعة الآلية الكاملة، من التشخيص الهرموني إلى علامات الأورام.</p>
-      </div>
-      <div class="cat-card cat-gold">
+        <h3 data-ar="المناعة والمصليات" data-en="Immunology & serology">المناعة والمصليات</h3>
+        <p data-ar="منصات المناعة الآلية، من التشخيص الهرموني إلى علامات الأورام." data-en="Automated immunology and serology platforms, from hormonal diagnostics to tumor markers.">منصات المناعة الآلية، من التشخيص الهرموني إلى علامات الأورام.</p>
+      </a>
+      <a class="cat-card cat-gold" href="/app?tab=manufacturers&category=Hematology" target="_blank" rel="noopener">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.4M12 18.6V21M21 12h-2.4M5.4 12H3M18 6l-1.7 1.7M7.7 16.3 6 18M18 18l-1.7-1.7M7.7 7.7 6 6"/></svg></div>
         <h3 data-ar="أمراض الدم" data-en="Hematology">أمراض الدم</h3>
         <p data-ar="عدّادات الدم الكاملة والتصوير الرقمي للخلايا، من المخابر الصغيرة إلى المراكز المرجعية." data-en="Complete blood count analyzers and digital cell imaging, from small labs to reference centers.">عدّادات الدم الكاملة والتصوير الرقمي للخلايا، من المخابر الصغيرة إلى المراكز المرجعية.</p>
-      </div>
-      <div class="cat-card cat-blood">
+      </a>
+      <a class="cat-card cat-blood" href="/app?tab=manufacturers&category=Coagulation" target="_blank" rel="noopener">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><path d="M4 12h4l2-7 4 14 2-7h4"/></svg></div>
         <h3 data-ar="التخثر" data-en="Coagulation">التخثر</h3>
         <p data-ar="تشخيص اضطرابات النزف والتجلط، ومتابعة العلاج المضاد للتخثر." data-en="Diagnosing bleeding and clotting disorders, and monitoring anticoagulant therapy.">تشخيص اضطرابات النزف والتجلط، ومتابعة العلاج المضاد للتخثر.</p>
-      </div>
-      <div class="cat-card cat-assay">
+      </a>
+      <a class="cat-card cat-assay" href="/app?tab=manufacturers&category=Microbiology" target="_blank" rel="noopener">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><path d="M9 2v4M15 2v4M6 8h12l-1 5a5 5 0 0 1-10 0L6 8Z"/><path d="M9 20h6"/></svg></div>
         <h3 data-ar="الميكروبيولوجي" data-en="Microbiology">الميكروبيولوجي</h3>
         <p data-ar="الزراعة الآلية، اختبارات الحساسية، والكشف الجزيئي للممرضات." data-en="Automated culture, susceptibility testing, and molecular pathogen detection.">الزراعة الآلية، اختبارات الحساسية، والكشف الجزيئي للممرضات.</p>
-      </div>
-      <div class="cat-card cat-gold">
+      </a>
+      <a class="cat-card cat-gold" href="/app?tab=manufacturers&category=General%20Laboratory%20Equipment" target="_blank" rel="noopener">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M8 12h8"/></svg></div>
-        <h3 data-ar="الأجهزة الطرفية" data-en="Point-of-care">الأجهزة الطرفية</h3>
-        <p data-ar="حلول التشخيص السريع بجانب المريض، والأجهزة المساندة للمختبر." data-en="Rapid bedside diagnostic solutions and supporting lab equipment.">حلول التشخيص السريع بجانب المريض، والأجهزة المساندة للمختبر.</p>
-      </div>
+        <h3 data-ar="أجهزة الرعاية الطبية" data-en="General laboratory equipment">أجهزة الرعاية الطبية</h3>
+        <p data-ar="أجهزة ومعدات مخبرية عامة تدعم عمل المختبر، من الطرد المركزي إلى التبريد والتخزين." data-en="General lab and equipment supporting daily lab operations, from centrifuges to cold storage.">أجهزة ومعدات مخبرية عامة تدعم عمل المختبر، من الطرد المركزي إلى التبريد والتخزين.</p>
+      </a>
     </div>
   </div>
 </section>
@@ -693,21 +694,26 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function goToCompanyByName(name){
+    const win = window.open('', '_blank');
     fetch('/companies?q=' + encodeURIComponent(name) + '&limit=1')
       .then(r=>r.json())
       .then(data=>{
         if(data.results && data.results[0]){
-          window.open('/app?company=' + data.results[0].id, '_blank');
+          const url = '/app?company=' + data.results[0].id;
+          if(win) win.location.href = url; else window.location.href = url;
           return;
         }
         return fetch('/distributors')
           .then(r=>r.json())
           .then(dists=>{
             const match = (dists||[]).find(d => (d.name||'').toLowerCase().includes(name.toLowerCase()));
-            window.open(match ? '/app?distributor=' + encodeURIComponent(match.name) : '/app', '_blank');
+            const url = match ? '/app?distributor=' + encodeURIComponent(match.name) : '/app';
+            if(win) win.location.href = url; else window.location.href = url;
           });
       })
-      .catch(()=> window.open('/app', '_blank'));
+      .catch(()=>{
+        if(win) win.location.href = '/app'; else window.location.href = '/app';
+      });
   }
 
   async function runSearch(term){
