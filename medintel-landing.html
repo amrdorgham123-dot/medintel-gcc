@@ -6,7 +6,7 @@
 <title>MedIntel GCC — نبض تشخيصات الخليج</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Tajawal:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Tajawal:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#0A0E1C;
@@ -21,17 +21,23 @@
     --gold-dim: rgba(255,180,67,0.14);
     --paper:#EDEFF7;
     --muted:#8D95B3;
+    --font-display:'Almarai', sans-serif;
+    --font-body:'Tajawal', sans-serif;
+  }
+  body.lang-en{
+    --font-display:'Space Grotesk', sans-serif;
+    --font-body:'Inter', sans-serif;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   html{scroll-behavior:smooth;}
   body{
     background:var(--ink);
     color:var(--paper);
-    font-family:'Tajawal', sans-serif;
+    font-family:var(--font-body);
     overflow-x:hidden;
     line-height:1.7;
   }
-  h1,h2,h3,.display{font-family:'Almarai', sans-serif;}
+  h1,h2,h3,.display{font-family:var(--font-display);}
   .mono{font-family:'IBM Plex Mono', monospace; direction:ltr; unicode-bidi:plaintext;}
   a{color:inherit; text-decoration:none;}
   .wrap{max-width:1180px; margin:0 auto; padding:0 28px;}
@@ -53,13 +59,21 @@
     width:36px; height:36px; border-radius:9px;
     background:linear-gradient(135deg, var(--plasma), var(--gold));
     display:flex; align-items:center; justify-content:center;
-    font-family:'Almarai'; font-weight:800; font-size:15px; color:#0A0E1C;
+    font-family:var(--font-display); font-weight:800; font-size:15px; color:#0A0E1C;
     flex-shrink:0;
   }
-  .brand-word{font-family:'Almarai'; font-weight:800; font-size:18px;}
+  .brand-word{font-family:var(--font-display); font-weight:800; font-size:18px;}
   .brand-word span{color:var(--assay); font-family:'IBM Plex Mono'; font-weight:500; font-size:12px; display:block; letter-spacing:1px;}
   .nav-links{display:flex; gap:32px; font-size:14.5px; color:var(--muted);}
   .nav-links a:hover{color:var(--paper);}
+  .lang-toggle{
+    font-family:'IBM Plex Mono'; font-size:12.5px; font-weight:500; color:var(--paper);
+    background:var(--surface-2); border:1px solid var(--line); border-radius:999px;
+    padding:8px 14px; cursor:pointer; margin-inline-end:10px; letter-spacing:.5px;
+    transition:border-color .2s, color .2s;
+  }
+  .lang-toggle:hover{border-color:var(--assay); color:var(--assay);}
+  .mobile-menu .lang-toggle{width:100%; text-align:center; margin:14px 0 0; padding:14px;}
   .nav-cta{
     background:var(--plasma); color:#fff; padding:10px 22px;
     border-radius:999px; font-size:14px; font-weight:700;
@@ -143,7 +157,7 @@
   .btn-ghost{border:1px solid var(--line); color:var(--paper);}
   .btn-ghost:hover{background:var(--surface-2); border-color:rgba(237,239,247,0.25);}
   .stats-row{display:flex; gap:52px; flex-wrap:wrap;}
-  .stat-num{font-family:'Almarai'; font-weight:800; font-size:38px; display:block; background:linear-gradient(95deg,var(--assay),var(--paper)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .stat-num{font-family:var(--font-display); font-weight:800; font-size:38px; display:block; background:linear-gradient(95deg,var(--assay),var(--paper)); -webkit-background-clip:text; background-clip:text; color:transparent;}
   .stat-label{font-size:13.5px; color:var(--muted); margin-top:4px;}
 
   /* ---------- PULSE DIVIDER ---------- */
@@ -158,7 +172,7 @@
   .marquee-caption{font-size:14px; color:var(--muted); margin-bottom:30px; font-family:'IBM Plex Mono'; letter-spacing:.3px;}
   .marquee{overflow:hidden; -webkit-mask-image:linear-gradient(90deg, transparent, black 12%, black 88%, transparent); mask-image:linear-gradient(90deg, transparent, black 12%, black 88%, transparent);}
   .marquee-track{display:flex; gap:56px; width:max-content; animation:scroll-x 34s linear infinite;}
-  .marquee-track span{font-family:'Almarai'; font-weight:700; font-size:21px; color:var(--muted); white-space:nowrap; opacity:.75; transition:opacity .2s, color .2s;}
+  .marquee-track span{font-family:var(--font-display); font-weight:700; font-size:21px; color:var(--muted); white-space:nowrap; opacity:.75; transition:opacity .2s, color .2s;}
   .marquee-track span:hover{opacity:1; color:var(--assay);}
   @keyframes scroll-x{from{transform:translateX(0);} to{transform:translateX(-50%);}}
 
@@ -254,18 +268,20 @@
       <div class="brand-word">MedIntel GCC<span>IVD & BLOOD BANK INTELLIGENCE</span></div>
     </div>
     <nav class="nav-links">
-      <a href="#categories">الفئات</a>
-      <a href="#spotlight">الفرص الاستراتيجية</a>
-      <a href="#why">لماذا MedIntel</a>
+      <a href="#categories" data-ar="الفئات" data-en="Categories">الفئات</a>
+      <a href="#spotlight" data-ar="الفرص الاستراتيجية" data-en="Strategic opportunities">الفرص الاستراتيجية</a>
+      <a href="#why" data-ar="لماذا MedIntel" data-en="Why MedIntel">لماذا MedIntel</a>
     </nav>
-    <a class="btn-cta nav-cta" href="https://medintel-gcc.onrender.com" target="_blank" rel="noopener">ادخل إلى المنصة</a>
+    <button class="lang-toggle" id="langToggle" data-lang-toggle>EN</button>
+    <a class="btn-cta nav-cta" href="/dashboard" target="_blank" rel="noopener" data-ar="ادخل إلى المنصة" data-en="Enter the platform">ادخل إلى المنصة</a>
     <button class="nav-toggle" id="navToggle" aria-label="فتح القائمة">☰</button>
   </div>
   <div class="mobile-menu" id="mobileMenu">
-    <a href="#categories">الفئات</a>
-    <a href="#spotlight">الفرص الاستراتيجية</a>
-    <a href="#why">لماذا MedIntel</a>
-    <a class="btn btn-primary" href="https://medintel-gcc.onrender.com" target="_blank" rel="noopener">ادخل إلى المنصة</a>
+    <a href="#categories" data-ar="الفئات" data-en="Categories">الفئات</a>
+    <a href="#spotlight" data-ar="الفرص الاستراتيجية" data-en="Strategic opportunities">الفرص الاستراتيجية</a>
+    <a href="#why" data-ar="لماذا MedIntel" data-en="Why MedIntel">لماذا MedIntel</a>
+    <a class="btn btn-primary" href="/dashboard" target="_blank" rel="noopener" data-ar="ادخل إلى المنصة" data-en="Enter the platform">ادخل إلى المنصة</a>
+    <button class="lang-toggle" id="langToggleMobile" data-lang-toggle>EN</button>
   </div>
 </header>
 
@@ -279,17 +295,17 @@
   <div class="wrap hero-inner">
     <div class="hero-grid">
       <div>
-        <span class="eyebrow">منصة استخبارات السوق · IVD & بنوك الدم</span>
-        <h1>كل مُصنّع، كل تقنية، <em>وكل فرصة توزيع</em> في سوق الخليج — قبل أن يصل إليها أحد غيرك.</h1>
-        <p class="hero-sub">MedIntel GCC ترصد سوق التشخيص المخبري في السعودية ودول الخليج، من الكيمياء المناعية إلى بنوك الدم، وتربط كل مُصنّع بحالة توزيعه الفعلية على أرض الواقع.</p>
+        <span class="eyebrow" data-ar="منصة استخبارات السوق · IVD & بنوك الدم" data-en="Market intelligence platform · IVD & blood bank">منصة استخبارات السوق · IVD & بنوك الدم</span>
+        <h1 data-ar-html="كل مُصنّع، كل تقنية، <em>وكل فرصة توزيع</em> في سوق الخليج — قبل أن يصل إليها أحد غيرك." data-en-html="Every manufacturer. Every technology. <em>Every distribution opportunity</em> in the Gulf — before anyone else finds it.">كل مُصنّع، كل تقنية، <em>وكل فرصة توزيع</em> في سوق الخليج — قبل أن يصل إليها أحد غيرك.</h1>
+        <p class="hero-sub" data-ar="MedIntel GCC ترصد سوق التشخيص المخبري في السعودية ودول الخليج، من الكيمياء المناعية إلى بنوك الدم، وتربط كل مُصنّع بحالة توزيعه الفعلية على أرض الواقع." data-en="MedIntel GCC tracks the in-vitro diagnostics market across Saudi Arabia and the Gulf, from immunoassay to blood banking, and connects every manufacturer to its real distribution status on the ground.">MedIntel GCC ترصد سوق التشخيص المخبري في السعودية ودول الخليج، من الكيمياء المناعية إلى بنوك الدم، وتربط كل مُصنّع بحالة توزيعه الفعلية على أرض الواقع.</p>
         <div class="hero-ctas">
-          <a class="btn btn-primary" href="https://medintel-gcc.onrender.com" target="_blank" rel="noopener">استكشف المنصة ←</a>
-          <a class="btn btn-ghost" href="#categories">تصفّح الفئات</a>
+          <a class="btn btn-primary" href="/dashboard" target="_blank" rel="noopener" data-ar="استكشف المنصة ←" data-en="Explore the platform →">استكشف المنصة ←</a>
+          <a class="btn btn-ghost" href="#categories" data-ar="تصفّح الفئات" data-en="Browse categories">تصفّح الفئات</a>
         </div>
         <div class="stats-row">
-          <div class="stat"><span class="stat-num" data-target="62">0</span><span class="stat-label">شركة مصنّعة مرصودة</span></div>
-          <div class="stat"><span class="stat-num" data-target="200">0</span><span class="stat-label">منتج ضمن قاعدة البيانات</span></div>
-          <div class="stat"><span class="stat-num" data-target="6">0</span><span class="stat-label">فئات تشخيصية رئيسية</span></div>
+          <div class="stat"><span class="stat-num" data-target="62">0</span><span class="stat-label" data-ar="شركة مصنّعة مرصودة" data-en="manufacturers tracked">شركة مصنّعة مرصودة</span></div>
+          <div class="stat"><span class="stat-num" data-target="200">0</span><span class="stat-label" data-ar="منتج ضمن قاعدة البيانات" data-en="products in the database">منتج ضمن قاعدة البيانات</span></div>
+          <div class="stat"><span class="stat-num" data-target="6">0</span><span class="stat-label" data-ar="فئات تشخيصية رئيسية" data-en="core diagnostic categories">فئات تشخيصية رئيسية</span></div>
         </div>
       </div>
       <div class="hero-visual">
@@ -304,7 +320,7 @@
             <path d="M50 30h100l8 20v150a20 20 0 0 1-20 20H62a20 20 0 0 1-20-20V50l8-20Z" stroke="#EDEFF7" stroke-width="1.5" opacity="0.25"/>
             <rect x="82" y="8" width="36" height="24" rx="4" stroke="#8D95B3" stroke-width="2" opacity="0.5"/>
           </svg>
-          <div class="float-chip f1">O⁻ · متوفر</div>
+          <div class="float-chip f1" data-ar="O⁻ · متوفر" data-en="O⁻ · in stock">O⁻ · متوفر</div>
           <div class="float-chip f2">2–6°C</div>
           <div class="float-chip f3">NUPCO 2027</div>
         </div>
@@ -324,7 +340,7 @@
 
 <section class="marquee-section">
   <div class="wrap">
-    <p class="marquee-caption">نراقب تحرّكات هذه الشركات وعشرات غيرها في السوق الخليجي</p>
+    <p class="marquee-caption" data-ar="نراقب تحرّكات هذه الشركات وعشرات غيرها في السوق الخليجي" data-en="We track these companies — and dozens more — across the Gulf market">نراقب تحرّكات هذه الشركات وعشرات غيرها في السوق الخليجي</p>
   </div>
   <div class="marquee">
     <div class="marquee-track" id="marqueeTrack">
@@ -336,40 +352,40 @@
 <section id="categories">
   <div class="wrap">
     <div class="sec-head">
-      <span class="sec-eyebrow">خريطة السوق</span>
-      <h2>ست فئات، سوق واحد نراقبه بالتفصيل</h2>
-      <p>كل فئة مرتبطة بمصنّعيها وموزّعيها الفعليين في السعودية والخليج — بلا تخمين، وبلا بيانات غير مؤكدة.</p>
+      <span class="sec-eyebrow" data-ar="خريطة السوق" data-en="Market map">خريطة السوق</span>
+      <h2 data-ar="ست فئات، سوق واحد نراقبه بالتفصيل" data-en="Six categories, one market, tracked in detail">ست فئات، سوق واحد نراقبه بالتفصيل</h2>
+      <p data-ar="كل فئة مرتبطة بمصنّعيها وموزّعيها الفعليين في السعودية والخليج — بلا تخمين، وبلا بيانات غير مؤكدة." data-en="Every category is mapped to its real manufacturers and distributors across Saudi Arabia and the Gulf — no guesswork, no unverified data.">كل فئة مرتبطة بمصنّعيها وموزّعيها الفعليين في السعودية والخليج — بلا تخمين، وبلا بيانات غير مؤكدة.</p>
     </div>
     <div class="cat-grid">
       <div class="cat-card cat-blood">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><path d="M12 2c4 5 7 8.5 7 12.5A7 7 0 1 1 5 14.5C5 10.5 8 7 12 2Z"/></svg></div>
-        <h3>بنك الدم</h3>
-        <p>تبريد، أكياس دم، وكواشف مطابقة الأنسجة — أولوية العمل خلال دورة NUPCO 2027.</p>
+        <h3 data-ar="بنك الدم" data-en="Blood bank">بنك الدم</h3>
+        <p data-ar="تبريد، أكياس دم، وكواشف مطابقة الأنسجة — أولوية العمل خلال دورة NUPCO 2027." data-en="Cold chain, blood bags, and tissue-typing reagents — the priority track for the 2027 NUPCO cycle.">تبريد، أكياس دم، وكواشف مطابقة الأنسجة — أولوية العمل خلال دورة NUPCO 2027.</p>
       </div>
       <div class="cat-card cat-assay">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5.5 9.5A2 2 0 0 0 6.2 21h11.6a2 2 0 0 0 1.7-3.5L14 9V3"/><path d="M7.5 14h9"/></svg></div>
-        <h3>الكيمياء المناعية</h3>
-        <p>منصات المناعة الآلية الكاملة، من التشخيص الهرموني إلى علامات الأورام.</p>
+        <h3 data-ar="الكيمياء المناعية" data-en="Immunoassay">الكيمياء المناعية</h3>
+        <p data-ar="منصات المناعة الآلية الكاملة، من التشخيص الهرموني إلى علامات الأورام." data-en="Full automated immunoassay platforms, from hormonal diagnostics to tumor markers.">منصات المناعة الآلية الكاملة، من التشخيص الهرموني إلى علامات الأورام.</p>
       </div>
       <div class="cat-card cat-gold">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.4M12 18.6V21M21 12h-2.4M5.4 12H3M18 6l-1.7 1.7M7.7 16.3 6 18M18 18l-1.7-1.7M7.7 7.7 6 6"/></svg></div>
-        <h3>أمراض الدم</h3>
-        <p>عدّادات الدم الكاملة والتصوير الرقمي للخلايا، من المخابر الصغيرة إلى المراكز المرجعية.</p>
+        <h3 data-ar="أمراض الدم" data-en="Hematology">أمراض الدم</h3>
+        <p data-ar="عدّادات الدم الكاملة والتصوير الرقمي للخلايا، من المخابر الصغيرة إلى المراكز المرجعية." data-en="Complete blood count analyzers and digital cell imaging, from small labs to reference centers.">عدّادات الدم الكاملة والتصوير الرقمي للخلايا، من المخابر الصغيرة إلى المراكز المرجعية.</p>
       </div>
       <div class="cat-card cat-blood">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><path d="M4 12h4l2-7 4 14 2-7h4"/></svg></div>
-        <h3>التخثر</h3>
-        <p>تشخيص اضطرابات النزف والتجلط، ومتابعة العلاج المضاد للتخثر.</p>
+        <h3 data-ar="التخثر" data-en="Coagulation">التخثر</h3>
+        <p data-ar="تشخيص اضطرابات النزف والتجلط، ومتابعة العلاج المضاد للتخثر." data-en="Diagnosing bleeding and clotting disorders, and monitoring anticoagulant therapy.">تشخيص اضطرابات النزف والتجلط، ومتابعة العلاج المضاد للتخثر.</p>
       </div>
       <div class="cat-card cat-assay">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><path d="M9 2v4M15 2v4M6 8h12l-1 5a5 5 0 0 1-10 0L6 8Z"/><path d="M9 20h6"/></svg></div>
-        <h3>الميكروبيولوجي</h3>
-        <p>الزراعة الآلية، اختبارات الحساسية، والكشف الجزيئي للممرضات.</p>
+        <h3 data-ar="الميكروبيولوجي" data-en="Microbiology">الميكروبيولوجي</h3>
+        <p data-ar="الزراعة الآلية، اختبارات الحساسية، والكشف الجزيئي للممرضات." data-en="Automated culture, susceptibility testing, and molecular pathogen detection.">الزراعة الآلية، اختبارات الحساسية، والكشف الجزيئي للممرضات.</p>
       </div>
       <div class="cat-card cat-gold">
         <div class="cat-icon"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M8 12h8"/></svg></div>
-        <h3>الأجهزة الطرفية</h3>
-        <p>حلول التشخيص السريع بجانب المريض، والأجهزة المساندة للمختبر.</p>
+        <h3 data-ar="الأجهزة الطرفية" data-en="Point-of-care">الأجهزة الطرفية</h3>
+        <p data-ar="حلول التشخيص السريع بجانب المريض، والأجهزة المساندة للمختبر." data-en="Rapid bedside diagnostic solutions and supporting lab equipment.">حلول التشخيص السريع بجانب المريض، والأجهزة المساندة للمختبر.</p>
       </div>
     </div>
   </div>
@@ -378,15 +394,15 @@
 <section class="spotlight" id="spotlight">
   <div class="wrap">
     <div class="sec-head">
-      <span class="sec-eyebrow">فرصة استراتيجية قيد التنفيذ</span>
-      <h2>ما الذي نبنيه الآن</h2>
+      <span class="sec-eyebrow" data-ar="فرصة استراتيجية قيد التنفيذ" data-en="Strategic opportunity in progress">فرصة استراتيجية قيد التنفيذ</span>
+      <h2 data-ar="ما الذي نبنيه الآن" data-en="What we're building now">ما الذي نبنيه الآن</h2>
     </div>
     <div class="spotlight-card">
       <div class="spotlight-text">
         <span class="spotlight-tag mono">NUPCO · 2027</span>
-        <h3>خط منتجات بنك الدم لعطية ميديكو — من التبريد إلى الكاشف المناعي</h3>
-        <p>خطة عمل مكتملة من 22 شريحة، تغطي أكثر من 300 بنك دم مرصود في السعودية، ومشهدًا تنافسيًا مؤكدًا بالكامل، استعدادًا لدورة المناقصات القادمة.</p>
-        <a class="btn btn-ghost" href="https://medintel-gcc.onrender.com" target="_blank" rel="noopener">اطّلع على التفاصيل داخل المنصة ←</a>
+        <h3 data-ar="خط منتجات بنك الدم لعطية ميديكو — من التبريد إلى الكاشف المناعي" data-en="Attieh Medico's blood bank product line — from cold chain to immunohematology reagents">خط منتجات بنك الدم لعطية ميديكو — من التبريد إلى الكاشف المناعي</h3>
+        <p data-ar="خطة عمل مكتملة من 22 شريحة، تغطي أكثر من 300 بنك دم مرصود في السعودية، ومشهدًا تنافسيًا مؤكدًا بالكامل، استعدادًا لدورة المناقصات القادمة." data-en="A complete 22-slide business plan covering 300+ mapped blood banks in Saudi Arabia, with a fully verified competitive landscape, ready for the next tender cycle.">خطة عمل مكتملة من 22 شريحة، تغطي أكثر من 300 بنك دم مرصود في السعودية، ومشهدًا تنافسيًا مؤكدًا بالكامل، استعدادًا لدورة المناقصات القادمة.</p>
+        <a class="btn btn-ghost" href="/dashboard" target="_blank" rel="noopener" data-ar="اطّلع على التفاصيل داخل المنصة ←" data-en="View details inside the platform →">اطّلع على التفاصيل داخل المنصة ←</a>
       </div>
       <div class="spotlight-visual">
         <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
@@ -401,24 +417,24 @@
 <section id="why">
   <div class="wrap">
     <div class="sec-head">
-      <span class="sec-eyebrow">منهج العمل</span>
-      <h2>لماذا MedIntel GCC مختلفة</h2>
+      <span class="sec-eyebrow" data-ar="منهج العمل" data-en="Our approach">منهج العمل</span>
+      <h2 data-ar="لماذا MedIntel GCC مختلفة" data-en="Why MedIntel GCC is different">لماذا MedIntel GCC مختلفة</h2>
     </div>
     <div class="why-grid">
       <div class="why-item">
         <span class="n mono">01</span>
-        <h3>بيانات موثقة، لا افتراضات</h3>
-        <p>لا نذكر اسم موزّع أو رقم تواصل دون مصدر يمكن التحقق منه. إن لم تُعرف الحالة، تُكتب كما هي: غير مؤكدة.</p>
+        <h3 data-ar="بيانات موثقة، لا افتراضات" data-en="Verified data, not assumptions">بيانات موثقة، لا افتراضات</h3>
+        <p data-ar="لا نذكر اسم موزّع أو رقم تواصل دون مصدر يمكن التحقق منه. إن لم تُعرف الحالة، تُكتب كما هي: غير مؤكدة." data-en="We never list a distributor name or contact without a verifiable source. If a status is unknown, it's labeled exactly that: unconfirmed.">لا نذكر اسم موزّع أو رقم تواصل دون مصدر يمكن التحقق منه. إن لم تُعرف الحالة، تُكتب كما هي: غير مؤكدة.</p>
       </div>
       <div class="why-item">
         <span class="n mono">02</span>
-        <h3>تغطية كاملة للسعودية والخليج</h3>
-        <p>من مستشفيات وزارة الصحة إلى شبكات القطاع الخاص، مع رصد مستمر لتحركات المنافسين والموزّعين.</p>
+        <h3 data-ar="تغطية كاملة للسعودية والخليج" data-en="Full Saudi and Gulf coverage">تغطية كاملة للسعودية والخليج</h3>
+        <p data-ar="من مستشفيات وزارة الصحة إلى شبكات القطاع الخاص، مع رصد مستمر لتحركات المنافسين والموزّعين." data-en="From MOH hospital networks to private-sector groups, with ongoing tracking of competitor and distributor moves.">من مستشفيات وزارة الصحة إلى شبكات القطاع الخاص، مع رصد مستمر لتحركات المنافسين والموزّعين.</p>
       </div>
       <div class="why-item">
         <span class="n mono">03</span>
-        <h3>من الرصد إلى القرار</h3>
-        <p>كل فرصة موثّقة بخطة عمل وحزمة تواصل جاهزة — لا تقرير يُقرأ ثم يُنسى.</p>
+        <h3 data-ar="من الرصد إلى القرار" data-en="From tracking to decision">من الرصد إلى القرار</h3>
+        <p data-ar="كل فرصة موثّقة بخطة عمل وحزمة تواصل جاهزة — لا تقرير يُقرأ ثم يُنسى." data-en="Every opportunity comes with a ready business plan and outreach pack — not a report that's read once and forgotten.">كل فرصة موثّقة بخطة عمل وحزمة تواصل جاهزة — لا تقرير يُقرأ ثم يُنسى.</p>
       </div>
     </div>
   </div>
@@ -432,22 +448,23 @@
           <div class="brand-mark">MI</div>
           <div class="brand-word">MedIntel GCC</div>
         </div>
-        <p>منصة استخبارات سوق التشخيص المخبري وبنوك الدم في السعودية ودول الخليج.</p>
+        <p data-ar="منصة استخبارات سوق التشخيص المخبري وبنوك الدم في السعودية ودول الخليج." data-en="A market intelligence platform for in-vitro diagnostics and blood banking across Saudi Arabia and the Gulf.">منصة استخبارات سوق التشخيص المخبري وبنوك الدم في السعودية ودول الخليج.</p>
       </div>
       <div class="footer-contact">
         <div class="role">Clinical Application & Sales Specialist</div>
-        <div class="who">عمرو المرشدي</div>
+        <div class="who" data-ar="عمرو المرشدي" data-en="Amr Elmorshedy">عمرو المرشدي</div>
         <div class="co">Attieh Medico Ltd.</div>
         <a class="tel" href="tel:+966551387142">+966 55 138 7142</a>
       </div>
     </div>
     <div class="footer-fine">
-      <span>© 2026 MedIntel GCC — أداة استخبارات داخلية.</span>
+      <span data-ar="© 2026 MedIntel GCC — أداة استخبارات داخلية." data-en="© 2026 MedIntel GCC — internal intelligence tool.">© 2026 MedIntel GCC — أداة استخبارات داخلية.</span>
       <span class="mono">v0.6 · design concept</span>
     </div>
   </div>
 </footer>
 
+<script src="lang.js"></script>
 <script>
   const navToggle = document.getElementById('navToggle');
   const mobileMenu = document.getElementById('mobileMenu');
@@ -487,6 +504,8 @@
     });
   }, {threshold:0.5});
   counters.forEach(c=>io.observe(c));
+
+  MedIntelLang.initLangToggle('ar');
 </script>
 
 </body>
