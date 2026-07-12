@@ -351,6 +351,33 @@
   .opp-lock-form input{flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:13px;}
   .opp-unlocked-bar{display:flex;align-items:center;justify-content:space-between;background:var(--ent-emerald-soft);color:var(--ent-emerald);border:1px solid var(--ent-emerald);border-radius:8px;padding:9px 14px;font-family:var(--sans);font-size:12px;margin-bottom:16px;}
   .opp-lock-btn{font-family:var(--sans);font-size:11px;background:none;border:1px solid var(--ent-emerald);color:var(--ent-emerald);padding:4px 10px;border-radius:6px;cursor:pointer;}
+  .cmdk-overlay{position:fixed;inset:0;background:rgba(10,16,24,.55);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding-top:12vh;backdrop-filter:blur(2px);}
+  .cmdk-box{width:560px;max-width:92vw;background:var(--surface);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden;}
+  .cmdk-box input{width:100%;box-sizing:border-box;padding:16px 18px;border:none;border-bottom:1px solid var(--border);font-family:var(--sans);font-size:15px;outline:none;background:var(--surface);color:var(--ink);}
+  .cmdk-results{max-height:360px;overflow-y:auto;padding:6px;}
+  .cmdk-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;font-family:var(--sans);font-size:13.5px;color:var(--ink);}
+  .cmdk-item:hover, .cmdk-item.active{background:var(--ent-cyan-soft);}
+  .cmdk-item-type{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;}
+  .cmdk-empty{padding:20px;text-align:center;font-family:var(--sans);font-size:12.5px;color:var(--ink-muted);}
+  .cmdk-trigger{width:auto;padding:0 10px;gap:5px;}
+  .cmdk-kbd{font-family:var(--mono);font-size:9.5px;color:var(--ink-muted);background:var(--surface-sunk);padding:1px 5px;border-radius:4px;border:1px solid var(--border);}
+  .star-btn{background:none;border:none;font-size:20px;line-height:1;cursor:pointer;color:var(--ink-muted);padding:2px;}
+  .star-btn.starred{color:var(--gold-brand);}
+  .leads-board{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;overflow-x:auto;}
+  @media(max-width:900px){ .leads-board{grid-template-columns:repeat(5,220px);} }
+  .leads-col{background:var(--surface-sunk);border-radius:10px;padding:10px;min-width:200px;}
+  .leads-col-head{font-family:var(--sans);font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:8px;display:flex;justify-content:space-between;}
+  .leads-col-count{font-family:var(--mono);font-size:10.5px;color:var(--ink-muted);}
+  .lead-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;}
+  .lead-card-company{font-family:var(--sans);font-weight:600;font-size:12.5px;color:var(--ink);}
+  .lead-card-contact{font-family:var(--sans);font-size:11px;color:var(--ink-soft);margin-top:2px;}
+  .lead-card-last{font-family:var(--mono);font-size:10px;color:var(--ent-cyan);margin-top:6px;}
+  .lead-card-last.muted{color:var(--ink-muted);}
+  .lead-card-actions{display:flex;gap:6px;margin-top:8px;}
+  .lead-card-actions select{flex:1;font-size:11px;padding:4px;border-radius:6px;border:1px solid var(--border);}
+  .lead-card-actions button{font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--ent-cyan);background:none;color:var(--ent-cyan);cursor:pointer;}
+  .lead-form, .interaction-form{display:flex;flex-direction:column;gap:8px;background:var(--surface-sunk);border:1px solid var(--border);border-radius:10px;padding:14px;margin:10px 0;max-width:360px;}
+  .lead-form select, .lead-form input, .interaction-form select, .interaction-form textarea, .interaction-form input{padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:12.5px;}
 </style>
 </head>
 <body>
@@ -386,6 +413,10 @@
         <input type="text" id="search" placeholder="Search...">
       </div>
       <div class="topbar-icons">
+        <button class="topbar-icon-btn cmdk-trigger" title="Quick jump (Ctrl/Cmd+K)" onclick="document.getElementById('cmdk-overlay').style.display='flex';document.getElementById('cmdk-input').focus()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+          <span class="cmdk-kbd">⌘K</span>
+        </button>
         <button class="topbar-icon-btn" id="theme-toggle" title="Toggle dark / light theme">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
         </button>
@@ -403,6 +434,13 @@
 </div>
 
 <div class="toast-wrap" id="toast-wrap"></div>
+
+<div class="cmdk-overlay" id="cmdk-overlay" style="display:none">
+  <div class="cmdk-box">
+    <input type="text" id="cmdk-input" placeholder="Jump to a page, company, or product... (Esc to close)">
+    <div class="cmdk-results" id="cmdk-results"></div>
+  </div>
+</div>
 
 <script>
 const API = "";
@@ -430,6 +468,9 @@ const ICONS = {
   kg: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8.2 7.2L10 15.5M15.8 7.2L14 15.5M8.5 6h7"/>',
   regulatory: '<path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/>',
   updates: '<path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>',
+  briefing: '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>',
+  leads: '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>',
+  watchlist_page: '<path d="M12 17.3l-5.4 3.3 1.4-6.1L3 10.2l6.2-.5L12 4l2.8 5.7 6.2.5-4.9 4.3 1.4 6.1z"/>',
 };
 
 const tabDefs = [
@@ -446,6 +487,9 @@ const tabDefs = [
   {id:"events", label:"Market events", search:false, group:"Market"},
   {id:"attieh", label:"Attieh Medico", search:false, group:"Company"},
   {id:"quality", label:"Data quality", search:false, group:"Admin"},
+  {id:"briefing", label:"Daily briefing", search:false, group:"Private"},
+  {id:"leads", label:"Leads & follow-up", search:false, group:"Private"},
+  {id:"watchlist_page", label:"Watchlist", search:false, group:"Private"},
   {id:"review", label:"Review queue", search:false, group:"Admin"},
 ];
 
@@ -539,6 +583,83 @@ document.getElementById('menu-btn').onclick = () => document.getElementById('sid
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('medintel-theme', next);
   };
+})();
+
+(function initCommandPalette(){
+  const overlay = document.getElementById('cmdk-overlay');
+  const input = document.getElementById('cmdk-input');
+  const resultsBox = document.getElementById('cmdk-results');
+  let activeIndex = 0;
+  let currentResults = [];
+
+  function open(){
+    overlay.style.display = 'flex';
+    input.value = '';
+    input.focus();
+    paint('');
+  }
+  function close(){ overlay.style.display = 'none'; }
+
+  const staticPages = tabDefs.map(t => ({ label: t.label, type: 'Page', action: () => { activeTab = t.id; selectedCompanyId = null; render(); } }));
+
+  async function paint(query){
+    const q = query.toLowerCase().trim();
+    let items = [];
+    if(!q){
+      items = staticPages;
+    } else {
+      items = staticPages.filter(p => p.label.toLowerCase().includes(q));
+      try {
+        const companies = await apiGet(`/companies?q=${encodeURIComponent(q)}&limit=6`);
+        items = items.concat(companies.results.map(c => ({
+          label: c.name, type: 'Company', sub: c.category,
+          action: () => { activeTab = 'manufacturers'; openCompany(c.id); }
+        })));
+      } catch(e){}
+      try {
+        const products = await apiGet('/products');
+        const matched = products.filter(p => p.product_name.toLowerCase().includes(q) || p.manufacturer_name.toLowerCase().includes(q)).slice(0, 6);
+        items = items.concat(matched.map(p => ({
+          label: p.product_name, type: 'Product', sub: p.manufacturer_name,
+          action: () => {
+            apiGet('/companies?q=' + encodeURIComponent(p.manufacturer_name.split(' (')[0])).then(r => {
+              if(r.results[0]){ activeTab='manufacturers'; openCompany(r.results[0].id); }
+            });
+          }
+        })));
+      } catch(e){}
+    }
+    currentResults = items.slice(0, 12);
+    activeIndex = 0;
+    renderResults();
+  }
+
+  function renderResults(){
+    if(currentResults.length === 0){
+      resultsBox.innerHTML = '<div class="cmdk-empty">No matches.</div>';
+      return;
+    }
+    resultsBox.innerHTML = currentResults.map((item, i) => `
+      <div class="cmdk-item ${i===activeIndex?'active':''}" data-i="${i}">
+        <span>${item.label}${item.sub ? ' <span style="color:var(--ink-muted);font-size:11.5px">— '+item.sub+'</span>' : ''}</span>
+        <span class="cmdk-item-type">${item.type}</span>
+      </div>`).join('');
+    resultsBox.querySelectorAll('.cmdk-item').forEach(el => {
+      el.onclick = () => { currentResults[+el.dataset.i].action(); close(); };
+    });
+  }
+
+  document.addEventListener('keydown', e => {
+    if((e.metaKey || e.ctrlKey) && e.key === 'k'){ e.preventDefault(); open(); }
+    else if(e.key === 'Escape' && overlay.style.display !== 'none'){ close(); }
+    else if(overlay.style.display !== 'none'){
+      if(e.key === 'ArrowDown'){ e.preventDefault(); activeIndex = Math.min(activeIndex+1, currentResults.length-1); renderResults(); }
+      else if(e.key === 'ArrowUp'){ e.preventDefault(); activeIndex = Math.max(activeIndex-1, 0); renderResults(); }
+      else if(e.key === 'Enter' && currentResults[activeIndex]){ currentResults[activeIndex].action(); close(); }
+    }
+  });
+  overlay.addEventListener('click', e => { if(e.target === overlay) close(); });
+  input.addEventListener('input', () => paint(input.value));
 })();
 
 async function renderDashboard(){
@@ -651,12 +772,17 @@ async function loadManufacturerGrid(){
     if(category) path += `category=${encodeURIComponent(category)}`;
     const response = await apiGet(path);
     const items = response.results;
+    let watchedIds = new Set();
+    if(sessionStorage.getItem('medintel-opp-key')){
+      try { const w = await apiGetProtected('/watchlist'); watchedIds = new Set(w.map(x=>x.id)); } catch(e){}
+    }
     if(items.length===0){ grid.innerHTML = '<div class="empty">No matching companies. Try clearing the filter, or add one.</div>'; return; }
     grid.innerHTML = items.map(m => `
       <div class="card" onclick="openCompany(${m.id})">
         <div class="card-top">
           <div><h3>${m.name}</h3><div class="meta">${originFlag(m.origin)} ${m.headquarters} · ${m.category} · ${m.portfolio}</div></div>
           <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+            <button class="star-btn ${watchedIds.has(m.id)?'starred':''}" onclick="event.stopPropagation();toggleWatch(${m.id}, this)" title="Add to watchlist">${watchedIds.has(m.id)?'★':'☆'}</button>
             ${badge(m.status_tag, m.status_tag==='open'?'Open opportunity':m.status_tag==='unclear'?'Needs outreach':'Covered')}
             ${badge(m.confidence_tier, m.confidence_tier.toUpperCase())}
           </div>
@@ -665,6 +791,20 @@ async function loadManufacturerGrid(){
       </div>
     `).join('');
   } catch(err){ grid.innerHTML = `<div class="conn-error">${err.message}</div>`; }
+}
+async function toggleWatch(id, btn){
+  if(!sessionStorage.getItem('medintel-opp-key')){
+    showToast('Unlock Opportunities first (sidebar) to use the watchlist', true);
+    return;
+  }
+  const key = sessionStorage.getItem('medintel-opp-key');
+  const isStarred = btn.classList.contains('starred');
+  try {
+    const res = await fetch(API + `/watchlist/${id}`, { method: isStarred ? 'DELETE' : 'POST', headers: { 'X-Opportunities-Key': key } });
+    if(res.status === 401){ showToast('Access key expired — unlock Opportunities again', true); return; }
+    btn.classList.toggle('starred');
+    btn.textContent = btn.classList.contains('starred') ? '★' : '☆';
+  } catch(e){ showToast('Could not update watchlist', true); }
 }
 
 async function openCompany(id){ selectedCompanyId = id; detailSubTab = 'overview'; render(); }
@@ -828,6 +968,7 @@ async function rejectPending(id){
 
 async function renderOpportunities(){
   const main = document.getElementById('main');
+  pendingUnlockRender = renderOpportunities;
   const savedKey = sessionStorage.getItem('medintel-opp-key');
   if(!savedKey){
     renderOppLock(main);
@@ -848,12 +989,13 @@ async function renderOpportunities(){
     else main.innerHTML = `<div class="conn-error">${err.message}</div>`;
   }
 }
+let pendingUnlockRender = null;
 function renderOppLock(main, wasWrong){
   main.innerHTML = `
     <div class="opp-lock-screen">
       <div class="opp-lock-icon">🔒</div>
-      <h2>Opportunities is private</h2>
-      <p>This view reveals which manufacturers have no confirmed KSA distributor — sensitive competitive strategy information. Enter the access key to continue.</p>
+      <h2>This is a private view</h2>
+      <p>This section reveals sensitive sales strategy and business development information. Enter the access key to continue.</p>
       ${wasWrong ? '<div class="opp-lock-error">Wrong key — try again.</div>' : ''}
       <div class="opp-lock-form">
         <input type="password" id="opp-key-input" placeholder="Access key" onkeydown="if(event.key==='Enter')submitOppKey()">
@@ -866,7 +1008,167 @@ function submitOppKey(){
   const val = document.getElementById('opp-key-input').value;
   if(!val) return;
   sessionStorage.setItem('medintel-opp-key', val);
-  renderOpportunities();
+  if(pendingUnlockRender) pendingUnlockRender();
+}
+
+async function renderBriefing(){
+  const main = document.getElementById('main');
+  pendingUnlockRender = renderBriefing;
+  if(!sessionStorage.getItem('medintel-opp-key')){ renderOppLock(main); return; }
+  try {
+    const b = await apiGetProtected('/daily-briefing');
+    main.innerHTML = `
+      <div class="opp-unlocked-bar">🔓 Private view <button class="opp-lock-btn" onclick="sessionStorage.removeItem('medintel-opp-key');render()">Lock again</button></div>
+      <p class="search-hint" style="margin-bottom:16px">Generated ${b.generated_at} — ${b.note}</p>
+      <div class="dash-cols">
+        <div class="dash-col">
+          <div class="section"><div class="section-title">Top opportunities</div>
+            ${b.top_opportunities.map(o => `<div class="card" onclick="activeTab='opportunities';render()"><div class="card-top"><div><h3>${o.company_name}</h3><div class="meta">${o.reason}</div></div><div class="score-num">${o.total_score}/10</div></div></div>`).join('') || '<div class="empty">None scored.</div>'}
+          </div>
+          <div class="section"><div class="section-title">Conferences in the next 30 days</div>
+            ${b.conferences_next_30_days.map(c => `<div class="card"><div class="card-top"><div><h3>${c.name}</h3><div class="meta">${c.place}</div></div></div></div>`).join('') || '<div class="empty">None coming up.</div>'}
+          </div>
+        </div>
+        <div class="dash-col">
+          <div class="section"><div class="section-title">Leads needing follow-up (14+ days quiet)</div>
+            ${b.stale_leads_needing_followup.map(l => `<div class="card" onclick="activeTab='leads';render()"><div class="card-top"><div><h3>${l.company_name}</h3><div class="meta">${l.contact_name||'No contact name'} · ${l.status}</div></div></div></div>`).join('') || '<div class="empty">All caught up.</div>'}
+          </div>
+          <div class="section"><div class="section-title">Recent changes</div>
+            <div class="kg-list">${b.recent_changes.slice(0,6).map(e => `<div class="update-row"><div class="update-dot"></div><div><div class="update-detail">${(e.detail||e.action).slice(0,90)}</div><div class="update-meta">${e.timestamp}</div></div></div>`).join('')}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  } catch(err){
+    if(err.code === 401){ sessionStorage.removeItem('medintel-opp-key'); renderOppLock(main, true); }
+    else main.innerHTML = `<div class="conn-error">${err.message}</div>`;
+  }
+}
+
+async function renderWatchlistPage(){
+  const main = document.getElementById('main');
+  pendingUnlockRender = renderWatchlistPage;
+  if(!sessionStorage.getItem('medintel-opp-key')){ renderOppLock(main); return; }
+  try {
+    const items = await apiGetProtected('/watchlist');
+    main.innerHTML = `
+      <div class="opp-unlocked-bar">🔓 Private view <button class="opp-lock-btn" onclick="sessionStorage.removeItem('medintel-opp-key');render()">Lock again</button></div>
+      <div class="grid">${items.map(m => `
+        <div class="card" onclick="activeTab='manufacturers';openCompany(${m.id})">
+          <div class="card-top"><div><h3>${m.name}</h3><div class="meta">${originFlag(m.origin)} ${m.category} · added ${m.added_at.split(' ')[0]}</div></div>${badge(m.status_tag, m.status_tag==='open'?'Open':m.status_tag==='unclear'?'Unclear':'Covered')}</div>
+        </div>`).join('') || '<div class="empty">Nothing pinned yet — star a company from the Companies page.</div>'}</div>
+    `;
+  } catch(err){
+    if(err.code === 401){ sessionStorage.removeItem('medintel-opp-key'); renderOppLock(main, true); }
+    else main.innerHTML = `<div class="conn-error">${err.message}</div>`;
+  }
+}
+
+async function renderLeads(){
+  const main = document.getElementById('main');
+  pendingUnlockRender = renderLeads;
+  if(!sessionStorage.getItem('medintel-opp-key')){ renderOppLock(main); return; }
+  try {
+    const leads = await apiGetProtected('/leads');
+    const companies = await apiGet('/companies?limit=100');
+    const statusCols = [
+      {key:'new', label:'New'}, {key:'contacted', label:'Contacted'}, {key:'in_progress', label:'In progress'},
+      {key:'won', label:'Won'}, {key:'lost', label:'Lost'},
+    ];
+    main.innerHTML = `
+      <div class="opp-unlocked-bar">🔓 Private view <button class="opp-lock-btn" onclick="sessionStorage.removeItem('medintel-opp-key');render()">Lock again</button></div>
+      <div class="toolbar">
+        <div></div>
+        <button class="primary" onclick="openNewLeadForm()">+ New lead</button>
+      </div>
+      <div id="new-lead-form-wrap"></div>
+      <div class="leads-board">
+        ${statusCols.map(col => `
+          <div class="leads-col">
+            <div class="leads-col-head">${col.label} <span class="leads-col-count">${leads.filter(l=>l.status===col.key).length}</span></div>
+            ${leads.filter(l=>l.status===col.key).map(l => `
+              <div class="lead-card">
+                <div class="lead-card-company">${l.company_name}</div>
+                <div class="lead-card-contact">${l.contact_name||'No contact yet'}${l.contact_role?' · '+l.contact_role:''}</div>
+                ${l.last_interaction ? `<div class="lead-card-last">Last: ${l.last_interaction.interaction_type} — ${l.last_interaction.summary.slice(0,60)}</div>` : '<div class="lead-card-last muted">No interactions logged</div>'}
+                <div class="lead-card-actions">
+                  <select onchange="changeLeadStatus(${l.id}, this.value)">
+                    ${statusCols.map(c => `<option value="${c.key}" ${c.key===l.status?'selected':''}>${c.label}</option>`).join('')}
+                  </select>
+                  <button onclick="openInteractionForm(${l.id})">+ Log</button>
+                </div>
+                <div id="interaction-form-${l.id}"></div>
+              </div>`).join('')}
+          </div>`).join('')}
+      </div>
+    `;
+    window._leadsCompanies = companies.results;
+  } catch(err){
+    if(err.code === 401){ sessionStorage.removeItem('medintel-opp-key'); renderOppLock(main, true); }
+    else main.innerHTML = `<div class="conn-error">${err.message}</div>`;
+  }
+}
+function openNewLeadForm(){
+  const wrap = document.getElementById('new-lead-form-wrap');
+  const companies = window._leadsCompanies || [];
+  wrap.innerHTML = `
+    <div class="lead-form">
+      <select id="nl-company"><option value="">Select company...</option>${companies.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+      <input type="text" id="nl-name" placeholder="Contact name">
+      <input type="text" id="nl-role" placeholder="Role/title">
+      <input type="email" id="nl-email" placeholder="Email">
+      <input type="text" id="nl-phone" placeholder="Phone">
+      <button class="primary" onclick="submitNewLead()">Save lead</button>
+    </div>`;
+}
+async function submitNewLead(){
+  const key = sessionStorage.getItem('medintel-opp-key');
+  const manufacturer_id = document.getElementById('nl-company').value;
+  if(!manufacturer_id){ showToast('Pick a company first', true); return; }
+  await fetch(API + '/leads', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Opportunities-Key': key },
+    body: JSON.stringify({
+      manufacturer_id: +manufacturer_id,
+      contact_name: document.getElementById('nl-name').value || null,
+      contact_role: document.getElementById('nl-role').value || null,
+      contact_email: document.getElementById('nl-email').value || null,
+      contact_phone: document.getElementById('nl-phone').value || null,
+    })
+  });
+  showToast('Lead added');
+  renderLeads();
+}
+async function changeLeadStatus(id, status){
+  const key = sessionStorage.getItem('medintel-opp-key');
+  await fetch(API + `/leads/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Opportunities-Key': key }, body: JSON.stringify({status}) });
+  renderLeads();
+}
+function openInteractionForm(leadId){
+  const wrap = document.getElementById(`interaction-form-${leadId}`);
+  wrap.innerHTML = `
+    <div class="interaction-form">
+      <select id="int-type-${leadId}"><option value="call">Call</option><option value="email">Email</option><option value="meeting">Meeting</option><option value="note">Note</option></select>
+      <textarea id="int-summary-${leadId}" placeholder="What happened?" rows="2"></textarea>
+      <input type="date" id="int-followup-${leadId}" placeholder="Next follow-up">
+      <button class="primary" onclick="submitInteraction(${leadId})">Save</button>
+    </div>`;
+}
+async function submitInteraction(leadId){
+  const key = sessionStorage.getItem('medintel-opp-key');
+  const summary = document.getElementById(`int-summary-${leadId}`).value;
+  if(!summary){ showToast('Add a summary first', true); return; }
+  await fetch(API + `/leads/${leadId}/interactions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Opportunities-Key': key },
+    body: JSON.stringify({
+      interaction_type: document.getElementById(`int-type-${leadId}`).value,
+      summary,
+      next_followup_date: document.getElementById(`int-followup-${leadId}`).value || null,
+    })
+  });
+  showToast('Interaction logged');
+  renderLeads();
 }
 
 async function renderDistributors(){
@@ -1227,6 +1529,9 @@ function render(){
   if(activeTab==='updates') renderUpdates();
   if(activeTab==='compare') renderCompare();
   if(activeTab==='directory') renderDirectory();
+  if(activeTab==='briefing') renderBriefing();
+  if(activeTab==='leads') renderLeads();
+  if(activeTab==='watchlist_page') renderWatchlistPage();
 const PRODUCT_TYPE_ICONS = {
   analyzer: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a4 4 0 018 0v2"/><circle cx="12" cy="14" r="2.5"/>',
   reagent: '<path d="M9 3h6M10 3v5l-5 9a2 2 0 001.7 3h10.6a2 2 0 001.7-3l-5-9V3"/>',

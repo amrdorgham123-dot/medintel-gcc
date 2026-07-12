@@ -451,17 +451,22 @@ def delete_company(company_id: int):
     conn.close()
     return {"id": company_id, "status": "deleted"}
 
+def require_private_access(x_opportunities_key: str | None):
+    """Shared gate for all sensitive sales-strategy endpoints (Opportunities,
+    Leads, Watchlist, Daily Briefing). Requires OPPORTUNITIES_PASSWORD env var."""
+    required = os.environ.get("OPPORTUNITIES_PASSWORD")
+    if not required:
+        raise HTTPException(status_code=503, detail="Private access is not configured on this server (OPPORTUNITIES_PASSWORD not set)")
+    if x_opportunities_key != required:
+        raise HTTPException(status_code=401, detail="Invalid or missing access key")
+
 @app.get("/opportunities")
 def list_opportunities(x_opportunities_key: str | None = Header(default=None)):
     """Opportunities is intentionally private -- it reveals which manufacturers
     have no confirmed KSA distributor, which is sensitive competitive strategy
     information. Requires the OPPORTUNITIES_PASSWORD env var to be set on the
     server; requests must send it back as the X-Opportunities-Key header."""
-    required = os.environ.get("OPPORTUNITIES_PASSWORD")
-    if not required:
-        raise HTTPException(status_code=503, detail="Opportunities access is not configured on this server (OPPORTUNITIES_PASSWORD not set)")
-    if x_opportunities_key != required:
-        raise HTTPException(status_code=401, detail="Invalid or missing access key for Opportunities")
+    require_private_access(x_opportunities_key)
     conn = get_conn()
     rows = conn.execute(
         """SELECT o.*, m.name as company_name FROM opportunities o
@@ -474,6 +479,185 @@ def list_opportunities(x_opportunities_key: str | None = Header(default=None)):
         d["total_score"] = d["score_no_distributor"] + d["score_confidence"] + d["score_brand"]
         results.append(d)
     return sorted(results, key=lambda x: -x["total_score"])
+
+class NewLead(BaseModel):
+    manufacturer_id: int
+    contact_name: str | None = None
+    contact_role: str | None = None
+    contact_email: str | None = None
+    contact_phone: str | None = None
+    status: Literal["new", "contacted", "in_progress", "won", "lost"] = "new"
+    notes: str | None = None
+
+class UpdateLead(BaseModel):
+    contact_name: str | None = None
+    contact_role: str | None = None
+    contact_email: str | None = None
+    contact_phone: str | None = None
+    status: Literal["new", "contacted", "in_progress", "won", "lost"] | None = None
+    notes: str | None = None
+
+class NewInteraction(BaseModel):
+    interaction_type: Literal["call", "email", "meeting", "note"]
+    summary: str = Field(..., min_length=1)
+    next_followup_date: str | None = None
+
+@app.get("/leads")
+def list_leads(x_opportunities_key: str | None = Header(default=None)):
+    require_private_access(x_opportunities_key)
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT l.*, m.name as company_name, m.category, m.status_tag
+        FROM leads l JOIN manufacturers m ON m.id = l.manufacturer_id
+        ORDER BY l.created_at DESC
+    """).fetchall()
+    leads = [dict(r) for r in rows]
+    for lead in leads:
+        interactions = conn.execute(
+            "SELECT * FROM lead_interactions WHERE lead_id = ? ORDER BY interaction_date DESC", (lead["id"],)
+        ).fetchall()
+        lead["interactions"] = [dict(i) for i in interactions]
+        lead["last_interaction"] = lead["interactions"][0] if lead["interactions"] else None
+    conn.close()
+    return leads
+
+@app.post("/leads")
+def create_lead(lead: NewLead, x_opportunities_key: str | None = Header(default=None)):
+    require_private_access(x_opportunities_key)
+    conn = get_conn()
+    company = conn.execute("SELECT id FROM manufacturers WHERE id = ?", (lead.manufacturer_id,)).fetchone()
+    if not company:
+        conn.close()
+        raise HTTPException(status_code=404, detail="manufacturer_id not found")
+    cur = conn.execute(
+        "INSERT INTO leads (manufacturer_id, contact_name, contact_role, contact_email, contact_phone, status, notes) VALUES (?,?,?,?,?,?,?)",
+        (lead.manufacturer_id, lead.contact_name, lead.contact_role, lead.contact_email, lead.contact_phone, lead.status, lead.notes)
+    )
+    conn.commit()
+    lead_id = cur.lastrowid
+    conn.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('leads', ?, 'insert', ?)",
+                 (lead_id, f"New lead created for manufacturer_id {lead.manufacturer_id}"))
+    conn.commit()
+    conn.close()
+    return {"id": lead_id, "status": "created"}
+
+@app.put("/leads/{lead_id}")
+def update_lead(lead_id: int, updates: UpdateLead, x_opportunities_key: str | None = Header(default=None)):
+    require_private_access(x_opportunities_key)
+    conn = get_conn()
+    existing = conn.execute("SELECT * FROM leads WHERE id = ?", (lead_id,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Lead not found")
+    fields = {k: v for k, v in updates.dict().items() if v is not None}
+    if fields:
+        set_clause = ", ".join(f"{k} = ?" for k in fields)
+        conn.execute(f"UPDATE leads SET {set_clause} WHERE id = ?", (*fields.values(), lead_id))
+        conn.commit()
+    conn.close()
+    return {"id": lead_id, "status": "updated"}
+
+@app.delete("/leads/{lead_id}")
+def delete_lead(lead_id: int, x_opportunities_key: str | None = Header(default=None)):
+    require_private_access(x_opportunities_key)
+    conn = get_conn()
+    conn.execute("DELETE FROM leads WHERE id = ?", (lead_id,))
+    conn.commit()
+    conn.close()
+    return {"id": lead_id, "status": "deleted"}
+
+@app.post("/leads/{lead_id}/interactions")
+def add_interaction(lead_id: int, interaction: NewInteraction, x_opportunities_key: str | None = Header(default=None)):
+    require_private_access(x_opportunities_key)
+    conn = get_conn()
+    lead = conn.execute("SELECT id FROM leads WHERE id = ?", (lead_id,)).fetchone()
+    if not lead:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Lead not found")
+    conn.execute(
+        "INSERT INTO lead_interactions (lead_id, interaction_type, summary, next_followup_date) VALUES (?,?,?,?)",
+        (lead_id, interaction.interaction_type, interaction.summary, interaction.next_followup_date)
+    )
+    conn.commit()
+    conn.close()
+    return {"lead_id": lead_id, "status": "interaction logged"}
+
+@app.get("/watchlist")
+def list_watchlist(x_opportunities_key: str | None = Header(default=None)):
+    require_private_access(x_opportunities_key)
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT w.id as watchlist_id, w.added_at, m.* FROM watchlist w
+        JOIN manufacturers m ON m.id = w.manufacturer_id
+        ORDER BY w.added_at DESC
+    """).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+@app.post("/watchlist/{manufacturer_id}")
+def add_to_watchlist(manufacturer_id: int, x_opportunities_key: str | None = Header(default=None)):
+    require_private_access(x_opportunities_key)
+    conn = get_conn()
+    company = conn.execute("SELECT id FROM manufacturers WHERE id = ?", (manufacturer_id,)).fetchone()
+    if not company:
+        conn.close()
+        raise HTTPException(status_code=404, detail="manufacturer_id not found")
+    try:
+        conn.execute("INSERT INTO watchlist (manufacturer_id) VALUES (?)", (manufacturer_id,))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass
+    conn.close()
+    return {"manufacturer_id": manufacturer_id, "status": "watched"}
+
+@app.delete("/watchlist/{manufacturer_id}")
+def remove_from_watchlist(manufacturer_id: int, x_opportunities_key: str | None = Header(default=None)):
+    require_private_access(x_opportunities_key)
+    conn = get_conn()
+    conn.execute("DELETE FROM watchlist WHERE manufacturer_id = ?", (manufacturer_id,))
+    conn.commit()
+    conn.close()
+    return {"manufacturer_id": manufacturer_id, "status": "unwatched"}
+
+@app.get("/daily-briefing")
+def daily_briefing(x_opportunities_key: str | None = Header(default=None)):
+    """Executive daily briefing: what's genuinely new since recent activity --
+    derived entirely from real audit_log/opportunities/conferences/leads data,
+    nothing generated or invented."""
+    require_private_access(x_opportunities_key)
+    conn = get_conn()
+    recent_changes = conn.execute("SELECT * FROM audit_log ORDER BY id DESC LIMIT 8").fetchall()
+    top_opps = conn.execute("""
+        SELECT o.*, m.name as company_name FROM opportunities o
+        JOIN manufacturers m ON m.id = o.manufacturer_id
+    """).fetchall()
+    top_opps_scored = sorted(
+        [dict(r, total_score=r["score_no_distributor"] + r["score_confidence"] + r["score_brand"]) for r in top_opps],
+        key=lambda x: -x["total_score"]
+    )[:3]
+    upcoming = conn.execute("SELECT * FROM conferences ORDER BY event_date").fetchall()
+    today = datetime.now()
+    upcoming_soon = [dict(c) for c in upcoming if 0 <= (datetime.strptime(c["event_date"], "%Y-%m-%d") - today).days <= 30]
+    stale_leads = conn.execute("""
+        SELECT l.*, m.name as company_name FROM leads l
+        JOIN manufacturers m ON m.id = l.manufacturer_id
+        WHERE l.status NOT IN ('won','lost')
+        AND l.id NOT IN (
+            SELECT lead_id FROM lead_interactions
+            WHERE interaction_date >= date('now', '-14 days')
+        )
+    """).fetchall()
+    watchlist_count = conn.execute("SELECT count(*) c FROM watchlist").fetchone()["c"]
+    conn.close()
+    return {
+        "generated_at": today.strftime("%Y-%m-%d %H:%M"),
+        "recent_changes": [dict(r) for r in recent_changes],
+        "top_opportunities": top_opps_scored,
+        "conferences_next_30_days": upcoming_soon,
+        "stale_leads_needing_followup": [dict(r) for r in stale_leads],
+        "watchlist_count": watchlist_count,
+        "note": "Every field above is computed live from real data -- nothing generated or invented.",
+    }
 
 @app.get("/conferences")
 def list_conferences(upcoming_only: bool = False):

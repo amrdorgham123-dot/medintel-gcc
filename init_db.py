@@ -159,6 +159,34 @@ CREATE TABLE IF NOT EXISTS company_distributors (
     UNIQUE(manufacturer_id, distributor_id)
 );
 
+CREATE TABLE IF NOT EXISTS leads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    manufacturer_id INTEGER REFERENCES manufacturers(id) ON DELETE CASCADE,
+    contact_name TEXT,
+    contact_role TEXT,
+    contact_email TEXT,
+    contact_phone TEXT,
+    status TEXT DEFAULT 'new' CHECK(status IN ('new','contacted','in_progress','won','lost')),
+    notes TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS lead_interactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+    interaction_type TEXT CHECK(interaction_type IN ('call','email','meeting','note')),
+    summary TEXT NOT NULL,
+    interaction_date TEXT DEFAULT CURRENT_TIMESTAMP,
+    next_followup_date TEXT
+);
+
+CREATE TABLE IF NOT EXISTS watchlist (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    manufacturer_id INTEGER REFERENCES manufacturers(id) ON DELETE CASCADE,
+    added_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(manufacturer_id)
+);
+
 CREATE TABLE IF NOT EXISTS audit_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     table_name TEXT,
