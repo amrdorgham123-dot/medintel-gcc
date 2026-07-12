@@ -3,7 +3,7 @@ MedIntel GCC API — minimal real backend.
 Run: uvicorn app:app --reload --port 8420
 Docs auto-generated at: http://127.0.0.1:8420/docs
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
@@ -452,7 +452,16 @@ def delete_company(company_id: int):
     return {"id": company_id, "status": "deleted"}
 
 @app.get("/opportunities")
-def list_opportunities():
+def list_opportunities(x_opportunities_key: str | None = Header(default=None)):
+    """Opportunities is intentionally private -- it reveals which manufacturers
+    have no confirmed KSA distributor, which is sensitive competitive strategy
+    information. Requires the OPPORTUNITIES_PASSWORD env var to be set on the
+    server; requests must send it back as the X-Opportunities-Key header."""
+    required = os.environ.get("OPPORTUNITIES_PASSWORD")
+    if not required:
+        raise HTTPException(status_code=503, detail="Opportunities access is not configured on this server (OPPORTUNITIES_PASSWORD not set)")
+    if x_opportunities_key != required:
+        raise HTTPException(status_code=401, detail="Invalid or missing access key for Opportunities")
     conn = get_conn()
     rows = conn.execute(
         """SELECT o.*, m.name as company_name FROM opportunities o
