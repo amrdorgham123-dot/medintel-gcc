@@ -1,5 +1,5 @@
 """
-MedIntel GCC API — minimal real backend.
+MedForsa GCC API — minimal real backend.
 Run: uvicorn app:app --reload --port 8420
 Docs auto-generated at: http://127.0.0.1:8420/docs
 """
@@ -23,8 +23,10 @@ logger = logging.getLogger("medintel")
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "medintel.db")
 FRONTEND_PATH = os.path.join(os.path.dirname(__file__), "frontend.html")
+LANDING_PATH = os.path.join(os.path.dirname(__file__), "medintel-landing.html")
+LANG_JS_PATH = os.path.join(os.path.dirname(__file__), "lang.js")
 
-app = FastAPI(title="MedIntel GCC API", version="0.6")
+app = FastAPI(title="MedForsa GCC API", version="0.6")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 def get_conn():
@@ -48,7 +50,15 @@ class NewCompany(BaseModel):
 
 @app.get("/")
 def root():
+    return FileResponse(LANDING_PATH)
+
+@app.get("/app")
+def dashboard_page():
     return FileResponse(FRONTEND_PATH)
+
+@app.get("/lang.js")
+def lang_js():
+    return FileResponse(LANG_JS_PATH, media_type="application/javascript")
 
 @app.get("/logo.svg")
 def logo():
@@ -56,7 +66,7 @@ def logo():
 
 @app.get("/api/status")
 def status():
-    return {"service": "MedIntel GCC API", "status": "running", "note": "This is a real local backend, not a hosted service."}
+    return {"service": "MedForsa GCC API", "status": "running", "note": "This is a real local backend, not a hosted service."}
 
 @app.get("/companies")
 def list_companies(status: str | None = None, q: str | None = None, category: str | None = None,

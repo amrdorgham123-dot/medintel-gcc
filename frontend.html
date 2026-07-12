@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MedIntel GCC — Blood Bank Intelligence Hub</title>
+<title>MedForsa GCC — Blood Bank Intelligence Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -391,9 +391,9 @@
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <div style="display:flex;align-items:center;gap:10px">
-        <img src="/logo.svg" width="34" height="34" alt="MedIntel GCC logo">
+        <img src="/logo.svg" width="34" height="34" alt="MedForsa GCC logo">
         <div>
-          <div class="brand-name">MedIntel GCC</div>
+          <div class="brand-name">MedForsa GCC</div>
           <div class="brand-tagline">Insight · Evidence · Opportunity</div>
           <div class="brand-tag">Blood bank intelligence · v0.5</div>
         </div>
@@ -577,7 +577,7 @@ function renderNav(){
   });
   const curLabel = selectedCompanyId ? 'Company profile' : (tabDefs.find(t=>t.id===activeTab)?.label || (activeTab === 'updates' ? 'Recent updates' : ''));
   document.getElementById('page-title').textContent = curLabel;
-  document.getElementById('breadcrumb').innerHTML = `MedIntel GCC<span class="sep">/</span><span class="cur">${curLabel}</span>`;
+  document.getElementById('breadcrumb').innerHTML = `MedForsa GCC<span class="sep">/</span><span class="cur">${curLabel}</span>`;
   const def = tabDefs.find(t=>t.id===activeTab);
   document.getElementById('search-wrap').style.display = (def && def.search && !selectedCompanyId) ? 'block' : 'none';
 }
