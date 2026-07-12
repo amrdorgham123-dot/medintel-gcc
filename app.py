@@ -3,15 +3,17 @@ MedIntel GCC API — minimal real backend.
 Run: uvicorn app:app --reload --port 8420
 Docs auto-generated at: http://127.0.0.1:8420/docs
 """
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import Literal
 import sqlite3
 import os
 import logging
-from datetime import datetime
+import bcrypt
+import jwt
+from datetime import datetime, timedelta
 
 logging.basicConfig(
     level=logging.INFO,
@@ -451,22 +453,92 @@ def delete_company(company_id: int):
     conn.close()
     return {"id": company_id, "status": "deleted"}
 
-def require_private_access(x_opportunities_key: str | None):
-    """Shared gate for all sensitive sales-strategy endpoints (Opportunities,
-    Leads, Watchlist, Daily Briefing). Requires OPPORTUNITIES_PASSWORD env var."""
-    required = os.environ.get("OPPORTUNITIES_PASSWORD")
-    if not required:
-        raise HTTPException(status_code=503, detail="Private access is not configured on this server (OPPORTUNITIES_PASSWORD not set)")
-    if x_opportunities_key != required:
-        raise HTTPException(status_code=401, detail="Invalid or missing access key")
+JWT_SECRET = os.environ.get("JWT_SECRET")
+if not JWT_SECRET:
+    JWT_SECRET = "insecure-local-dev-secret-change-me"
+    logger.warning("JWT_SECRET env var not set -- using an insecure local-dev default. Set a real secret before deploying anywhere reachable by others.")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_HOURS = 24 * 7
+
+def create_access_token(user_id: int, email: str) -> str:
+    payload = {"sub": str(user_id), "email": email, "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRE_HOURS)}
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def get_current_user(authorization: str | None = Header(default=None)) -> dict:
+    """Real per-account auth. Every tenant-scoped endpoint (leads, watchlist,
+    opportunities, daily-briefing) depends on this instead of a shared password
+    -- each user only ever sees their own data."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+    token = authorization.split(" ", 1)[1]
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Session expired, please log in again")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid session token")
+    conn = get_conn()
+    user = conn.execute("SELECT * FROM users WHERE id = ? AND is_active = 1", (payload["sub"],)).fetchone()
+    conn.close()
+    if not user:
+        raise HTTPException(status_code=401, detail="Account not found or deactivated")
+    return dict(user)
+
+def public_user_fields(user: dict) -> dict:
+    return {k: user[k] for k in ("id", "email", "company_name", "full_name", "role")}
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    company_name: str = Field(..., min_length=1)
+    full_name: str | None = None
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+@app.post("/auth/register")
+def register(reg: RegisterRequest):
+    conn = get_conn()
+    existing = conn.execute("SELECT id FROM users WHERE email = ?", (reg.email,)).fetchone()
+    if existing:
+        conn.close()
+        raise HTTPException(status_code=400, detail="An account with this email already exists")
+    password_hash = bcrypt.hashpw(reg.password.encode(), bcrypt.gensalt()).decode()
+    cur = conn.execute(
+        "INSERT INTO users (email, password_hash, company_name, full_name, role) VALUES (?,?,?,?,'user')",
+        (reg.email, password_hash, reg.company_name, reg.full_name)
+    )
+    conn.commit()
+    user_id = cur.lastrowid
+    conn.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('users', ?, 'insert', ?)",
+                 (user_id, f"New account registered: {reg.email} ({reg.company_name})"))
+    conn.commit()
+    conn.close()
+    token = create_access_token(user_id, reg.email)
+    return {"access_token": token, "token_type": "bearer",
+            "user": {"id": user_id, "email": reg.email, "company_name": reg.company_name, "full_name": reg.full_name, "role": "user"}}
+
+@app.post("/auth/login")
+def login(creds: LoginRequest):
+    conn = get_conn()
+    user = conn.execute("SELECT * FROM users WHERE email = ? AND is_active = 1", (creds.email,)).fetchone()
+    conn.close()
+    if not user or not bcrypt.checkpw(creds.password.encode(), user["password_hash"].encode()):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    token = create_access_token(user["id"], user["email"])
+    return {"access_token": token, "token_type": "bearer", "user": public_user_fields(dict(user))}
+
+@app.get("/auth/me")
+def read_me(current_user: dict = Depends(get_current_user)):
+    return public_user_fields(current_user)
 
 @app.get("/opportunities")
-def list_opportunities(x_opportunities_key: str | None = Header(default=None)):
-    """Opportunities is intentionally private -- it reveals which manufacturers
-    have no confirmed KSA distributor, which is sensitive competitive strategy
-    information. Requires the OPPORTUNITIES_PASSWORD env var to be set on the
-    server; requests must send it back as the X-Opportunities-Key header."""
-    require_private_access(x_opportunities_key)
+def list_opportunities(current_user: dict = Depends(get_current_user)):
+    """Opportunities requires a real login -- it reveals which manufacturers
+    have no confirmed KSA distributor, sensitive competitive strategy info.
+    Any logged-in account can see this shared market view (it's not
+    tenant-specific data itself, unlike leads/watchlist below)."""
     conn = get_conn()
     rows = conn.execute(
         """SELECT o.*, m.name as company_name FROM opportunities o
@@ -503,14 +575,14 @@ class NewInteraction(BaseModel):
     next_followup_date: str | None = None
 
 @app.get("/leads")
-def list_leads(x_opportunities_key: str | None = Header(default=None)):
-    require_private_access(x_opportunities_key)
+def list_leads(current_user: dict = Depends(get_current_user)):
     conn = get_conn()
     rows = conn.execute("""
         SELECT l.*, m.name as company_name, m.category, m.status_tag
         FROM leads l JOIN manufacturers m ON m.id = l.manufacturer_id
+        WHERE l.user_id = ?
         ORDER BY l.created_at DESC
-    """).fetchall()
+    """, (current_user["id"],)).fetchall()
     leads = [dict(r) for r in rows]
     for lead in leads:
         interactions = conn.execute(
@@ -522,33 +594,34 @@ def list_leads(x_opportunities_key: str | None = Header(default=None)):
     return leads
 
 @app.post("/leads")
-def create_lead(lead: NewLead, x_opportunities_key: str | None = Header(default=None)):
-    require_private_access(x_opportunities_key)
+def create_lead(lead: NewLead, current_user: dict = Depends(get_current_user)):
     conn = get_conn()
     company = conn.execute("SELECT id FROM manufacturers WHERE id = ?", (lead.manufacturer_id,)).fetchone()
     if not company:
         conn.close()
         raise HTTPException(status_code=404, detail="manufacturer_id not found")
     cur = conn.execute(
-        "INSERT INTO leads (manufacturer_id, contact_name, contact_role, contact_email, contact_phone, status, notes) VALUES (?,?,?,?,?,?,?)",
-        (lead.manufacturer_id, lead.contact_name, lead.contact_role, lead.contact_email, lead.contact_phone, lead.status, lead.notes)
+        "INSERT INTO leads (user_id, manufacturer_id, contact_name, contact_role, contact_email, contact_phone, status, notes) VALUES (?,?,?,?,?,?,?,?)",
+        (current_user["id"], lead.manufacturer_id, lead.contact_name, lead.contact_role, lead.contact_email, lead.contact_phone, lead.status, lead.notes)
     )
     conn.commit()
     lead_id = cur.lastrowid
     conn.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('leads', ?, 'insert', ?)",
-                 (lead_id, f"New lead created for manufacturer_id {lead.manufacturer_id}"))
+                 (lead_id, f"New lead created by user {current_user['id']} for manufacturer_id {lead.manufacturer_id}"))
     conn.commit()
     conn.close()
     return {"id": lead_id, "status": "created"}
 
-@app.put("/leads/{lead_id}")
-def update_lead(lead_id: int, updates: UpdateLead, x_opportunities_key: str | None = Header(default=None)):
-    require_private_access(x_opportunities_key)
-    conn = get_conn()
-    existing = conn.execute("SELECT * FROM leads WHERE id = ?", (lead_id,)).fetchone()
-    if not existing:
-        conn.close()
+def _owned_lead_or_404(conn, lead_id: int, user_id: int):
+    row = conn.execute("SELECT * FROM leads WHERE id = ? AND user_id = ?", (lead_id, user_id)).fetchone()
+    if not row:
         raise HTTPException(status_code=404, detail="Lead not found")
+    return row
+
+@app.put("/leads/{lead_id}")
+def update_lead(lead_id: int, updates: UpdateLead, current_user: dict = Depends(get_current_user)):
+    conn = get_conn()
+    _owned_lead_or_404(conn, lead_id, current_user["id"])
     fields = {k: v for k, v in updates.dict().items() if v is not None}
     if fields:
         set_clause = ", ".join(f"{k} = ?" for k in fields)
@@ -558,22 +631,18 @@ def update_lead(lead_id: int, updates: UpdateLead, x_opportunities_key: str | No
     return {"id": lead_id, "status": "updated"}
 
 @app.delete("/leads/{lead_id}")
-def delete_lead(lead_id: int, x_opportunities_key: str | None = Header(default=None)):
-    require_private_access(x_opportunities_key)
+def delete_lead(lead_id: int, current_user: dict = Depends(get_current_user)):
     conn = get_conn()
+    _owned_lead_or_404(conn, lead_id, current_user["id"])
     conn.execute("DELETE FROM leads WHERE id = ?", (lead_id,))
     conn.commit()
     conn.close()
     return {"id": lead_id, "status": "deleted"}
 
 @app.post("/leads/{lead_id}/interactions")
-def add_interaction(lead_id: int, interaction: NewInteraction, x_opportunities_key: str | None = Header(default=None)):
-    require_private_access(x_opportunities_key)
+def add_interaction(lead_id: int, interaction: NewInteraction, current_user: dict = Depends(get_current_user)):
     conn = get_conn()
-    lead = conn.execute("SELECT id FROM leads WHERE id = ?", (lead_id,)).fetchone()
-    if not lead:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Lead not found")
+    _owned_lead_or_404(conn, lead_id, current_user["id"])
     conn.execute(
         "INSERT INTO lead_interactions (lead_id, interaction_type, summary, next_followup_date) VALUES (?,?,?,?)",
         (lead_id, interaction.interaction_type, interaction.summary, interaction.next_followup_date)
@@ -583,27 +652,26 @@ def add_interaction(lead_id: int, interaction: NewInteraction, x_opportunities_k
     return {"lead_id": lead_id, "status": "interaction logged"}
 
 @app.get("/watchlist")
-def list_watchlist(x_opportunities_key: str | None = Header(default=None)):
-    require_private_access(x_opportunities_key)
+def list_watchlist(current_user: dict = Depends(get_current_user)):
     conn = get_conn()
     rows = conn.execute("""
         SELECT w.id as watchlist_id, w.added_at, m.* FROM watchlist w
         JOIN manufacturers m ON m.id = w.manufacturer_id
+        WHERE w.user_id = ?
         ORDER BY w.added_at DESC
-    """).fetchall()
+    """, (current_user["id"],)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
 @app.post("/watchlist/{manufacturer_id}")
-def add_to_watchlist(manufacturer_id: int, x_opportunities_key: str | None = Header(default=None)):
-    require_private_access(x_opportunities_key)
+def add_to_watchlist(manufacturer_id: int, current_user: dict = Depends(get_current_user)):
     conn = get_conn()
     company = conn.execute("SELECT id FROM manufacturers WHERE id = ?", (manufacturer_id,)).fetchone()
     if not company:
         conn.close()
         raise HTTPException(status_code=404, detail="manufacturer_id not found")
     try:
-        conn.execute("INSERT INTO watchlist (manufacturer_id) VALUES (?)", (manufacturer_id,))
+        conn.execute("INSERT INTO watchlist (user_id, manufacturer_id) VALUES (?,?)", (current_user["id"], manufacturer_id))
         conn.commit()
     except sqlite3.IntegrityError:
         pass
@@ -611,20 +679,19 @@ def add_to_watchlist(manufacturer_id: int, x_opportunities_key: str | None = Hea
     return {"manufacturer_id": manufacturer_id, "status": "watched"}
 
 @app.delete("/watchlist/{manufacturer_id}")
-def remove_from_watchlist(manufacturer_id: int, x_opportunities_key: str | None = Header(default=None)):
-    require_private_access(x_opportunities_key)
+def remove_from_watchlist(manufacturer_id: int, current_user: dict = Depends(get_current_user)):
     conn = get_conn()
-    conn.execute("DELETE FROM watchlist WHERE manufacturer_id = ?", (manufacturer_id,))
+    conn.execute("DELETE FROM watchlist WHERE manufacturer_id = ? AND user_id = ?", (manufacturer_id, current_user["id"]))
     conn.commit()
     conn.close()
     return {"manufacturer_id": manufacturer_id, "status": "unwatched"}
 
 @app.get("/daily-briefing")
-def daily_briefing(x_opportunities_key: str | None = Header(default=None)):
+def daily_briefing(current_user: dict = Depends(get_current_user)):
     """Executive daily briefing: what's genuinely new since recent activity --
     derived entirely from real audit_log/opportunities/conferences/leads data,
-    nothing generated or invented."""
-    require_private_access(x_opportunities_key)
+    scoped to the logged-in account's own leads/watchlist. Nothing generated
+    or invented."""
     conn = get_conn()
     recent_changes = conn.execute("SELECT * FROM audit_log ORDER BY id DESC LIMIT 8").fetchall()
     top_opps = conn.execute("""
@@ -641,13 +708,13 @@ def daily_briefing(x_opportunities_key: str | None = Header(default=None)):
     stale_leads = conn.execute("""
         SELECT l.*, m.name as company_name FROM leads l
         JOIN manufacturers m ON m.id = l.manufacturer_id
-        WHERE l.status NOT IN ('won','lost')
+        WHERE l.user_id = ? AND l.status NOT IN ('won','lost')
         AND l.id NOT IN (
             SELECT lead_id FROM lead_interactions
             WHERE interaction_date >= date('now', '-14 days')
         )
-    """).fetchall()
-    watchlist_count = conn.execute("SELECT count(*) c FROM watchlist").fetchone()["c"]
+    """, (current_user["id"],)).fetchall()
+    watchlist_count = conn.execute("SELECT count(*) c FROM watchlist WHERE user_id = ?", (current_user["id"],)).fetchone()["c"]
     conn.close()
     return {
         "generated_at": today.strftime("%Y-%m-%d %H:%M"),

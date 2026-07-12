@@ -5,6 +5,7 @@ data we actually verified in conversation. Run once: python init_db.py
 """
 import sqlite3
 import os
+import bcrypt
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "medintel.db")
 
@@ -159,8 +160,20 @@ CREATE TABLE IF NOT EXISTS company_distributors (
     UNIQUE(manufacturer_id, distributor_id)
 );
 
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    company_name TEXT NOT NULL,
+    full_name TEXT,
+    role TEXT DEFAULT 'user' CHECK(role IN ('admin','user')),
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS leads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     manufacturer_id INTEGER REFERENCES manufacturers(id) ON DELETE CASCADE,
     contact_name TEXT,
     contact_role TEXT,
@@ -182,9 +195,10 @@ CREATE TABLE IF NOT EXISTS lead_interactions (
 
 CREATE TABLE IF NOT EXISTS watchlist (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     manufacturer_id INTEGER REFERENCES manufacturers(id) ON DELETE CASCADE,
     added_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(manufacturer_id)
+    UNIQUE(user_id, manufacturer_id)
 );
 
 CREATE TABLE IF NOT EXISTS audit_log (
@@ -1474,6 +1488,31 @@ def seed(conn):
     ])
     cur.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('database','0','bulk_insert','Session 8 (Lab Equipment): Added Thermo Fisher Scientific and Eppendorf.')")
     conn.commit()
+
+    # --- WP0: Multi-Tenant Auth -- seed the first real user account.
+    # Credentials come from ADMIN_EMAIL / ADMIN_PASSWORD env vars. If not set,
+    # falls back to a clearly-marked local-only default (never use in production).
+    admin_email = os.environ.get("ADMIN_EMAIL", "amr@attieh-medico.com")
+    admin_password = os.environ.get("ADMIN_PASSWORD")
+    used_fallback = False
+    if not admin_password:
+        admin_password = "ChangeMe-Local-Only-2026"
+        used_fallback = True
+    password_hash = bcrypt.hashpw(admin_password.encode(), bcrypt.gensalt()).decode()
+    cur.execute(
+        "INSERT INTO users (email, password_hash, company_name, full_name, role) VALUES (?,?,?,?,?)",
+        (admin_email, password_hash, "Attieh Medico", "Amr Elmorshedy", "admin")
+    )
+    admin_user_id = cur.lastrowid
+    cur.execute(
+        "INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('users', ?, 'insert', ?)",
+        (admin_user_id, f"Seeded first admin account ({admin_email}){' -- USING INSECURE LOCAL FALLBACK PASSWORD, set ADMIN_PASSWORD env var in production' if used_fallback else ''}")
+    )
+    conn.commit()
+    if used_fallback:
+        print("WARNING: ADMIN_PASSWORD env var not set. Using insecure local-only fallback")
+        print(f"  Login: {admin_email} / ChangeMe-Local-Only-2026")
+        print("  Set ADMIN_EMAIL and ADMIN_PASSWORD env vars before deploying anywhere real.")
 
 if __name__ == "__main__":
     if os.path.exists(DB_PATH):

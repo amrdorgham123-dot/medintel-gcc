@@ -509,12 +509,17 @@ async function apiGet(path){
   return res.json();
 }
 async function apiGetProtected(path){
-  const key = sessionStorage.getItem('medintel-opp-key') || '';
-  const res = await fetch(API + path, { headers: { 'X-Opportunities-Key': key } });
+  const token = localStorage.getItem('medintel-token') || '';
+  const res = await fetch(API + path, { headers: { 'Authorization': 'Bearer ' + token } });
   if(res.status === 401){ const e = new Error('unauthorized'); e.code = 401; throw e; }
   if(!res.ok) throw new Error("API error " + res.status + " on " + path);
   setConn(true);
   return res.json();
+}
+async function apiAuthFetch(path, options={}){
+  const token = localStorage.getItem('medintel-token') || '';
+  options.headers = Object.assign({ 'Authorization': 'Bearer ' + token }, options.headers || {});
+  return fetch(API + path, options);
 }
 async function apiPost(path, body){
   const res = await fetch(API + path, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
@@ -773,7 +778,7 @@ async function loadManufacturerGrid(){
     const response = await apiGet(path);
     const items = response.results;
     let watchedIds = new Set();
-    if(sessionStorage.getItem('medintel-opp-key')){
+    if(localStorage.getItem('medintel-token')){
       try { const w = await apiGetProtected('/watchlist'); watchedIds = new Set(w.map(x=>x.id)); } catch(e){}
     }
     if(items.length===0){ grid.innerHTML = '<div class="empty">No matching companies. Try clearing the filter, or add one.</div>'; return; }
@@ -793,15 +798,15 @@ async function loadManufacturerGrid(){
   } catch(err){ grid.innerHTML = `<div class="conn-error">${err.message}</div>`; }
 }
 async function toggleWatch(id, btn){
-  if(!sessionStorage.getItem('medintel-opp-key')){
-    showToast('Unlock Opportunities first (sidebar) to use the watchlist', true);
+  if(!localStorage.getItem('medintel-token')){
+    showToast('Log in first (Leads & Follow-up in the sidebar) to use the watchlist', true);
     return;
   }
-  const key = sessionStorage.getItem('medintel-opp-key');
+  const key = localStorage.getItem('medintel-token');
   const isStarred = btn.classList.contains('starred');
   try {
-    const res = await fetch(API + `/watchlist/${id}`, { method: isStarred ? 'DELETE' : 'POST', headers: { 'X-Opportunities-Key': key } });
-    if(res.status === 401){ showToast('Access key expired — unlock Opportunities again', true); return; }
+    const res = await fetch(API + `/watchlist/${id}`, { method: isStarred ? 'DELETE' : 'POST', headers: { 'Authorization': 'Bearer ' + key } });
+    if(res.status === 401){ showToast('Session expired — please log in again', true); return; }
     btn.classList.toggle('starred');
     btn.textContent = btn.classList.contains('starred') ? '★' : '☆';
   } catch(e){ showToast('Could not update watchlist', true); }
@@ -969,7 +974,7 @@ async function rejectPending(id){
 async function renderOpportunities(){
   const main = document.getElementById('main');
   pendingUnlockRender = renderOpportunities;
-  const savedKey = sessionStorage.getItem('medintel-opp-key');
+  const savedKey = localStorage.getItem('medintel-token');
   if(!savedKey){
     renderOppLock(main);
     return;
@@ -977,7 +982,7 @@ async function renderOpportunities(){
   try {
     const items = await apiGetProtected('/opportunities');
     main.innerHTML = `
-      <div class="opp-unlocked-bar">🔓 Private view — visible only with your access key <button class="opp-lock-btn" onclick="sessionStorage.removeItem('medintel-opp-key');render()">Lock again</button></div>
+      <div class="opp-unlocked-bar">👤 Logged in as ${JSON.parse(localStorage.getItem('medintel-user')||'{}').company_name || 'you'} <button class="opp-lock-btn" onclick="logout()">Log out</button></div>
       <div class="grid">${items.map(o => `
       <div class="card">
         <div class="card-top"><div><h3>${o.company_name}</h3><div class="meta">${o.reason}</div></div><div class="score-num">${o.total_score}/10</div></div>
@@ -985,40 +990,66 @@ async function renderOpportunities(){
         <div class="row" style="margin-top:8px"><span class="label">Action</span><span class="val">${o.action}</span></div>
       </div>`).join('')}</div>`;
   } catch(err){
-    if(err.code === 401){ sessionStorage.removeItem('medintel-opp-key'); renderOppLock(main, true); }
+    if(err.code === 401){ localStorage.removeItem('medintel-token'); renderOppLock(main, 'Session expired — please log in again.'); }
     else main.innerHTML = `<div class="conn-error">${err.message}</div>`;
   }
 }
 let pendingUnlockRender = null;
-function renderOppLock(main, wasWrong){
+let authMode = 'login';
+function renderOppLock(main, errMsg){
   main.innerHTML = `
     <div class="opp-lock-screen">
       <div class="opp-lock-icon">🔒</div>
-      <h2>This is a private view</h2>
-      <p>This section reveals sensitive sales strategy and business development information. Enter the access key to continue.</p>
-      ${wasWrong ? '<div class="opp-lock-error">Wrong key — try again.</div>' : ''}
-      <div class="opp-lock-form">
-        <input type="password" id="opp-key-input" placeholder="Access key" onkeydown="if(event.key==='Enter')submitOppKey()">
-        <button class="primary" onclick="submitOppKey()">Unlock</button>
+      <h2>${authMode === 'login' ? 'Log in' : 'Create an account'}</h2>
+      <p>This section holds your private sales data — leads, watchlist, and opportunities. Each account only ever sees its own data.</p>
+      ${errMsg ? `<div class="opp-lock-error">${errMsg}</div>` : ''}
+      <div class="opp-lock-form" style="flex-direction:column;align-items:stretch">
+        ${authMode === 'register' ? '<input type="text" id="auth-company" placeholder="Company name">' : ''}
+        <input type="email" id="auth-email" placeholder="Email">
+        <input type="password" id="auth-password" placeholder="Password" onkeydown="if(event.key==='Enter')submitAuth()">
+        <button class="primary" onclick="submitAuth()">${authMode === 'login' ? 'Log in' : 'Create account'}</button>
+        <button style="background:none;border:none;color:var(--ent-cyan);font-size:12px;cursor:pointer;padding:6px" onclick="authMode = authMode==='login'?'register':'login'; renderOppLock(document.getElementById('main'))">
+          ${authMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Log in'}
+        </button>
       </div>
     </div>`;
-  document.getElementById('opp-key-input').focus();
+  document.getElementById('auth-email').focus();
 }
-function submitOppKey(){
-  const val = document.getElementById('opp-key-input').value;
-  if(!val) return;
-  sessionStorage.setItem('medintel-opp-key', val);
-  if(pendingUnlockRender) pendingUnlockRender();
+async function submitAuth(){
+  const email = document.getElementById('auth-email').value;
+  const password = document.getElementById('auth-password').value;
+  if(!email || !password){ renderOppLock(document.getElementById('main'), 'Enter email and password.'); return; }
+  const path = authMode === 'login' ? '/auth/login' : '/auth/register';
+  const body = authMode === 'login'
+    ? { email, password }
+    : { email, password, company_name: document.getElementById('auth-company')?.value || '' };
+  if(authMode === 'register' && !body.company_name){ renderOppLock(document.getElementById('main'), 'Company name is required.'); return; }
+  try {
+    const res = await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await res.json();
+    if(!res.ok){ renderOppLock(document.getElementById('main'), data.detail || 'Something went wrong.'); return; }
+    localStorage.setItem('medintel-token', data.access_token);
+    localStorage.setItem('medintel-user', JSON.stringify(data.user));
+    showToast(`Welcome, ${data.user.full_name || data.user.company_name}`);
+    if(pendingUnlockRender) pendingUnlockRender();
+    renderNav();
+  } catch(e){ renderOppLock(document.getElementById('main'), 'Could not reach the server.'); }
+}
+function logout(){
+  localStorage.removeItem('medintel-token');
+  localStorage.removeItem('medintel-user');
+  activeTab = 'dashboard';
+  render();
 }
 
 async function renderBriefing(){
   const main = document.getElementById('main');
   pendingUnlockRender = renderBriefing;
-  if(!sessionStorage.getItem('medintel-opp-key')){ renderOppLock(main); return; }
+  if(!localStorage.getItem('medintel-token')){ renderOppLock(main); return; }
   try {
     const b = await apiGetProtected('/daily-briefing');
     main.innerHTML = `
-      <div class="opp-unlocked-bar">🔓 Private view <button class="opp-lock-btn" onclick="sessionStorage.removeItem('medintel-opp-key');render()">Lock again</button></div>
+      <div class="opp-unlocked-bar">👤 Logged in as ${JSON.parse(localStorage.getItem('medintel-user')||'{}').company_name || 'you'} <button class="opp-lock-btn" onclick="logout()">Log out</button></div>
       <p class="search-hint" style="margin-bottom:16px">Generated ${b.generated_at} — ${b.note}</p>
       <div class="dash-cols">
         <div class="dash-col">
@@ -1040,7 +1071,7 @@ async function renderBriefing(){
       </div>
     `;
   } catch(err){
-    if(err.code === 401){ sessionStorage.removeItem('medintel-opp-key'); renderOppLock(main, true); }
+    if(err.code === 401){ localStorage.removeItem('medintel-token'); renderOppLock(main, 'Session expired — please log in again.'); }
     else main.innerHTML = `<div class="conn-error">${err.message}</div>`;
   }
 }
@@ -1048,18 +1079,18 @@ async function renderBriefing(){
 async function renderWatchlistPage(){
   const main = document.getElementById('main');
   pendingUnlockRender = renderWatchlistPage;
-  if(!sessionStorage.getItem('medintel-opp-key')){ renderOppLock(main); return; }
+  if(!localStorage.getItem('medintel-token')){ renderOppLock(main); return; }
   try {
     const items = await apiGetProtected('/watchlist');
     main.innerHTML = `
-      <div class="opp-unlocked-bar">🔓 Private view <button class="opp-lock-btn" onclick="sessionStorage.removeItem('medintel-opp-key');render()">Lock again</button></div>
+      <div class="opp-unlocked-bar">👤 Logged in as ${JSON.parse(localStorage.getItem('medintel-user')||'{}').company_name || 'you'} <button class="opp-lock-btn" onclick="logout()">Log out</button></div>
       <div class="grid">${items.map(m => `
         <div class="card" onclick="activeTab='manufacturers';openCompany(${m.id})">
           <div class="card-top"><div><h3>${m.name}</h3><div class="meta">${originFlag(m.origin)} ${m.category} · added ${m.added_at.split(' ')[0]}</div></div>${badge(m.status_tag, m.status_tag==='open'?'Open':m.status_tag==='unclear'?'Unclear':'Covered')}</div>
         </div>`).join('') || '<div class="empty">Nothing pinned yet — star a company from the Companies page.</div>'}</div>
     `;
   } catch(err){
-    if(err.code === 401){ sessionStorage.removeItem('medintel-opp-key'); renderOppLock(main, true); }
+    if(err.code === 401){ localStorage.removeItem('medintel-token'); renderOppLock(main, 'Session expired — please log in again.'); }
     else main.innerHTML = `<div class="conn-error">${err.message}</div>`;
   }
 }
@@ -1067,7 +1098,7 @@ async function renderWatchlistPage(){
 async function renderLeads(){
   const main = document.getElementById('main');
   pendingUnlockRender = renderLeads;
-  if(!sessionStorage.getItem('medintel-opp-key')){ renderOppLock(main); return; }
+  if(!localStorage.getItem('medintel-token')){ renderOppLock(main); return; }
   try {
     const leads = await apiGetProtected('/leads');
     const companies = await apiGet('/companies?limit=100');
@@ -1076,7 +1107,7 @@ async function renderLeads(){
       {key:'won', label:'Won'}, {key:'lost', label:'Lost'},
     ];
     main.innerHTML = `
-      <div class="opp-unlocked-bar">🔓 Private view <button class="opp-lock-btn" onclick="sessionStorage.removeItem('medintel-opp-key');render()">Lock again</button></div>
+      <div class="opp-unlocked-bar">👤 Logged in as ${JSON.parse(localStorage.getItem('medintel-user')||'{}').company_name || 'you'} <button class="opp-lock-btn" onclick="logout()">Log out</button></div>
       <div class="toolbar">
         <div></div>
         <button class="primary" onclick="openNewLeadForm()">+ New lead</button>
@@ -1104,7 +1135,7 @@ async function renderLeads(){
     `;
     window._leadsCompanies = companies.results;
   } catch(err){
-    if(err.code === 401){ sessionStorage.removeItem('medintel-opp-key'); renderOppLock(main, true); }
+    if(err.code === 401){ localStorage.removeItem('medintel-token'); renderOppLock(main, 'Session expired — please log in again.'); }
     else main.innerHTML = `<div class="conn-error">${err.message}</div>`;
   }
 }
@@ -1122,12 +1153,12 @@ function openNewLeadForm(){
     </div>`;
 }
 async function submitNewLead(){
-  const key = sessionStorage.getItem('medintel-opp-key');
+  const key = localStorage.getItem('medintel-token');
   const manufacturer_id = document.getElementById('nl-company').value;
   if(!manufacturer_id){ showToast('Pick a company first', true); return; }
   await fetch(API + '/leads', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Opportunities-Key': key },
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
     body: JSON.stringify({
       manufacturer_id: +manufacturer_id,
       contact_name: document.getElementById('nl-name').value || null,
@@ -1140,8 +1171,8 @@ async function submitNewLead(){
   renderLeads();
 }
 async function changeLeadStatus(id, status){
-  const key = sessionStorage.getItem('medintel-opp-key');
-  await fetch(API + `/leads/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Opportunities-Key': key }, body: JSON.stringify({status}) });
+  const key = localStorage.getItem('medintel-token');
+  await fetch(API + `/leads/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key }, body: JSON.stringify({status}) });
   renderLeads();
 }
 function openInteractionForm(leadId){
@@ -1155,12 +1186,12 @@ function openInteractionForm(leadId){
     </div>`;
 }
 async function submitInteraction(leadId){
-  const key = sessionStorage.getItem('medintel-opp-key');
+  const key = localStorage.getItem('medintel-token');
   const summary = document.getElementById(`int-summary-${leadId}`).value;
   if(!summary){ showToast('Add a summary first', true); return; }
   await fetch(API + `/leads/${leadId}/interactions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Opportunities-Key': key },
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
     body: JSON.stringify({
       interaction_type: document.getElementById(`int-type-${leadId}`).value,
       summary,
