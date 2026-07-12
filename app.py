@@ -68,6 +68,52 @@ def logo():
 def status():
     return {"service": "MedForsa GCC API", "status": "running", "note": "This is a real local backend, not a hosted service."}
 
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+    system: str = ""
+
+@app.post("/api/chat")
+def chat_proxy(payload: ChatRequest):
+    import json
+    import urllib.request
+    import urllib.error
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY is not set on the server. Add it in Render > Environment.")
+
+    body = json.dumps({
+        "model": "claude-sonnet-4-6",
+        "max_tokens": 1000,
+        "system": payload.system,
+        "messages": [m.dict() for m in payload.messages],
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8")
+        logger.error(f"Anthropic API error {e.code}: {detail}")
+        raise HTTPException(status_code=e.code, detail=detail)
+    except Exception as e:
+        logger.error(f"Chat proxy error: {e}")
+        raise HTTPException(status_code=502, detail=str(e))
+
 @app.get("/companies")
 def list_companies(status: str | None = None, q: str | None = None, category: str | None = None,
                     origin: str | None = None, distributor_id: int | None = None,
