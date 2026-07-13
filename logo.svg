@@ -1,14 +1,11 @@
 <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="mi-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0B3B66"/>
-      <stop offset="100%" stop-color="#1FA8C9"/>
+    <linearGradient id="mf-grad" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF3B5C"/>
+      <stop offset="1" stop-color="#FFB443"/>
     </linearGradient>
   </defs>
-  <rect x="1" y="1" width="62" height="62" rx="16" fill="url(#mi-grad)"/>
-  <!-- Abstract molecular / data-node mark: three connected nodes forming an M-like triangle -->
-  <path d="M17 44 L17 22 L32 38 L47 22 L47 44" fill="none" stroke="#F4EFE1" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="17" cy="22" r="4" fill="#1FA8C9" stroke="#F4EFE1" stroke-width="1.5"/>
-  <circle cx="47" cy="22" r="4" fill="#1FA8C9" stroke="#F4EFE1" stroke-width="1.5"/>
-  <circle cx="32" cy="38" r="4.5" fill="#F4EFE1" stroke="#0B3B66" stroke-width="1.5"/>
+  <rect x="1" y="1" width="62" height="62" rx="16" fill="#121A33"/>
+  <path d="M32 5C32 5 13 28 13 41a19 19 0 0 0 38 0C51 28 32 5 32 5Z" fill="url(#mf-grad)"/>
+  <path d="M6 37h14.5l5-13 7.5 26 5-18 3.5 5h16" fill="none" stroke="#121A33" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
