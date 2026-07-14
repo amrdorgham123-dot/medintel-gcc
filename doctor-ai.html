@@ -18,11 +18,12 @@
   body{background:var(--ink); color:var(--paper); font-family:'Tajawal', sans-serif; min-height:100vh; display:flex; flex-direction:column;}
   a{color:inherit; text-decoration:none;}
   .mono{font-family:'IBM Plex Mono', monospace; direction:ltr; unicode-bidi:plaintext;}
+  button{font-family:inherit;}
 
   header{
     display:flex; align-items:center; justify-content:space-between;
     padding:16px 28px; border-bottom:1px solid var(--line); background:rgba(10,14,28,0.85);
-    position:sticky; top:0; z-index:10; backdrop-filter:blur(10px);
+    position:sticky; top:0; z-index:20; backdrop-filter:blur(10px);
   }
   .brand{display:flex; align-items:center; gap:10px;}
   .brand-mark{width:36px; height:36px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; padding:5px;}
@@ -36,103 +37,118 @@
     font-family:'IBM Plex Mono'; font-size:12.5px; font-weight:500; color:var(--ink);
     background:var(--assay); padding:8px 16px; border-radius:999px; cursor:pointer; border:none;
   }
-  .user-chip{
-    display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); cursor:pointer;
-  }
-  .user-chip .avatar{
-    width:26px; height:26px; border-radius:50%; background:var(--assay-dim); color:var(--assay);
-    display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono'; font-size:11px; font-weight:600;
-  }
-
-  .modal-overlay{
-    position:fixed; inset:0; background:rgba(5,8,16,0.75); backdrop-filter:blur(6px);
-    display:none; align-items:center; justify-content:center; z-index:100;
-  }
-  .modal-overlay.open{display:flex;}
-  .modal-box{
-    width:100%; max-width:380px; background:var(--surface); border:1px solid var(--line); border-radius:18px;
-    padding:28px; position:relative;
-  }
-  .modal-close{position:absolute; top:16px; left:16px; background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer;}
-  .modal-tabs{display:flex; gap:8px; margin-bottom:20px; background:var(--surface-2); border-radius:10px; padding:4px;}
-  .modal-tabs button{
-    flex:1; background:none; border:none; padding:9px; border-radius:8px; font-family:'Tajawal'; font-size:13.5px; color:var(--muted); cursor:pointer;
-  }
-  .modal-tabs button.active{background:var(--assay); color:var(--ink); font-weight:700;}
-  .modal-box h3{font-family:'Almarai'; font-size:18px; margin-bottom:6px;}
-  .modal-box .sub{font-size:12.5px; color:var(--muted); margin-bottom:18px;}
-  .form-field{margin-bottom:12px;}
-  .form-field label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px;}
-  .form-field input{
-    width:100%; background:var(--ink); border:1px solid var(--line); border-radius:10px; padding:10px 12px;
-    color:var(--paper); font-family:inherit; font-size:14px;
-  }
-  .form-field input:focus{outline:none; border-color:var(--assay);}
-  .modal-submit{
-    width:100%; background:var(--assay); color:var(--ink); border:none; padding:12px; border-radius:10px;
-    font-weight:700; font-size:14px; cursor:pointer; margin-top:6px;
-  }
-  .modal-error{color:var(--plasma); font-size:12.5px; margin-top:10px; display:none;}
-  .modal-skip{display:block; text-align:center; font-size:12.5px; color:var(--muted); margin-top:16px; cursor:pointer;}
-  .modal-skip:hover{color:var(--paper);}
+  .user-chip{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); cursor:pointer;}
+  .user-chip .avatar{width:26px; height:26px; border-radius:50%; background:var(--assay-dim); color:var(--assay); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono'; font-size:11px; font-weight:600;}
 
   .disclaimer{
     background:var(--gold-dim); border-bottom:1px solid rgba(255,180,67,0.3);
-    padding:12px 28px; font-size:13px; color:var(--paper); text-align:center; line-height:1.6;
+    padding:10px 28px; font-size:12.5px; color:var(--paper); text-align:center; line-height:1.6;
   }
   .disclaimer b{color:var(--gold);}
 
-  main{flex:1; display:flex; flex-direction:column; max-width:860px; width:100%; margin:0 auto; padding:24px 20px 0;}
+  main{flex:1; display:flex; flex-direction:column; width:100%;}
 
-  .chat-body{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:16px; padding-bottom:20px;}
-  .msg{max-width:82%; padding:14px 18px; border-radius:16px; font-size:14.5px; line-height:1.75;}
-  .msg.bot{background:var(--surface); border:1px solid var(--line); align-self:flex-start; border-end-start-radius:4px; white-space:pre-wrap;}
-  .msg.user{background:var(--surface-2); border:1px solid var(--line); align-self:flex-end; border-end-end-radius:4px; white-space:pre-wrap;}
-  .msg .file-chip{
-    display:inline-flex; align-items:center; gap:8px; background:rgba(31,224,206,0.1); border:1px solid rgba(31,224,206,0.25);
-    padding:6px 12px; border-radius:999px; font-family:'IBM Plex Mono'; font-size:12px; color:var(--assay); margin-bottom:8px;
+  #listView{max-width:1180px; width:100%; margin:0 auto; padding:28px 20px 60px;}
+  .list-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px;}
+  .list-head h1{font-family:'Almarai'; font-size:22px; font-weight:800;}
+  .add-patient-btn{
+    background:var(--assay); color:var(--ink); border:none; padding:11px 20px; border-radius:10px;
+    font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; gap:8px;
   }
+  .filters{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px;
+    background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:20px;
+  }
+  .filters input, .filters select{
+    width:100%; background:var(--ink); border:1px solid var(--line); border-radius:9px; padding:9px 12px;
+    color:var(--paper); font-family:inherit; font-size:13.5px;
+  }
+  .filters input:focus, .filters select:focus{outline:none; border-color:var(--assay);}
+  .filters-actions{display:flex; gap:8px; align-items:end;}
+  .btn-mini{background:var(--surface-2); border:1px solid var(--line); color:var(--paper); padding:9px 16px; border-radius:9px; font-size:13px; cursor:pointer;}
+  .btn-mini.primary{background:var(--assay); color:var(--ink); border:none; font-weight:600;}
+
+  .patient-table{width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--line); border-radius:14px; overflow:hidden;}
+  .patient-table th{
+    text-align:right; font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:.5px; color:var(--muted);
+    padding:14px 16px; border-bottom:1px solid var(--line); text-transform:uppercase;
+  }
+  .patient-table td{padding:16px; border-bottom:1px solid var(--line); font-size:13.5px;}
+  .patient-table tr:last-child td{border-bottom:none;}
+  .patient-table tr:hover td{background:rgba(255,255,255,0.02);}
+  .pt-code{font-family:'IBM Plex Mono'; color:var(--muted);}
+  .pt-name{font-weight:700;}
+  .pt-actions{display:flex; gap:14px;}
+  .pt-actions a{color:var(--assay); font-size:12.5px; cursor:pointer;}
+  .pt-actions a:hover{text-decoration:underline;}
+  .empty-list{padding:60px 20px; text-align:center; color:var(--muted);}
+
+  #chatView{display:none; flex:1; flex-direction:column;}
+  .patient-header{
+    display:flex; align-items:center; gap:16px; padding:14px 28px; border-bottom:1px solid var(--line);
+    background:var(--surface); flex-wrap:wrap;
+  }
+  .patient-header .back-btn{color:var(--muted); font-size:13px; cursor:pointer;}
+  .patient-header .back-btn:hover{color:var(--paper);}
+  .patient-header .pinfo{display:flex; gap:14px; align-items:center; font-size:13px; color:var(--muted); flex-wrap:wrap;}
+  .patient-header .pinfo b{color:var(--paper);}
+  .status-note{
+    font-size:12px; color:var(--assay); background:var(--assay-dim); padding:6px 14px; border-radius:999px;
+    margin-inline-start:auto;
+  }
+
+  .chat-scroll{flex:1; overflow-y:auto; padding:24px 20px;}
+  .chat-inner{max-width:820px; margin:0 auto; display:flex; flex-direction:column; gap:16px;}
+  .msg{max-width:88%; padding:14px 18px; border-radius:16px; font-size:14.5px; line-height:1.8; white-space:pre-wrap;}
+  .msg.bot{background:var(--surface); border:1px solid var(--line); align-self:flex-start; border-end-start-radius:4px;}
+  .msg.user{background:var(--surface-2); border:1px solid var(--line); align-self:flex-end; border-end-end-radius:4px;}
+  .msg .file-chip{display:inline-flex; align-items:center; gap:8px; background:rgba(31,224,206,0.1); border:1px solid rgba(31,224,206,0.25); padding:6px 12px; border-radius:999px; font-family:'IBM Plex Mono'; font-size:12px; color:var(--assay); margin-bottom:8px;}
   .msg img.preview{max-width:220px; border-radius:10px; display:block; margin-bottom:8px; border:1px solid var(--line);}
   .msg.typing{display:flex; gap:4px; padding:16px 18px; align-self:flex-start;}
   .msg.typing span{width:6px; height:6px; border-radius:50%; background:var(--muted); animation:bounce 1.2s infinite;}
   .msg.typing span:nth-child(2){animation-delay:.15s;} .msg.typing span:nth-child(3){animation-delay:.3s;}
   @keyframes bounce{0%,60%,100%{opacity:.35; transform:translateY(0);} 30%{opacity:1; transform:translateY(-3px);}}
 
-  .empty-state{
-    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:16px; padding:40px 20px;
-  }
-  .empty-state .icon{width:64px; height:64px; border-radius:18px; background:var(--surface); border:1px solid var(--line); display:flex; align-items:center; justify-content:center;}
-  .empty-state .icon svg{width:32px; height:32px; stroke:var(--assay); fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round;}
-  .empty-state h2{font-family:'Almarai'; font-size:22px; font-weight:800;}
-  .empty-state p{color:var(--muted); font-size:14.5px; max-width:440px; line-height:1.8;}
+  .suggest-row{display:flex; gap:10px; flex-wrap:wrap; align-self:flex-start; max-width:88%;}
+  .suggest-chip{background:var(--surface-2); border:1px solid var(--line); color:var(--paper); font-size:12.5px; padding:8px 14px; border-radius:999px; cursor:pointer;}
+  .suggest-chip:hover{border-color:var(--assay); color:var(--assay);}
 
-  .composer{
-    border-top:1px solid var(--line); padding:16px 0 24px; background:var(--ink);
-    position:sticky; bottom:0;
-  }
+  .empty-chat{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:14px; padding:40px 20px;}
+  .empty-chat .icon{width:56px; height:56px; border-radius:16px; background:var(--surface); border:1px solid var(--line); display:flex; align-items:center; justify-content:center;}
+  .empty-chat .icon svg{width:28px; height:28px; stroke:var(--assay); fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round;}
+  .empty-chat p{color:var(--muted); font-size:14px; max-width:400px; line-height:1.8;}
+
+  .composer{border-top:1px solid var(--line); padding:14px 20px 20px; background:var(--ink);}
+  .composer-inner{max-width:820px; margin:0 auto;}
   .file-preview-row{display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap;}
-  .file-preview-chip{
-    display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line);
-    padding:8px 12px; border-radius:10px; font-size:12.5px;
-  }
+  .file-preview-chip{display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); padding:8px 12px; border-radius:10px; font-size:12.5px;}
   .file-preview-chip button{background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px;}
   .composer-row{display:flex; align-items:flex-end; gap:10px; background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:10px 12px;}
-  .upload-btn{
-    width:38px; height:38px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line);
-    display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
-  }
+  .upload-btn{width:38px; height:38px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;}
   .upload-btn svg{width:18px; height:18px; stroke:var(--assay); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
-  .composer textarea{
-    flex:1; background:none; border:none; color:var(--paper); font-family:inherit; font-size:14.5px;
-    resize:none; max-height:140px; padding:8px 4px; line-height:1.6;
-  }
+  .composer textarea{flex:1; background:none; border:none; color:var(--paper); font-family:inherit; font-size:14.5px; resize:none; max-height:140px; padding:8px 4px; line-height:1.6;}
   .composer textarea:focus{outline:none;}
-  .send-btn{
-    width:38px; height:38px; border-radius:10px; background:var(--assay); border:none;
-    display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
-  }
+  .send-btn{width:38px; height:38px; border-radius:10px; background:var(--assay); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;}
   .send-btn svg{width:17px; height:17px; stroke:#0A0E1C; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
   .composer-hint{font-size:11.5px; color:var(--muted); text-align:center; margin-top:10px;}
+
+  .modal-overlay{position:fixed; inset:0; background:rgba(5,8,16,0.75); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:100; padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{width:100%; max-width:380px; background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:28px; position:relative; max-height:90vh; overflow-y:auto;}
+  .modal-close{position:absolute; top:16px; left:16px; background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer;}
+  .modal-tabs{display:flex; gap:8px; margin-bottom:20px; background:var(--surface-2); border-radius:10px; padding:4px;}
+  .modal-tabs button{flex:1; background:none; border:none; padding:9px; border-radius:8px; font-family:'Tajawal'; font-size:13.5px; color:var(--muted); cursor:pointer;}
+  .modal-tabs button.active{background:var(--assay); color:var(--ink); font-weight:700;}
+  .modal-box h3{font-family:'Almarai'; font-size:18px; margin-bottom:6px;}
+  .modal-box .sub{font-size:12.5px; color:var(--muted); margin-bottom:18px;}
+  .form-field{margin-bottom:12px;}
+  .form-field label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px;}
+  .form-field input, .form-field select{width:100%; background:var(--ink); border:1px solid var(--line); border-radius:10px; padding:10px 12px; color:var(--paper); font-family:inherit; font-size:14px;}
+  .form-field input:focus, .form-field select:focus{outline:none; border-color:var(--assay);}
+  .modal-submit{width:100%; background:var(--assay); color:var(--ink); border:none; padding:12px; border-radius:10px; font-weight:700; font-size:14px; cursor:pointer; margin-top:6px;}
+  .modal-error{color:var(--plasma); font-size:12.5px; margin-top:10px; display:none;}
+  .modal-skip{display:block; text-align:center; font-size:12.5px; color:var(--muted); margin-top:16px; cursor:pointer;}
+  .modal-skip:hover{color:var(--paper);}
 </style>
 </head>
 <body>
@@ -149,152 +165,193 @@
   </div>
   <a class="back-link" href="/">→ MedForsa GCC</a>
   <div class="header-right" id="headerRight">
-    <button class="auth-btn" id="authOpenBtn" data-ar="تسجيل الدخول" data-en="Sign in">تسجيل الدخول</button>
+    <button class="auth-btn" id="authOpenBtn">تسجيل الدخول</button>
   </div>
 </header>
+
+<div class="disclaimer">
+  <b>أداة دعم قرار علمي</b> — مش بديل عن الفحص السريري أو حكم الطبيب المعالج. النتائج والتفسيرات هنا للمراجعة والمناقشة فقط.
+</div>
+
+<main>
+  <section id="listView">
+    <div class="list-head">
+      <h1>Patients</h1>
+      <button class="add-patient-btn" id="addPatientBtn">+ Add Patient</button>
+    </div>
+    <div class="filters">
+      <input type="text" id="fCode" placeholder="Patient ID">
+      <input type="text" id="fName" placeholder="Patient Name">
+      <select id="fVisitType">
+        <option value="">All visit types</option>
+        <option value="Outpatient">Outpatient</option>
+        <option value="Inpatient">Inpatient</option>
+        <option value="Emergency">Emergency</option>
+      </select>
+      <input type="text" id="fDept" placeholder="Department">
+      <div class="filters-actions">
+        <button class="btn-mini primary" id="searchBtn">Search</button>
+        <button class="btn-mini" id="resetBtn">Reset</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="patient-table">
+        <thead>
+          <tr>
+            <th>Patient ID</th><th>Name</th><th>Gender</th><th>Age</th><th>Last Visit</th><th>Visit Type</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="patientTableBody"></tbody>
+      </table>
+      <div class="empty-list" id="emptyList" style="display:none;">No patients yet — add the first one to start.</div>
+    </div>
+  </section>
+
+  <section id="chatView">
+    <div class="patient-header">
+      <span class="back-btn" id="backToList">← Back</span>
+      <div class="pinfo" id="patientInfoBar"></div>
+      <span class="status-note" id="statusNote"></span>
+    </div>
+    <div class="chat-scroll">
+      <div class="chat-inner" id="chatInner">
+        <div class="empty-chat" id="emptyChat">
+          <div class="icon"><svg viewBox="0 0 24 24"><path d="M9 2v4M15 2v4M6 8h12l-1 5a5 5 0 0 1-10 0L6 8Z"/><path d="M9 20h6"/></svg></div>
+          <p>ابدأ برفع نتيجة أو تقرير لهذا المريض، أو اسأل مباشرة.</p>
+          <div class="suggest-row">
+            <button class="suggest-chip" data-msg="Give me a summary of this patient's history">Summary</button>
+            <button class="suggest-chip" data-msg="give me diagnosis and recommendation for any investigation">Diagnosis &amp; investigation</button>
+            <button class="suggest-chip" data-msg="What are the key risks to monitor for this patient?">Key risks</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="composer">
+      <div class="composer-inner">
+        <div class="file-preview-row" id="filePreviewRow"></div>
+        <div class="composer-row">
+          <div class="upload-btn" id="uploadBtn" title="Attach result (image or PDF)">
+            <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </div>
+          <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,application/pdf" style="display:none" multiple>
+          <textarea id="chatInput" rows="1" placeholder="Describe symptoms or ask about this patient..."></textarea>
+          <div class="send-btn" id="sendBtn">
+            <svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/></svg>
+          </div>
+        </div>
+        <div class="composer-hint">AI-generated content for reference only — not a substitute for clinical judgment.</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="modal-overlay" id="addPatientModal">
+  <div class="modal-box">
+    <button class="modal-close" id="addPatientClose">✕</button>
+    <h3>Add Patient</h3>
+    <p class="sub">Basic info to start a record.</p>
+    <div class="form-field"><label>Full name</label><input type="text" id="npName"></div>
+    <div class="form-field"><label>Gender</label>
+      <select id="npGender"><option value="">—</option><option>Male</option><option>Female</option></select>
+    </div>
+    <div class="form-field"><label>Age</label><input type="number" id="npAge" min="0" max="120"></div>
+    <div class="form-field"><label>Department</label><input type="text" id="npDept" placeholder="e.g. Internal Medicine"></div>
+    <div class="form-field"><label>Visit type</label>
+      <select id="npVisitType"><option>Outpatient</option><option>Inpatient</option><option>Emergency</option></select>
+    </div>
+    <button class="modal-submit" id="npSubmit">Add Patient</button>
+    <div class="modal-error" id="npError"></div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="authModal">
   <div class="modal-box">
     <button class="modal-close" id="modalClose">✕</button>
     <div class="modal-tabs">
-      <button class="active" id="tabLogin" data-ar="دخول" data-en="Log in">دخول</button>
-      <button id="tabRegister" data-ar="حساب جديد" data-en="Create account">حساب جديد</button>
+      <button class="active" id="tabLogin">Log in</button>
+      <button id="tabRegister">Create account</button>
     </div>
-
     <div id="loginForm">
-      <h3 data-ar="أهلاً بيك تاني" data-en="Welcome back">أهلاً بيك تاني</h3>
-      <p class="sub" data-ar="سجّل دخولك عشان تحافظ على سجل محادثاتك." data-en="Sign in to keep your conversation history.">سجّل دخولك عشان تحافظ على سجل محادثاتك.</p>
-      <div class="form-field"><label data-ar="البريد الإلكتروني" data-en="Email">البريد الإلكتروني</label><input type="email" id="loginEmail"></div>
-      <div class="form-field"><label data-ar="كلمة المرور" data-en="Password">كلمة المرور</label><input type="password" id="loginPassword"></div>
-      <button class="modal-submit" id="loginSubmit" data-ar="دخول" data-en="Log in">دخول</button>
+      <h3>Welcome back</h3>
+      <p class="sub">Sign in to keep your records synced.</p>
+      <div class="form-field"><label>Email</label><input type="email" id="loginEmail"></div>
+      <div class="form-field"><label>Password</label><input type="password" id="loginPassword"></div>
+      <button class="modal-submit" id="loginSubmit">Log in</button>
       <div class="modal-error" id="loginError"></div>
     </div>
-
     <div id="registerForm" style="display:none;">
-      <h3 data-ar="إنشاء حساب" data-en="Create your account">إنشاء حساب</h3>
-      <p class="sub" data-ar="مجاني، وهتقدر تستخدمه مباشرة." data-en="Free, and you can start using it right away.">مجاني، وهتقدر تستخدمه مباشرة.</p>
-      <div class="form-field"><label data-ar="الاسم الكامل" data-en="Full name">الاسم الكامل</label><input type="text" id="regName"></div>
-      <div class="form-field"><label data-ar="اسم المنشأة / المختبر" data-en="Company / lab name">اسم المنشأة / المختبر</label><input type="text" id="regCompany"></div>
-      <div class="form-field"><label data-ar="البريد الإلكتروني" data-en="Email">البريد الإلكتروني</label><input type="email" id="regEmail"></div>
-      <div class="form-field"><label data-ar="كلمة المرور (8 أحرف على الأقل)" data-en="Password (8+ characters)">كلمة المرور (8 أحرف على الأقل)</label><input type="password" id="regPassword"></div>
-      <button class="modal-submit" id="registerSubmit" data-ar="إنشاء الحساب" data-en="Create account">إنشاء الحساب</button>
+      <h3>Create your account</h3>
+      <p class="sub">Free, and you can start right away.</p>
+      <div class="form-field"><label>Full name</label><input type="text" id="regName"></div>
+      <div class="form-field"><label>Company / lab name</label><input type="text" id="regCompany"></div>
+      <div class="form-field"><label>Email</label><input type="email" id="regEmail"></div>
+      <div class="form-field"><label>Password (8+ characters)</label><input type="password" id="regPassword"></div>
+      <button class="modal-submit" id="registerSubmit">Create account</button>
       <div class="modal-error" id="registerError"></div>
     </div>
-
-    <span class="modal-skip" id="modalSkip" data-ar="تخطّي دلوقتي" data-en="Skip for now">تخطّي دلوقتي</span>
+    <span class="modal-skip" id="modalSkip">Skip for now</span>
   </div>
 </div>
-
-<div class="disclaimer">
-  <b>أداة دعم قرار علمي</b> — مش بديل عن الفحص السريري أو حكم الطبيب المعالج. النتائج والتفسيرات هنا للمراجعة والمناقشة فقط، ولازم تتأكد منها بالحكم الإكلينيكي المباشر مع المريض.
-</div>
-
-<main>
-  <div class="chat-body" id="chatBody">
-    <div class="empty-state" id="emptyState">
-      <div class="icon"><svg viewBox="0 0 24 24"><path d="M9 2v4M15 2v4M6 8h12l-1 5a5 5 0 0 1-10 0L6 8Z"/><path d="M9 20h6"/></svg></div>
-      <h2 data-ar="ابدأ برفع نتيجة تحليل" data-en="Start by uploading a result">ابدأ برفع نتيجة تحليل</h2>
-      <p data-ar="ارفع صورة أو PDF لنتيجة معملية، واسأل عن التفسير، القيم المرجعية، أو ناقش الحالة استنادًا لأحدث المراجع العلمية." data-en="Upload an image or PDF of a lab result, then ask about interpretation, reference ranges, or discuss the case against current scientific references.">ارفع صورة أو PDF لنتيجة معملية، واسأل عن التفسير، القيم المرجعية، أو ناقش الحالة استنادًا لأحدث المراجع العلمية.</p>
-    </div>
-  </div>
-
-  <div class="composer">
-    <div class="file-preview-row" id="filePreviewRow"></div>
-    <div class="composer-row">
-      <div class="upload-btn" id="uploadBtn" title="Attach result (image or PDF)">
-        <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-      </div>
-      <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,application/pdf" style="display:none" multiple>
-      <textarea id="chatInput" rows="1" placeholder="اكتب سؤالك أو ناقش الحالة..."></textarea>
-      <div class="send-btn" id="sendBtn">
-        <svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/></svg>
-      </div>
-    </div>
-    <div class="composer-hint">Doctor AI مخصّصة للكوادر الطبية والمخبرية المرخّصة. لا تُستخدم كأداة تشخيص وحيدة أو نهائية.</div>
-  </div>
-</main>
 
 <script src="/lang.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-  MedForsaLang.initLangToggle('ar');
+  MedForsaLang.initLangToggle('en');
 
-  // ---------- Optional auth (ready for future gating) ----------
   const TOKEN_KEY = 'medforsa_token';
   const USER_KEY = 'medforsa_user';
   const authModal = document.getElementById('authModal');
-  const authOpenBtn = document.getElementById('authOpenBtn');
-  const modalClose = document.getElementById('modalClose');
-  const modalSkip = document.getElementById('modalSkip');
-  const tabLogin = document.getElementById('tabLogin');
-  const tabRegister = document.getElementById('tabRegister');
-  const loginForm = document.getElementById('loginForm');
-  const registerForm = document.getElementById('registerForm');
   const headerRight = document.getElementById('headerRight');
 
-  function getStoredUser(){
-    try{ return JSON.parse(localStorage.getItem(USER_KEY) || 'null'); }catch(e){ return null; }
-  }
+  function getStoredUser(){ try{ return JSON.parse(localStorage.getItem(USER_KEY) || 'null'); }catch(e){ return null; } }
+  function openAuthModal(){ authModal.classList.add('open'); }
+  function closeAuthModal(){ authModal.classList.remove('open'); }
 
   function renderAuthState(){
     const user = getStoredUser();
     if(user){
-      headerRight.innerHTML = `<div class="user-chip" id="userChip"><div class="avatar">${(user.full_name||user.email||'U').charAt(0).toUpperCase()}</div><span>${user.full_name || user.email}</span></div>`;
-      document.getElementById('userChip').addEventListener('click', ()=>{
-        const lang = MedForsaLang.getCurrentLang();
-        if(confirm(lang==='ar' ? 'تسجيل الخروج؟' : 'Log out?')){
+      headerRight.innerHTML = '<div class="user-chip" id="userChip"><div class="avatar">' + (user.full_name||user.email||'U').charAt(0).toUpperCase() + '</div><span>' + (user.full_name || user.email) + '</span></div>';
+      document.getElementById('userChip').addEventListener('click', function(){
+        if(confirm('Log out?')){
           localStorage.removeItem(TOKEN_KEY);
           localStorage.removeItem(USER_KEY);
           renderAuthState();
         }
       });
     } else {
-      headerRight.innerHTML = '<button class="auth-btn" id="authOpenBtn" data-ar="تسجيل الدخول" data-en="Sign in">تسجيل الدخول</button>';
-      document.getElementById('authOpenBtn').addEventListener('click', openModal);
-      const lang = MedForsaLang.getCurrentLang();
-      document.getElementById('authOpenBtn').textContent = lang==='ar' ? 'تسجيل الدخول' : 'Sign in';
+      headerRight.innerHTML = '<button class="auth-btn" id="authOpenBtn">Sign in</button>';
+      document.getElementById('authOpenBtn').addEventListener('click', openAuthModal);
     }
   }
+  renderAuthState();
 
-  function openModal(){ authModal.classList.add('open'); }
-  function closeModal(){ authModal.classList.remove('open'); }
-  authOpenBtn.addEventListener('click', openModal);
-  modalClose.addEventListener('click', closeModal);
-  modalSkip.addEventListener('click', closeModal);
-  authModal.addEventListener('click', e=>{ if(e.target === authModal) closeModal(); });
+  document.getElementById('modalClose').addEventListener('click', closeAuthModal);
+  document.getElementById('modalSkip').addEventListener('click', closeAuthModal);
+  authModal.addEventListener('click', function(e){ if(e.target === authModal) closeAuthModal(); });
 
-  tabLogin.addEventListener('click', ()=>{
-    tabLogin.classList.add('active'); tabRegister.classList.remove('active');
-    loginForm.style.display = 'block'; registerForm.style.display = 'none';
-  });
-  tabRegister.addEventListener('click', ()=>{
-    tabRegister.classList.add('active'); tabLogin.classList.remove('active');
-    registerForm.style.display = 'block'; loginForm.style.display = 'none';
-  });
+  const tabLogin = document.getElementById('tabLogin');
+  const tabRegister = document.getElementById('tabRegister');
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+  tabLogin.addEventListener('click', function(){ tabLogin.classList.add('active'); tabRegister.classList.remove('active'); loginForm.style.display='block'; registerForm.style.display='none'; });
+  tabRegister.addEventListener('click', function(){ tabRegister.classList.add('active'); tabLogin.classList.remove('active'); registerForm.style.display='block'; loginForm.style.display='none'; });
 
-  document.getElementById('loginSubmit').addEventListener('click', async ()=>{
+  document.getElementById('loginSubmit').addEventListener('click', async function(){
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
     const errEl = document.getElementById('loginError');
     errEl.style.display = 'none';
     try{
-      const res = await fetch('/auth/login', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({email, password})
-      });
+      const res = await fetch('/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email: email, password: password})});
       const data = await res.json();
       if(!res.ok) throw new Error(data.detail || 'Login failed');
       localStorage.setItem(TOKEN_KEY, data.access_token);
       localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-      closeModal();
-      renderAuthState();
-    }catch(err){
-      errEl.textContent = err.message;
-      errEl.style.display = 'block';
-    }
+      closeAuthModal(); renderAuthState();
+    }catch(err){ errEl.textContent = err.message; errEl.style.display = 'block'; }
   });
 
-  document.getElementById('registerSubmit').addEventListener('click', async ()=>{
+  document.getElementById('registerSubmit').addEventListener('click', async function(){
     const full_name = document.getElementById('regName').value.trim();
     const company_name = document.getElementById('regCompany').value.trim();
     const email = document.getElementById('regEmail').value.trim();
@@ -302,45 +359,178 @@ document.addEventListener('DOMContentLoaded', function(){
     const errEl = document.getElementById('registerError');
     errEl.style.display = 'none';
     try{
-      const res = await fetch('/auth/register', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({email, password, company_name, full_name})
-      });
+      const res = await fetch('/auth/register', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email: email, password: password, company_name: company_name, full_name: full_name})});
       const data = await res.json();
       if(!res.ok) throw new Error(data.detail || 'Registration failed');
       localStorage.setItem(TOKEN_KEY, data.access_token);
       localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-      closeModal();
-      renderAuthState();
-    }catch(err){
-      errEl.textContent = err.message;
-      errEl.style.display = 'block';
-    }
+      closeAuthModal(); renderAuthState();
+    }catch(err){ errEl.textContent = err.message; errEl.style.display = 'block'; }
   });
 
-  renderAuthState();
+  const listView = document.getElementById('listView');
+  const chatView = document.getElementById('chatView');
+  let currentPatientId = null;
 
-  const chatBody = document.getElementById('chatBody');
-  const emptyState = document.getElementById('emptyState');
+  function showList(){
+    currentPatientId = null;
+    history.pushState({}, '', '/doctor-ai');
+    listView.style.display = 'block';
+    chatView.style.display = 'none';
+    loadPatients();
+  }
+
+  function showChat(patientId){
+    currentPatientId = patientId;
+    history.pushState({}, '', '/doctor-ai?patient=' + patientId);
+    listView.style.display = 'none';
+    chatView.style.display = 'flex';
+    loadPatientChat(patientId);
+  }
+
+  document.getElementById('backToList').addEventListener('click', showList);
+
+  const patientTableBody = document.getElementById('patientTableBody');
+  const emptyList = document.getElementById('emptyList');
+
+  async function loadPatients(){
+    const params = new URLSearchParams();
+    const code = document.getElementById('fCode').value.trim();
+    const name = document.getElementById('fName').value.trim();
+    const visitType = document.getElementById('fVisitType').value;
+    const dept = document.getElementById('fDept').value.trim();
+    if(code) params.set('patient_code', code);
+    if(name) params.set('name', name);
+    if(visitType) params.set('visit_type', visitType);
+    if(dept) params.set('department', dept);
+
+    try{
+      const res = await fetch('/patients?' + params.toString());
+      const data = await res.json();
+      patientTableBody.innerHTML = '';
+      if(!data.results || data.results.length === 0){
+        emptyList.style.display = 'block';
+        return;
+      }
+      emptyList.style.display = 'none';
+      data.results.forEach(function(p){
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td class="pt-code">' + p.patient_code + '</td>' +
+          '<td class="pt-name">' + p.full_name + '</td>' +
+          '<td>' + (p.gender || '—') + '</td>' +
+          '<td>' + (p.age != null ? p.age : '—') + '</td>' +
+          '<td class="mono">' + (p.last_visit_time || '').replace('T',' ').slice(0,16) + '</td>' +
+          '<td>' + (p.visit_type || '—') + '</td>' +
+          '<td class="pt-actions"><a data-id="' + p.id + '">Open chat →</a></td>';
+        tr.querySelector('.pt-actions a').addEventListener('click', function(){ showChat(p.id); });
+        patientTableBody.appendChild(tr);
+      });
+    }catch(e){
+      emptyList.style.display = 'block';
+      emptyList.textContent = 'Could not load patients right now.';
+    }
+  }
+
+  document.getElementById('searchBtn').addEventListener('click', loadPatients);
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    document.getElementById('fCode').value = '';
+    document.getElementById('fName').value = '';
+    document.getElementById('fVisitType').value = '';
+    document.getElementById('fDept').value = '';
+    loadPatients();
+  });
+
+  const addPatientModal = document.getElementById('addPatientModal');
+  document.getElementById('addPatientBtn').addEventListener('click', function(){ addPatientModal.classList.add('open'); });
+  document.getElementById('addPatientClose').addEventListener('click', function(){ addPatientModal.classList.remove('open'); });
+  addPatientModal.addEventListener('click', function(e){ if(e.target === addPatientModal) addPatientModal.classList.remove('open'); });
+
+  document.getElementById('npSubmit').addEventListener('click', async function(){
+    const full_name = document.getElementById('npName').value.trim();
+    const errEl = document.getElementById('npError');
+    errEl.style.display = 'none';
+    if(!full_name){ errEl.textContent = 'Name is required.'; errEl.style.display = 'block'; return; }
+    const payload = {
+      full_name: full_name,
+      gender: document.getElementById('npGender').value || null,
+      age: document.getElementById('npAge').value ? parseInt(document.getElementById('npAge').value, 10) : null,
+      department: document.getElementById('npDept').value.trim() || null,
+      visit_type: document.getElementById('npVisitType').value
+    };
+    try{
+      const res = await fetch('/patients', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.detail || 'Could not add patient');
+      addPatientModal.classList.remove('open');
+      ['npName','npAge','npDept'].forEach(function(id){ document.getElementById(id).value = ''; });
+      loadPatients();
+      showChat(data.id);
+    }catch(err){ errEl.textContent = err.message; errEl.style.display = 'block'; }
+  });
+
+  const chatInner = document.getElementById('chatInner');
+  const emptyChat = document.getElementById('emptyChat');
+  const patientInfoBar = document.getElementById('patientInfoBar');
+  const statusNote = document.getElementById('statusNote');
   const chatInput = document.getElementById('chatInput');
   const sendBtn = document.getElementById('sendBtn');
   const uploadBtn = document.getElementById('uploadBtn');
   const fileInput = document.getElementById('fileInput');
   const filePreviewRow = document.getElementById('filePreviewRow');
-
   let pendingFiles = [];
-  const chatHistory = [];
 
-  const SYSTEM_PROMPT = "You are Doctor AI, a clinical laboratory decision-support assistant on MedForsa GCC, used by physicians and laboratory professionals across Saudi Arabia and the Gulf. Users may upload lab result documents or images and discuss findings with you. Your role: (1) help read and explain lab values against standard reference ranges, (2) discuss differential considerations and relevant pathophysiology, (3) cite established literature, clinical guidelines, or textbooks by name where relevant, and (4) support an evidence-based discussion of the case. You are strictly a reference and discussion tool, not a diagnostic authority: never state a definitive diagnosis as fact, always frame clinical observations as possibilities ('may suggest', 'is consistent with', 'differential includes') rather than certainties, and always make clear that final diagnosis and treatment decisions rest with the treating physician after direct clinical evaluation of the patient. For medication or dosing questions, give only general reference-level information and recommend consulting current prescribing references and the treating physician. Reply in the same language the user writes in (Arabic or English). Keep responses focused and clinically useful — this is a working tool for busy clinicians, not a lecture.";
+  function addMsg(html, who){
+    if(emptyChat) emptyChat.style.display = 'none';
+    const div = document.createElement('div');
+    div.className = 'msg ' + who;
+    div.innerHTML = html;
+    chatInner.appendChild(div);
+    chatInner.parentElement.scrollTop = chatInner.parentElement.scrollHeight;
+    return div;
+  }
 
-  uploadBtn.addEventListener('click', ()=> fileInput.click());
+  function addTyping(){
+    const div = document.createElement('div');
+    div.className = 'msg bot typing';
+    div.innerHTML = '<span></span><span></span><span></span>';
+    chatInner.appendChild(div);
+    chatInner.parentElement.scrollTop = chatInner.parentElement.scrollHeight;
+    return div;
+  }
 
-  fileInput.addEventListener('change', ()=>{
-    Array.from(fileInput.files).forEach(file=>{
-      if(file.size > 15 * 1024 * 1024){
-        alert((MedForsaLang.getCurrentLang()==='ar' ? 'الملف كبير جدًا (الحد 15 ميجا): ' : 'File too large (15MB max): ') + file.name);
-        return;
+  async function loadPatientChat(patientId){
+    chatInner.innerHTML = '';
+    patientInfoBar.innerHTML = '<span class="mono">loading…</span>';
+    statusNote.textContent = '';
+    try{
+      const patientRes = await fetch('/patients/' + patientId);
+      const chatRes = await fetch('/patients/' + patientId + '/chat');
+      const patientData = await patientRes.json();
+      const chatData = await chatRes.json();
+      const p = patientData.patient;
+      patientInfoBar.innerHTML = '<span class="mono">' + p.patient_code + '</span> | <b>' + p.full_name + '</b> | ' + (p.gender || '—') + ' | Age ' + (p.age != null ? p.age : '—') + ' | ' + p.visit_type;
+
+      if(chatData.messages && chatData.messages.length){
+        statusNote.textContent = patientData.reports.length + ' reports, ' + chatData.messages.length + ' messages on record';
+        chatData.messages.forEach(function(m){
+          addMsg((m.content || '').replace(/\n/g, '<br>'), m.role === 'user' ? 'user' : 'bot');
+        });
+      } else {
+        chatInner.appendChild(emptyChat);
+        emptyChat.style.display = 'flex';
+        document.querySelectorAll('.suggest-chip').forEach(function(chip){
+          chip.onclick = function(){ chatInput.value = chip.dataset.msg; sendMessage(); };
+        });
       }
+    }catch(e){
+      patientInfoBar.textContent = 'Could not load patient.';
+    }
+  }
+
+  uploadBtn.addEventListener('click', function(){ fileInput.click(); });
+  fileInput.addEventListener('change', function(){
+    Array.from(fileInput.files).forEach(function(file){
+      if(file.size > 15 * 1024 * 1024){ alert('File too large (15MB max): ' + file.name); return; }
       pendingFiles.push(file);
     });
     renderFilePreviews();
@@ -349,52 +539,30 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function renderFilePreviews(){
     filePreviewRow.innerHTML = '';
-    pendingFiles.forEach((file, idx)=>{
+    pendingFiles.forEach(function(file, idx){
       const chip = document.createElement('div');
       chip.className = 'file-preview-chip';
-      chip.innerHTML = `<span>📎 ${file.name}</span>`;
+      chip.innerHTML = '<span>📎 ' + file.name + '</span>';
       const removeBtn = document.createElement('button');
       removeBtn.textContent = '✕';
-      removeBtn.addEventListener('click', ()=>{
-        pendingFiles.splice(idx, 1);
-        renderFilePreviews();
-      });
+      removeBtn.addEventListener('click', function(){ pendingFiles.splice(idx, 1); renderFilePreviews(); });
       chip.appendChild(removeBtn);
       filePreviewRow.appendChild(chip);
     });
   }
 
   function fileToBase64(file){
-    return new Promise((resolve, reject)=>{
+    return new Promise(function(resolve, reject){
       const reader = new FileReader();
-      reader.onload = ()=> resolve(reader.result.split(',')[1]);
+      reader.onload = function(){ resolve(reader.result.split(',')[1]); };
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
   }
 
-  function addMessage(html, who){
-    if(emptyState) emptyState.style.display = 'none';
-    const div = document.createElement('div');
-    div.className = 'msg ' + who;
-    div.innerHTML = html;
-    chatBody.appendChild(div);
-    chatBody.scrollTop = chatBody.scrollHeight;
-    return div;
-  }
-
-  function addTyping(){
-    const div = document.createElement('div');
-    div.className = 'msg bot typing';
-    div.innerHTML = '<span></span><span></span><span></span>';
-    chatBody.appendChild(div);
-    chatBody.scrollTop = chatBody.scrollHeight;
-    return div;
-  }
-
   async function sendMessage(){
     const text = chatInput.value.trim();
-    if(!text && pendingFiles.length === 0) return;
+    if((!text && pendingFiles.length === 0) || !currentPatientId) return;
 
     const filesToSend = pendingFiles.slice();
     pendingFiles = [];
@@ -404,54 +572,49 @@ document.addEventListener('DOMContentLoaded', function(){
 
     let userHtml = '';
     const contentBlocks = [];
-
     for(const file of filesToSend){
       const base64 = await fileToBase64(file);
       if(file.type === 'application/pdf'){
-        userHtml += `<div class="file-chip">📄 ${file.name}</div><br>`;
+        userHtml += '<div class="file-chip">📄 ' + file.name + '</div><br>';
         contentBlocks.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } });
       } else {
-        userHtml += `<img class="preview" src="data:${file.type};base64,${base64}" alt="${file.name}">`;
+        userHtml += '<img class="preview" src="data:' + file.type + ';base64,' + base64 + '" alt="' + file.name + '">';
         contentBlocks.push({ type: 'image', source: { type: 'base64', media_type: file.type, data: base64 } });
       }
     }
-    if(text){
-      userHtml += text;
-      contentBlocks.push({ type: 'text', text: text });
-    }
+    if(text){ userHtml += text; contentBlocks.push({ type: 'text', text: text }); }
 
-    addMessage(userHtml, 'user');
-    chatHistory.push({ role: 'user', content: contentBlocks.length === 1 && contentBlocks[0].type === 'text' ? text : contentBlocks });
-
+    addMsg(userHtml, 'user');
     const typingEl = addTyping();
 
+    const contentToSend = (contentBlocks.length === 1 && contentBlocks[0].type === 'text') ? text : contentBlocks;
+
     try{
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ system: SYSTEM_PROMPT, messages: chatHistory })
+      const res = await fetch('/patients/' + currentPatientId + '/chat', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ content: contentToSend })
       });
-      if(!response.ok) throw new Error('status ' + response.status);
-      const data = await response.json();
-      const reply = (data.content || []).filter(b=>b.type==='text').map(b=>b.text).join('\n') || 'عذرًا، حصل خطأ في الرد.';
+      if(!res.ok) throw new Error('status ' + res.status);
+      const data = await res.json();
       typingEl.remove();
-      addMessage(reply.replace(/\n/g, '<br>'), 'bot');
-      chatHistory.push({ role: 'assistant', content: reply });
+      addMsg((data.reply || '').replace(/\n/g, '<br>'), 'bot');
     }catch(err){
       typingEl.remove();
-      const lang = MedForsaLang.getCurrentLang();
-      addMessage(lang==='ar' ? 'تعذّر الاتصال بالمساعد الآن. حاول تاني بعد شوية.' : 'Could not reach the assistant right now. Please try again shortly.', 'bot');
+      addMsg('Could not reach the assistant right now. Please try again shortly.', 'bot');
     }
   }
 
   sendBtn.addEventListener('click', sendMessage);
-  chatInput.addEventListener('keydown', e=>{
-    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); }
-  });
-  chatInput.addEventListener('input', ()=>{
-    chatInput.style.height = 'auto';
-    chatInput.style.height = Math.min(chatInput.scrollHeight, 140) + 'px';
-  });
+  chatInput.addEventListener('keydown', function(e){ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); } });
+  chatInput.addEventListener('input', function(){ chatInput.style.height = 'auto'; chatInput.style.height = Math.min(chatInput.scrollHeight, 140) + 'px'; });
+
+  const params = new URLSearchParams(window.location.search);
+  const patientParam = params.get('patient');
+  if(patientParam){
+    showChat(parseInt(patientParam, 10));
+  } else {
+    loadPatients();
+  }
 });
 </script>
 </body>
