@@ -157,6 +157,13 @@
   .cond-list .dir{font-family:'IBM Plex Mono'; font-size:11.5px; color:var(--gold); white-space:nowrap;}
 
   .source-list{list-style:none; display:flex; flex-direction:column; gap:10px;}
+
+  .related-chips{display:flex; flex-wrap:wrap; gap:10px;}
+  .related-chip{
+    background:var(--ink); border:1px solid var(--line); color:var(--paper);
+    font-size:13px; padding:9px 16px; border-radius:999px; cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .related-chip:hover{border-color:var(--assay); color:var(--assay);}
   .source-list li{font-size:13px; color:var(--muted); padding-inline-start:16px; position:relative; line-height:1.7;}
   .source-list li::before{content:'—'; position:absolute; inset-inline-start:0;}
   .source-list a{color:var(--assay);}
@@ -396,20 +403,21 @@
       html += '</ul></div>';
     }
 
-    // Sources
-    if(t.sources && t.sources.length){
-      sections.push({id:'sec-sources', ar:'المصادر', en:'Sources'});
-      html += '<div class="section-card" id="sec-sources"><h2><span class="dot"></span>' + (ar?'المصادر':'Sources') + '</h2><ul class="source-list">';
-      t.sources.forEach(function(s){
-        html += '<li>' + esc(s.name||'') +
-          (s.url ? ' — <a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + (ar?'رابط':'link') + '</a>' : '') +
-          (s.accessed ? '<span class="source-meta">' + (ar?'تاريخ الاطلاع: ':'Accessed: ') + esc(s.accessed) + '</span>' : '') +
-          '</li>';
+    // Related tests (Sources are intentionally not rendered here -- kept internal
+    // for MedForsa GCC's own verification trail, not shown in the public UI)
+    if(t.related_tests && t.related_tests.length){
+      sections.push({id:'sec-related', ar:'تحاليل مرتبطة', en:'Related Tests'});
+      html += '<div class="section-card" id="sec-related"><h2><span class="dot"></span>' + (ar?'تحاليل مرتبطة':'Related Tests') + '</h2><div class="related-chips">';
+      t.related_tests.forEach(function(rt){
+        html += '<span class="related-chip" data-slug="' + esc(rt.slug) + '">' + esc(rt.name_en) + '</span>';
       });
-      html += '</ul></div>';
+      html += '</div></div>';
     }
 
     detailContent.innerHTML = html;
+    detailContent.querySelectorAll('.related-chip').forEach(function(chip){
+      chip.addEventListener('click', function(){ openDetail(chip.dataset.slug); });
+    });
     renderOnpageNav(sections, ar);
   }
 

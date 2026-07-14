@@ -1288,10 +1288,11 @@ class LabTestCreate(BaseModel):
     clinical_significance_en: str | None = None
     clinical_significance_ar: str | None = None
     associated_conditions: list[dict] | None = None
+    related_tests: list[str] | None = None
     sources: list[dict] = Field(..., min_length=1)
     is_published: bool = True
 
-def _lab_test_row_to_dict(row):
+def _lab_test_row_to_dict(row, include_sources=False):
     d = dict(row)
     for json_field, key in [("reference_ranges_json", "reference_ranges"),
                              ("associated_conditions_json", "associated_conditions"),
@@ -1301,9 +1302,49 @@ def _lab_test_row_to_dict(row):
             d[key] = json.loads(raw) if raw else []
         except (ValueError, TypeError):
             d[key] = []
+    d.pop("related_tests_json", None)
+    if not include_sources:
+        # Sources are kept for MedForsa GCC's own internal verification/audit trail
+        # but are not surfaced in the public-facing Lab Info UI.
+        d.pop("sources", None)
     d["reference_ranges_verified"] = bool(d.get("reference_ranges_verified"))
     d["is_published"] = bool(d.get("is_published"))
     return d
+
+def _resolve_related_tests(conn, row, limit=5):
+    """Manually curated related_tests_json (list of slugs) takes priority; falls back to
+    other published tests in the same category when no curation exists yet."""
+    try:
+        related_slugs = json.loads(row["related_tests_json"]) if row["related_tests_json"] else []
+    except (ValueError, TypeError):
+        related_slugs = []
+
+    results = []
+    seen = {row["slug"]}
+    if related_slugs:
+        placeholders = ",".join("?" for _ in related_slugs)
+        rows = conn.execute(
+            f"SELECT slug, name_en, category FROM lab_tests WHERE slug IN ({placeholders}) AND is_published = 1",
+            related_slugs
+        ).fetchall()
+        by_slug = {r["slug"]: r for r in rows}
+        for s in related_slugs:
+            if s in by_slug and s not in seen:
+                r = by_slug[s]
+                results.append({"slug": r["slug"], "name_en": r["name_en"], "category": r["category"]})
+                seen.add(s)
+
+    if len(results) < limit:
+        fallback_rows = conn.execute(
+            "SELECT slug, name_en, category FROM lab_tests WHERE category = ? AND is_published = 1 AND slug != ? ORDER BY name_en LIMIT ?",
+            (row["category"], row["slug"], limit - len(results))
+        ).fetchall()
+        for r in fallback_rows:
+            if r["slug"] not in seen:
+                results.append({"slug": r["slug"], "name_en": r["name_en"], "category": r["category"]})
+                seen.add(r["slug"])
+
+    return results[:limit]
 
 @app.get("/lab-tests-list")
 def list_lab_tests(q: str | None = None, category: str | None = None,
@@ -1343,10 +1384,13 @@ def lab_test_categories():
 def get_lab_test(slug: str):
     conn = get_conn()
     row = conn.execute("SELECT * FROM lab_tests WHERE slug = ?", (slug,)).fetchone()
-    conn.close()
     if not row:
+        conn.close()
         raise HTTPException(status_code=404, detail="Lab test not found")
-    return _lab_test_row_to_dict(row)
+    result = _lab_test_row_to_dict(row, include_sources=False)
+    result["related_tests"] = _resolve_related_tests(conn, row)
+    conn.close()
+    return result
 
 @app.post("/lab-tests-list")
 def create_lab_test(payload: LabTestCreate):
@@ -1360,16 +1404,16 @@ def create_lab_test(payload: LabTestCreate):
         (slug, name_en, name_ar, aliases, category, purpose_en, purpose_ar, specimen_type,
          collection_notes_en, collection_notes_ar, methodology_en, methodology_ar,
          reference_ranges_json, reference_ranges_verified, clinical_significance_en, clinical_significance_ar,
-         associated_conditions_json, sources_json, is_published)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+         associated_conditions_json, related_tests_json, sources_json, is_published)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (payload.slug, payload.name_en, payload.name_ar or "", payload.aliases, payload.category,
          payload.purpose_en, payload.purpose_ar, payload.specimen_type,
          payload.collection_notes_en, payload.collection_notes_ar,
          payload.methodology_en, payload.methodology_ar,
          json.dumps(payload.reference_ranges or []), int(payload.reference_ranges_verified),
          payload.clinical_significance_en, payload.clinical_significance_ar,
-         json.dumps(payload.associated_conditions or []), json.dumps(payload.sources),
-         int(payload.is_published))
+         json.dumps(payload.associated_conditions or []), json.dumps(payload.related_tests or []),
+         json.dumps(payload.sources), int(payload.is_published))
     )
     conn.commit()
     new_id = cur.lastrowid
