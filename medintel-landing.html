@@ -389,12 +389,12 @@
     padding:110px 0 0; display:flex; justify-content:center;
   }
   .ad-embed-inner{
-    width:100%; max-width:520px; aspect-ratio:1/1; position:relative;
+    width:100%; max-width:920px; aspect-ratio:16/9; position:relative;
     border-radius:24px; overflow:hidden; border:1px solid var(--line);
     box-shadow:0 30px 70px rgba(0,0,0,0.5);
   }
   .ad-embed-inner iframe{
-    position:absolute; top:0; left:0; width:1080px; height:1080px; border:0;
+    position:absolute; top:0; left:0; width:1600px; height:900px; border:0;
     transform-origin:top left;
   }
   @media (max-width:600px){
@@ -433,7 +433,7 @@
 
 <div class="ad-embed-wrap">
   <div class="ad-embed-inner" id="adEmbedInner">
-    <iframe id="adEmbedFrame" src="/snibe-ad.html" title="Snibe MAGLUMI promotional ad" scrolling="no"></iframe>
+    <iframe id="adEmbedFrame" src="/snibe-biochem-ad.html" title="Snibe Biochemistry promotional ad" scrolling="no"></iframe>
   </div>
 </div>
 
@@ -713,7 +713,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const wrap = document.getElementById('adEmbedInner');
     const frame = document.getElementById('adEmbedFrame');
     if(!wrap || !frame) return;
-    const scale = wrap.clientWidth / 1080;
+    const scale = wrap.clientWidth / 1600;
     frame.style.transform = 'scale(' + scale + ')';
   }
   scaleAdEmbed();
