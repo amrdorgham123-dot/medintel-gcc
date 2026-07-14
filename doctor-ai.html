@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doctor AI — MedForsa GCC</title>
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Tajawal:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A0E1C; --surface:#121A33; --surface-2:#1B2547; --line: rgba(237,239,247,0.10);
+    --assay:#1FE0CE; --assay-dim: rgba(31,224,206,0.14);
+    --gold:#FFB443; --gold-dim: rgba(255,180,67,0.14);
+    --plasma:#FF3B5C;
+    --paper:#EDEFF7; --muted:#8D95B3;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--ink); color:var(--paper); font-family:'Tajawal', sans-serif; min-height:100vh; display:flex; flex-direction:column;}
+  a{color:inherit; text-decoration:none;}
+  .mono{font-family:'IBM Plex Mono', monospace; direction:ltr; unicode-bidi:plaintext;}
+
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 28px; border-bottom:1px solid var(--line); background:rgba(10,14,28,0.85);
+    position:sticky; top:0; z-index:10; backdrop-filter:blur(10px);
+  }
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand-mark{width:36px; height:36px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; padding:5px;}
+  .brand-mark svg{width:100%; height:100%;}
+  .brand-name{font-family:'Almarai'; font-weight:800; font-size:16px;}
+  .brand-sub{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--assay); letter-spacing:1px;}
+  .back-link{font-size:13.5px; color:var(--muted); display:flex; align-items:center; gap:6px;}
+  .back-link:hover{color:var(--paper);}
+
+  .disclaimer{
+    background:var(--gold-dim); border-bottom:1px solid rgba(255,180,67,0.3);
+    padding:12px 28px; font-size:13px; color:var(--paper); text-align:center; line-height:1.6;
+  }
+  .disclaimer b{color:var(--gold);}
+
+  main{flex:1; display:flex; flex-direction:column; max-width:860px; width:100%; margin:0 auto; padding:24px 20px 0;}
+
+  .chat-body{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:16px; padding-bottom:20px;}
+  .msg{max-width:82%; padding:14px 18px; border-radius:16px; font-size:14.5px; line-height:1.75;}
+  .msg.bot{background:var(--surface); border:1px solid var(--line); align-self:flex-start; border-end-start-radius:4px; white-space:pre-wrap;}
+  .msg.user{background:var(--surface-2); border:1px solid var(--line); align-self:flex-end; border-end-end-radius:4px; white-space:pre-wrap;}
+  .msg .file-chip{
+    display:inline-flex; align-items:center; gap:8px; background:rgba(31,224,206,0.1); border:1px solid rgba(31,224,206,0.25);
+    padding:6px 12px; border-radius:999px; font-family:'IBM Plex Mono'; font-size:12px; color:var(--assay); margin-bottom:8px;
+  }
+  .msg img.preview{max-width:220px; border-radius:10px; display:block; margin-bottom:8px; border:1px solid var(--line);}
+  .msg.typing{display:flex; gap:4px; padding:16px 18px; align-self:flex-start;}
+  .msg.typing span{width:6px; height:6px; border-radius:50%; background:var(--muted); animation:bounce 1.2s infinite;}
+  .msg.typing span:nth-child(2){animation-delay:.15s;} .msg.typing span:nth-child(3){animation-delay:.3s;}
+  @keyframes bounce{0%,60%,100%{opacity:.35; transform:translateY(0);} 30%{opacity:1; transform:translateY(-3px);}}
+
+  .empty-state{
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:16px; padding:40px 20px;
+  }
+  .empty-state .icon{width:64px; height:64px; border-radius:18px; background:var(--surface); border:1px solid var(--line); display:flex; align-items:center; justify-content:center;}
+  .empty-state .icon svg{width:32px; height:32px; stroke:var(--assay); fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round;}
+  .empty-state h2{font-family:'Almarai'; font-size:22px; font-weight:800;}
+  .empty-state p{color:var(--muted); font-size:14.5px; max-width:440px; line-height:1.8;}
+
+  .composer{
+    border-top:1px solid var(--line); padding:16px 0 24px; background:var(--ink);
+    position:sticky; bottom:0;
+  }
+  .file-preview-row{display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap;}
+  .file-preview-chip{
+    display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line);
+    padding:8px 12px; border-radius:10px; font-size:12.5px;
+  }
+  .file-preview-chip button{background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px;}
+  .composer-row{display:flex; align-items:flex-end; gap:10px; background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:10px 12px;}
+  .upload-btn{
+    width:38px; height:38px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+  }
+  .upload-btn svg{width:18px; height:18px; stroke:var(--assay); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
+  .composer textarea{
+    flex:1; background:none; border:none; color:var(--paper); font-family:inherit; font-size:14.5px;
+    resize:none; max-height:140px; padding:8px 4px; line-height:1.6;
+  }
+  .composer textarea:focus{outline:none;}
+  .send-btn{
+    width:38px; height:38px; border-radius:10px; background:var(--assay); border:none;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+  }
+  .send-btn svg{width:17px; height:17px; stroke:#0A0E1C; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
+  .composer-hint{font-size:11.5px; color:var(--muted); text-align:center; margin-top:10px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="4" y1="2" x2="34" y2="36" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#1FE0CE"/><stop offset="1" stop-color="#3FA8E0"/></linearGradient></defs><path d="M20 3C20 3 8 17.5 8 25.5a12 12 0 0 0 24 0C32 17.5 20 3 20 3Z" fill="url(#lg)"/><path d="M14 20h4l2-5 3 10 2-7 1.5 2h5" fill="none" stroke="#0A0E1C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div>
+      <div class="brand-name">Doctor AI</div>
+      <div class="brand-sub">CLINICAL REFERENCE ASSISTANT</div>
+    </div>
+  </div>
+  <a class="back-link" href="/">→ MedForsa GCC</a>
+</header>
+
+<div class="disclaimer">
+  <b>أداة دعم قرار علمي</b> — مش بديل عن الفحص السريري أو حكم الطبيب المعالج. النتائج والتفسيرات هنا للمراجعة والمناقشة فقط، ولازم تتأكد منها بالحكم الإكلينيكي المباشر مع المريض.
+</div>
+
+<main>
+  <div class="chat-body" id="chatBody">
+    <div class="empty-state" id="emptyState">
+      <div class="icon"><svg viewBox="0 0 24 24"><path d="M9 2v4M15 2v4M6 8h12l-1 5a5 5 0 0 1-10 0L6 8Z"/><path d="M9 20h6"/></svg></div>
+      <h2 data-ar="ابدأ برفع نتيجة تحليل" data-en="Start by uploading a result">ابدأ برفع نتيجة تحليل</h2>
+      <p data-ar="ارفع صورة أو PDF لنتيجة معملية، واسأل عن التفسير، القيم المرجعية، أو ناقش الحالة استنادًا لأحدث المراجع العلمية." data-en="Upload an image or PDF of a lab result, then ask about interpretation, reference ranges, or discuss the case against current scientific references.">ارفع صورة أو PDF لنتيجة معملية، واسأل عن التفسير، القيم المرجعية، أو ناقش الحالة استنادًا لأحدث المراجع العلمية.</p>
+    </div>
+  </div>
+
+  <div class="composer">
+    <div class="file-preview-row" id="filePreviewRow"></div>
+    <div class="composer-row">
+      <div class="upload-btn" id="uploadBtn" title="Attach result (image or PDF)">
+        <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+      </div>
+      <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,application/pdf" style="display:none" multiple>
+      <textarea id="chatInput" rows="1" placeholder="اكتب سؤالك أو ناقش الحالة..."></textarea>
+      <div class="send-btn" id="sendBtn">
+        <svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/></svg>
+      </div>
+    </div>
+    <div class="composer-hint">Doctor AI مخصّصة للكوادر الطبية والمخبرية المرخّصة. لا تُستخدم كأداة تشخيص وحيدة أو نهائية.</div>
+  </div>
+</main>
+
+<script src="/lang.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  MedForsaLang.initLangToggle('ar');
+
+  const chatBody = document.getElementById('chatBody');
+  const emptyState = document.getElementById('emptyState');
+  const chatInput = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const fileInput = document.getElementById('fileInput');
+  const filePreviewRow = document.getElementById('filePreviewRow');
+
+  let pendingFiles = [];
+  const chatHistory = [];
+
+  const SYSTEM_PROMPT = "You are Doctor AI, a clinical laboratory decision-support assistant on MedForsa GCC, used by physicians and laboratory professionals across Saudi Arabia and the Gulf. Users may upload lab result documents or images and discuss findings with you. Your role: (1) help read and explain lab values against standard reference ranges, (2) discuss differential considerations and relevant pathophysiology, (3) cite established literature, clinical guidelines, or textbooks by name where relevant, and (4) support an evidence-based discussion of the case. You are strictly a reference and discussion tool, not a diagnostic authority: never state a definitive diagnosis as fact, always frame clinical observations as possibilities ('may suggest', 'is consistent with', 'differential includes') rather than certainties, and always make clear that final diagnosis and treatment decisions rest with the treating physician after direct clinical evaluation of the patient. For medication or dosing questions, give only general reference-level information and recommend consulting current prescribing references and the treating physician. Reply in the same language the user writes in (Arabic or English). Keep responses focused and clinically useful — this is a working tool for busy clinicians, not a lecture.";
+
+  uploadBtn.addEventListener('click', ()=> fileInput.click());
+
+  fileInput.addEventListener('change', ()=>{
+    Array.from(fileInput.files).forEach(file=>{
+      if(file.size > 15 * 1024 * 1024){
+        alert((MedForsaLang.getCurrentLang()==='ar' ? 'الملف كبير جدًا (الحد 15 ميجا): ' : 'File too large (15MB max): ') + file.name);
+        return;
+      }
+      pendingFiles.push(file);
+    });
+    renderFilePreviews();
+    fileInput.value = '';
+  });
+
+  function renderFilePreviews(){
+    filePreviewRow.innerHTML = '';
+    pendingFiles.forEach((file, idx)=>{
+      const chip = document.createElement('div');
+      chip.className = 'file-preview-chip';
+      chip.innerHTML = `<span>📎 ${file.name}</span>`;
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = '✕';
+      removeBtn.addEventListener('click', ()=>{
+        pendingFiles.splice(idx, 1);
+        renderFilePreviews();
+      });
+      chip.appendChild(removeBtn);
+      filePreviewRow.appendChild(chip);
+    });
+  }
+
+  function fileToBase64(file){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=> resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function addMessage(html, who){
+    if(emptyState) emptyState.style.display = 'none';
+    const div = document.createElement('div');
+    div.className = 'msg ' + who;
+    div.innerHTML = html;
+    chatBody.appendChild(div);
+    chatBody.scrollTop = chatBody.scrollHeight;
+    return div;
+  }
+
+  function addTyping(){
+    const div = document.createElement('div');
+    div.className = 'msg bot typing';
+    div.innerHTML = '<span></span><span></span><span></span>';
+    chatBody.appendChild(div);
+    chatBody.scrollTop = chatBody.scrollHeight;
+    return div;
+  }
+
+  async function sendMessage(){
+    const text = chatInput.value.trim();
+    if(!text && pendingFiles.length === 0) return;
+
+    const filesToSend = pendingFiles.slice();
+    pendingFiles = [];
+    renderFilePreviews();
+    chatInput.value = '';
+    chatInput.style.height = 'auto';
+
+    let userHtml = '';
+    const contentBlocks = [];
+
+    for(const file of filesToSend){
+      const base64 = await fileToBase64(file);
+      if(file.type === 'application/pdf'){
+        userHtml += `<div class="file-chip">📄 ${file.name}</div><br>`;
+        contentBlocks.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } });
+      } else {
+        userHtml += `<img class="preview" src="data:${file.type};base64,${base64}" alt="${file.name}">`;
+        contentBlocks.push({ type: 'image', source: { type: 'base64', media_type: file.type, data: base64 } });
+      }
+    }
+    if(text){
+      userHtml += text;
+      contentBlocks.push({ type: 'text', text: text });
+    }
+
+    addMessage(userHtml, 'user');
+    chatHistory.push({ role: 'user', content: contentBlocks.length === 1 && contentBlocks[0].type === 'text' ? text : contentBlocks });
+
+    const typingEl = addTyping();
+
+    try{
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ system: SYSTEM_PROMPT, messages: chatHistory })
+      });
+      if(!response.ok) throw new Error('status ' + response.status);
+      const data = await response.json();
+      const reply = (data.content || []).filter(b=>b.type==='text').map(b=>b.text).join('\n') || 'عذرًا، حصل خطأ في الرد.';
+      typingEl.remove();
+      addMessage(reply.replace(/\n/g, '<br>'), 'bot');
+      chatHistory.push({ role: 'assistant', content: reply });
+    }catch(err){
+      typingEl.remove();
+      const lang = MedForsaLang.getCurrentLang();
+      addMessage(lang==='ar' ? 'تعذّر الاتصال بالمساعد الآن. حاول تاني بعد شوية.' : 'Could not reach the assistant right now. Please try again shortly.', 'bot');
+    }
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  chatInput.addEventListener('keydown', e=>{
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); }
+  });
+  chatInput.addEventListener('input', ()=>{
+    chatInput.style.height = 'auto';
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 140) + 'px';
+  });
+});
+</script>
+</body>
+</html>
