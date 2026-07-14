@@ -97,8 +97,21 @@ def call_anthropic(system: str, messages: list):
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY is not set on the server. Add it in Render > Environment.")
 
+    # Strip accidental whitespace/quotes that sometimes sneak in when pasting
+    # the key into Render's Environment UI — a common source of "invalid x-api-key".
+    api_key = api_key.strip().strip('"').strip("'")
+
+    # Safe diagnostic (never logs the full key): confirms what actually reached
+    # the server without exposing the secret in logs.
+    logger.info(
+        f"Anthropic key loaded: length={len(api_key)}, "
+        f"prefix={api_key[:7]}, suffix={api_key[-4:] if len(api_key) >= 4 else '****'}"
+    )
+    if not api_key.startswith("sk-ant-"):
+        logger.warning("ANTHROPIC_API_KEY does not start with 'sk-ant-' — this is likely the wrong value.")
+
     body = json.dumps({
-        "model": "claude-sonnet-4-6",
+        "model": "claude-sonnet-5",
         "max_tokens": 1500,
         "system": system,
         "messages": messages,
