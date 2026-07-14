@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, EmailStr
-from typing import Literal
+from typing import Literal, Any
 import sqlite3
 import os
 import logging
@@ -68,6 +68,10 @@ def snibe_ad():
 def snibe_biochem_ad():
     return FileResponse(os.path.join(os.path.dirname(__file__), "snibe-biochem-ad.html"), media_type="text/html")
 
+@app.get("/doctor-ai")
+def doctor_ai_page():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "doctor-ai.html"), media_type="text/html")
+
 @app.get("/logo.svg")
 def logo():
     return FileResponse(os.path.join(os.path.dirname(__file__), "logo.svg"), media_type="image/svg+xml")
@@ -78,7 +82,7 @@ def status():
 
 class ChatMessage(BaseModel):
     role: Literal["user", "assistant"]
-    content: str
+    content: Any
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
@@ -96,7 +100,7 @@ def chat_proxy(payload: ChatRequest):
 
     body = json.dumps({
         "model": "claude-sonnet-4-6",
-        "max_tokens": 1000,
+        "max_tokens": 1500,
         "system": payload.system,
         "messages": [m.dict() for m in payload.messages],
     }).encode("utf-8")
@@ -112,7 +116,7 @@ def chat_proxy(payload: ChatRequest):
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=45) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8")
