@@ -7,13 +7,26 @@
     data-lang-toggle                on any button that should switch language
 
   Usage in your page's own script, after this file is loaded:
-    MedForsaLang.initLangToggle('ar');   // 'ar' or 'en' as the default/starting language
+    MedForsaLang.initLangToggle('en');   // 'ar' or 'en' as the fallback if no saved preference exists
+
+  Persistence: the chosen language is saved in localStorage (key: medforsa_lang) and
+  restored automatically on future visits/navigations, overriding the passed-in default.
 */
 (function () {
-  let currentLang = 'ar';
+  const STORAGE_KEY = 'medforsa_lang';
+  let currentLang = 'en';
+
+  function getSavedLang() {
+    try { return localStorage.getItem(STORAGE_KEY); } catch (e) { return null; }
+  }
+
+  function saveLang(lang) {
+    try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) { /* ignore (private mode, etc.) */ }
+  }
 
   function applyLang(lang) {
     currentLang = lang;
+    saveLang(lang);
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
     document.body.classList.toggle('lang-en', lang === 'en');
@@ -47,11 +60,12 @@
   }
 
   function initLangToggle(defaultLang) {
-    defaultLang = defaultLang || 'ar';
+    defaultLang = defaultLang || 'en';
+    const saved = getSavedLang();
     document.querySelectorAll('[data-lang-toggle]').forEach(function (btn) {
       btn.addEventListener('click', toggleLang);
     });
-    applyLang(defaultLang);
+    applyLang(saved === 'ar' || saved === 'en' ? saved : defaultLang);
   }
 
   window.MedForsaLang = {
