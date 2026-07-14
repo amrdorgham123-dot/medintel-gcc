@@ -60,6 +60,10 @@ def dashboard_page():
 def lang_js():
     return FileResponse(LANG_JS_PATH, media_type="application/javascript")
 
+@app.get("/snibe-ad.html")
+def snibe_ad():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "snibe-ad.html"), media_type="text/html")
+
 @app.get("/logo.svg")
 def logo():
     return FileResponse(os.path.join(os.path.dirname(__file__), "logo.svg"), media_type="image/svg+xml")
