@@ -69,6 +69,18 @@
   nav.railnav button:hover{background:rgba(255,255,255,.06);color:#F1F6FA;}
   nav.railnav button.active{background:var(--ent-cyan);color:var(--ent-blue-deep);font-weight:600;}
   nav.railnav button.active svg{opacity:1;}
+  .rail-external{padding:8px 12px;}
+  .rail-external a{
+    display:flex;align-items:center;gap:10px;text-decoration:none;
+    padding:9px 12px;border-radius:8px;font-family:var(--sans);font-size:13.5px;font-weight:500;
+    color:#B9CBDB;
+  }
+  .rail-external a:hover{background:rgba(255,255,255,.06);color:#F1F6FA;}
+  .rail-external a svg{width:16px;height:16px;flex-shrink:0;opacity:.75;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .rail-external .badge{
+    margin-inline-start:auto;font-family:var(--mono);font-size:9px;letter-spacing:.5px;
+    background:rgba(31,224,206,0.15);color:#1FE0CE;padding:2px 6px;border-radius:5px;
+  }
 
   .rail-footer{padding:14px 20px 18px;border-top:1px solid rgba(255,255,255,.08);}
   .conn-chip{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10.5px;color:#8FA8BE;}
@@ -402,6 +414,13 @@
       <div class="ladder-caption" style="margin-top:10px">nothing enters without a tier</div>
     </div>
     <nav class="railnav" id="railnav"></nav>
+    <div class="rail-external">
+      <a href="/doctor-ai">
+        <svg viewBox="0 0 24 24"><path d="M9 2v4M15 2v4M6 8h12l-1 5a5 5 0 0 1-10 0L6 8Z"/><path d="M9 20h6"/></svg>
+        Doctor AI
+        <span class="badge">AI</span>
+      </a>
+    </div>
     <div class="rail-footer">
       <div class="conn-chip"><span class="conn-dot" id="conn-dot"></span><span id="conn-text">connecting…</span></div>
     </div>
