@@ -128,6 +128,9 @@
   .section-card h2{font-size:15px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px;}
   .section-card h2 .dot{width:7px; height:7px; border-radius:50%; background:var(--assay); flex-shrink:0;}
   .section-card p{font-size:14.5px; line-height:1.9; color:var(--paper);}
+  .critical-card{border-color:rgba(255,59,92,0.35); background:rgba(255,59,92,0.06);}
+  .critical-card h2{color:var(--plasma);}
+  .critical-dot{background:var(--plasma) !important;}
 
   .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
   @media (max-width:700px){ .grid-2{grid-template-columns:1fr;} }
@@ -391,6 +394,20 @@
     if(sig){
       sections.push({id:'sec-significance', ar:'الدلالة الإكلينيكية', en:'Clinical Significance'});
       html += '<div class="section-card" id="sec-significance"><h2><span class="dot"></span>' + (ar?'الدلالة الإكلينيكية':'Clinical Significance') + '</h2><p>' + esc(sig) + '</p></div>';
+    }
+
+    // Critical values
+    const crit = t.critical_values_en;
+    if(crit){
+      sections.push({id:'sec-critical', ar:'القيم الحرجة', en:'Critical Values'});
+      html += '<div class="section-card critical-card" id="sec-critical"><h2><span class="dot critical-dot"></span>' + (ar?'⚠ القيم الحرجة (تستوجب إبلاغًا فوريًا)':'⚠ Critical Values (require immediate notification)') + '</h2><p>' + esc(crit) + '</p></div>';
+    }
+
+    // Interfering factors
+    const interf = t.interfering_factors_en;
+    if(interf){
+      sections.push({id:'sec-interfering', ar:'عوامل مؤثرة على النتيجة', en:'Interfering Factors'});
+      html += '<div class="section-card" id="sec-interfering"><h2><span class="dot"></span>' + (ar?'عوامل مؤثرة على النتيجة':'Interfering Factors') + '</h2><p>' + esc(interf) + '</p></div>';
     }
 
     // Associated conditions

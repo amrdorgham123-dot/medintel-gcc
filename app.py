@@ -1177,7 +1177,7 @@ def find_matching_lab_tests(conn, text, limit=5):
         return []
     rows = conn.execute(
         "SELECT slug, name_en, name_ar, aliases, reference_ranges_json, reference_ranges_verified, "
-        "clinical_significance_en FROM lab_tests WHERE is_published = 1"
+        "clinical_significance_en, critical_values_en FROM lab_tests WHERE is_published = 1"
     ).fetchall()
     matches = []
     for r in rows:
@@ -1208,8 +1208,9 @@ def build_lab_info_block(matches):
             f"{rg.get('parameter','')} ({rg.get('population','')}): {rg.get('range','')}" for rg in ranges
         ) or "no structured ranges on file"
         verified = "verified" if m["reference_ranges_verified"] else "UNVERIFIED -- flag to clinician if used"
+        crit_note = f" CRITICAL VALUE ALERT: {m['critical_values_en']}." if m["critical_values_en"] else ""
         lines.append(
-            f"- {m['name_en']} / {m['name_ar']} [{verified}] -- {range_str}. "
+            f"- {m['name_en']} / {m['name_ar']} [{verified}] -- {range_str}.{crit_note} "
             f"Full page: /lab-info?slug={m['slug']}"
         )
     return "\n".join(lines)
@@ -1287,6 +1288,8 @@ class LabTestCreate(BaseModel):
     reference_ranges_verified: bool = False
     clinical_significance_en: str | None = None
     clinical_significance_ar: str | None = None
+    critical_values_en: str | None = None
+    interfering_factors_en: str | None = None
     associated_conditions: list[dict] | None = None
     related_tests: list[str] | None = None
     sources: list[dict] = Field(..., min_length=1)
@@ -1404,14 +1407,16 @@ def create_lab_test(payload: LabTestCreate):
         (slug, name_en, name_ar, aliases, category, purpose_en, purpose_ar, specimen_type,
          collection_notes_en, collection_notes_ar, methodology_en, methodology_ar,
          reference_ranges_json, reference_ranges_verified, clinical_significance_en, clinical_significance_ar,
+         critical_values_en, interfering_factors_en,
          associated_conditions_json, related_tests_json, sources_json, is_published)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (payload.slug, payload.name_en, payload.name_ar or "", payload.aliases, payload.category,
          payload.purpose_en, payload.purpose_ar, payload.specimen_type,
          payload.collection_notes_en, payload.collection_notes_ar,
          payload.methodology_en, payload.methodology_ar,
          json.dumps(payload.reference_ranges or []), int(payload.reference_ranges_verified),
          payload.clinical_significance_en, payload.clinical_significance_ar,
+         payload.critical_values_en, payload.interfering_factors_en,
          json.dumps(payload.associated_conditions or []), json.dumps(payload.related_tests or []),
          json.dumps(payload.sources), int(payload.is_published))
     )
