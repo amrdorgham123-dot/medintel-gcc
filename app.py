@@ -88,8 +88,7 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage]
     system: str = ""
 
-@app.post("/api/chat")
-def chat_proxy(payload: ChatRequest):
+def call_anthropic(system: str, messages: list):
     import json
     import urllib.request
     import urllib.error
@@ -101,8 +100,8 @@ def chat_proxy(payload: ChatRequest):
     body = json.dumps({
         "model": "claude-sonnet-4-6",
         "max_tokens": 1500,
-        "system": payload.system,
-        "messages": [m.dict() for m in payload.messages],
+        "system": system,
+        "messages": messages,
     }).encode("utf-8")
 
     req = urllib.request.Request(
@@ -125,6 +124,10 @@ def chat_proxy(payload: ChatRequest):
     except Exception as e:
         logger.error(f"Chat proxy error: {e}")
         raise HTTPException(status_code=502, detail=str(e))
+
+@app.post("/api/chat")
+def chat_proxy(payload: ChatRequest):
+    return call_anthropic(payload.system, [m.dict() for m in payload.messages])
 
 @app.get("/companies")
 def list_companies(status: str | None = None, q: str | None = None, category: str | None = None,
@@ -985,3 +988,192 @@ def knowledge_graph():
 
     return {"nodes": nodes, "edges": edges, "node_count": len(nodes), "edge_count": len(edges),
             "note": "Every node/edge is derived from existing verified database rows — this is a graph view of real data, not a generated network."}
+
+# ---------------- Patient management (Doctor AI) ----------------
+
+class PatientCreate(BaseModel):
+    full_name: str = Field(..., min_length=1)
+    gender: str | None = None
+    age: int | None = None
+    department: str | None = None
+    visit_type: str = "Outpatient"
+
+class VisitCreate(BaseModel):
+    visit_type: str | None = None
+    notes: str | None = None
+
+class PatientChatMessage(BaseModel):
+    content: Any
+
+def _gen_patient_code(conn) -> str:
+    row = conn.execute("SELECT MAX(id) as m FROM patients").fetchone()
+    next_id = (row["m"] or 10300) + 1
+    return str(max(next_id, 10301))
+
+@app.get("/patients")
+def list_patients(patient_code: str | None = None, name: str | None = None, visit_type: str | None = None,
+                   department: str | None = None, limit: int = 20, offset: int = 0):
+    if limit < 1 or limit > 200:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 200")
+    conn = get_conn()
+    query = "SELECT * FROM patients WHERE 1=1"
+    params = []
+    if patient_code:
+        query += " AND patient_code LIKE ?"
+        params.append(f"%{patient_code}%")
+    if name:
+        query += " AND full_name LIKE ?"
+        params.append(f"%{name}%")
+    if visit_type:
+        query += " AND visit_type = ?"
+        params.append(visit_type)
+    if department:
+        query += " AND department = ?"
+        params.append(department)
+    total = conn.execute(f"SELECT count(*) c FROM ({query})", params).fetchone()["c"]
+    query += " ORDER BY id DESC LIMIT ? OFFSET ?"
+    params += [limit, offset]
+    rows = conn.execute(query, params).fetchall()
+
+    results = []
+    for r in rows:
+        d = dict(r)
+        last_visit = conn.execute(
+            "SELECT visit_time FROM patient_visits WHERE patient_id = ? ORDER BY visit_time DESC LIMIT 1",
+            (d["id"],)
+        ).fetchone()
+        d["last_visit_time"] = last_visit["visit_time"] if last_visit else d["created_at"]
+        results.append(d)
+    conn.close()
+    return {"results": results, "total": total, "limit": limit, "offset": offset}
+
+@app.post("/patients")
+def create_patient(payload: PatientCreate):
+    conn = get_conn()
+    code = _gen_patient_code(conn)
+    cur = conn.execute(
+        "INSERT INTO patients (patient_code, full_name, gender, age, department, visit_type) VALUES (?,?,?,?,?,?)",
+        (code, payload.full_name, payload.gender, payload.age, payload.department, payload.visit_type)
+    )
+    patient_id = cur.lastrowid
+    conn.execute(
+        "INSERT INTO patient_visits (patient_id, visit_type, notes) VALUES (?,?,?)",
+        (patient_id, payload.visit_type, "Initial registration")
+    )
+    conn.commit()
+    logger.info(f"POST /patients -> created patient {patient_id} ({payload.full_name})")
+    conn.close()
+    return {"id": patient_id, "patient_code": code, "status": "created"}
+
+@app.get("/patients/{patient_id}")
+def get_patient(patient_id: int):
+    conn = get_conn()
+    patient = conn.execute("SELECT * FROM patients WHERE id = ?", (patient_id,)).fetchone()
+    if not patient:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Patient not found")
+    visits = conn.execute(
+        "SELECT * FROM patient_visits WHERE patient_id = ? ORDER BY visit_time DESC", (patient_id,)
+    ).fetchall()
+    reports = conn.execute(
+        "SELECT * FROM patient_reports WHERE patient_id = ? ORDER BY uploaded_at DESC", (patient_id,)
+    ).fetchall()
+    conn.close()
+    return {
+        "patient": dict(patient),
+        "visits": [dict(v) for v in visits],
+        "reports": [dict(r) for r in reports],
+    }
+
+@app.post("/patients/{patient_id}/visits")
+def add_visit(patient_id: int, payload: VisitCreate):
+    conn = get_conn()
+    exists = conn.execute("SELECT id FROM patients WHERE id = ?", (patient_id,)).fetchone()
+    if not exists:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Patient not found")
+    cur = conn.execute(
+        "INSERT INTO patient_visits (patient_id, visit_type, notes) VALUES (?,?,?)",
+        (patient_id, payload.visit_type, payload.notes)
+    )
+    conn.commit()
+    visit_id = cur.lastrowid
+    conn.close()
+    return {"id": visit_id, "status": "created"}
+
+@app.get("/patients/{patient_id}/chat")
+def get_patient_chat(patient_id: int):
+    conn = get_conn()
+    exists = conn.execute("SELECT id FROM patients WHERE id = ?", (patient_id,)).fetchone()
+    if not exists:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Patient not found")
+    rows = conn.execute(
+        "SELECT role, content, created_at FROM patient_chat_messages WHERE patient_id = ? ORDER BY id ASC",
+        (patient_id,)
+    ).fetchall()
+    conn.close()
+    return {"messages": [dict(r) for r in rows]}
+
+DOCTOR_AI_PATIENT_SYSTEM = (
+    "You are Doctor AI, a clinical laboratory decision-support assistant on MedForsa GCC, used by physicians "
+    "and laboratory professionals across Saudi Arabia and the Gulf. You are reviewing a specific patient's "
+    "record and discussing it with the clinician. Patient context: {patient_context}\n\n"
+    "Your role: (1) summarize and interpret uploaded lab values against standard reference ranges, "
+    "(2) discuss differential considerations and relevant pathophysiology, (3) cite established literature, "
+    "clinical guidelines, or textbooks by name where relevant, and (4) support an evidence-based discussion "
+    "of the case using the patient's history across visits. You are strictly a reference and discussion tool, "
+    "not a diagnostic authority: never state a definitive diagnosis as fact, always frame clinical observations "
+    "as possibilities ('may suggest', 'is consistent with', 'differential includes') rather than certainties, "
+    "and always make clear that final diagnosis and treatment decisions rest with the treating physician after "
+    "direct clinical evaluation. For medication or dosing questions, give only general reference-level "
+    "information and recommend consulting current prescribing references. Reply in the same language the "
+    "user writes in (Arabic or English). Keep responses focused and clinically useful."
+)
+
+@app.post("/patients/{patient_id}/chat")
+def send_patient_chat(patient_id: int, payload: PatientChatMessage):
+    conn = get_conn()
+    patient = conn.execute("SELECT * FROM patients WHERE id = ?", (patient_id,)).fetchone()
+    if not patient:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    history_rows = conn.execute(
+        "SELECT role, content FROM patient_chat_messages WHERE patient_id = ? ORDER BY id ASC",
+        (patient_id,)
+    ).fetchall()
+
+    import json as _json
+    messages = []
+    for r in history_rows:
+        content = r["content"]
+        try:
+            content = _json.loads(content)
+        except (ValueError, TypeError):
+            pass
+        messages.append({"role": r["role"], "content": content})
+    messages.append({"role": "user", "content": payload.content})
+
+    patient_context = (
+        f"{patient['full_name']}, {patient['age']}-year-old {patient['gender'] or 'unknown gender'}, "
+        f"department: {patient['department'] or 'not specified'}, visit type: {patient['visit_type']}."
+    )
+    system_prompt = DOCTOR_AI_PATIENT_SYSTEM.format(patient_context=patient_context)
+
+    result = call_anthropic(system_prompt, messages)
+    reply_text = "\n".join(b.get("text", "") for b in result.get("content", []) if b.get("type") == "text")
+
+    user_content_store = payload.content if isinstance(payload.content, str) else _json.dumps(payload.content)
+    conn.execute(
+        "INSERT INTO patient_chat_messages (patient_id, role, content) VALUES (?,?,?)",
+        (patient_id, "user", user_content_store)
+    )
+    conn.execute(
+        "INSERT INTO patient_chat_messages (patient_id, role, content) VALUES (?,?,?)",
+        (patient_id, "assistant", reply_text)
+    )
+    conn.commit()
+    conn.close()
+    logger.info(f"POST /patients/{patient_id}/chat -> exchanged message")
+    return {"reply": reply_text}
