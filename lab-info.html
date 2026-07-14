@@ -410,6 +410,20 @@
       html += '<div class="section-card" id="sec-interfering"><h2><span class="dot"></span>' + (ar?'عوامل مؤثرة على النتيجة':'Interfering Factors') + '</h2><p>' + esc(interf) + '</p></div>';
     }
 
+    // Questions to ask your doctor
+    const questions = t.questions_to_ask_en;
+    if(questions){
+      sections.push({id:'sec-questions', ar:'أسئلة تسألها لطبيبك', en:'Questions to Ask Your Doctor'});
+      html += '<div class="section-card" id="sec-questions"><h2><span class="dot"></span>' + (ar?'أسئلة تسألها لطبيبك':'Questions to Ask Your Doctor') + '</h2><p>' + esc(questions) + '</p></div>';
+    }
+
+    // What happens next
+    const nextSteps = t.next_steps_en;
+    if(nextSteps){
+      sections.push({id:'sec-next', ar:'الخطوات التالية', en:'What Happens Next'});
+      html += '<div class="section-card" id="sec-next"><h2><span class="dot"></span>' + (ar?'الخطوات التالية':'What Happens Next') + '</h2><p>' + esc(nextSteps) + '</p></div>';
+    }
+
     // Associated conditions
     if(t.associated_conditions && t.associated_conditions.length){
       sections.push({id:'sec-conditions', ar:'حالات مرضية مرتبطة', en:'Associated Conditions'});

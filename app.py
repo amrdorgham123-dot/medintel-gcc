@@ -1290,6 +1290,8 @@ class LabTestCreate(BaseModel):
     clinical_significance_ar: str | None = None
     critical_values_en: str | None = None
     interfering_factors_en: str | None = None
+    questions_to_ask_en: str | None = None
+    next_steps_en: str | None = None
     associated_conditions: list[dict] | None = None
     related_tests: list[str] | None = None
     sources: list[dict] = Field(..., min_length=1)
@@ -1407,9 +1409,9 @@ def create_lab_test(payload: LabTestCreate):
         (slug, name_en, name_ar, aliases, category, purpose_en, purpose_ar, specimen_type,
          collection_notes_en, collection_notes_ar, methodology_en, methodology_ar,
          reference_ranges_json, reference_ranges_verified, clinical_significance_en, clinical_significance_ar,
-         critical_values_en, interfering_factors_en,
+         critical_values_en, interfering_factors_en, questions_to_ask_en, next_steps_en,
          associated_conditions_json, related_tests_json, sources_json, is_published)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (payload.slug, payload.name_en, payload.name_ar or "", payload.aliases, payload.category,
          payload.purpose_en, payload.purpose_ar, payload.specimen_type,
          payload.collection_notes_en, payload.collection_notes_ar,
@@ -1417,6 +1419,7 @@ def create_lab_test(payload: LabTestCreate):
          json.dumps(payload.reference_ranges or []), int(payload.reference_ranges_verified),
          payload.clinical_significance_en, payload.clinical_significance_ar,
          payload.critical_values_en, payload.interfering_factors_en,
+         payload.questions_to_ask_en, payload.next_steps_en,
          json.dumps(payload.associated_conditions or []), json.dumps(payload.related_tests or []),
          json.dumps(payload.sources), int(payload.is_published))
     )
