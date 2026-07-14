@@ -259,9 +259,10 @@
     currentResults.forEach(function(t){
       const card = document.createElement('div');
       card.className = 'test-card';
-      const name = L()==='ar' ? t.name_ar : t.name_en;
-      const altName = L()==='ar' ? t.name_en : t.name_ar;
-      const purpose = L()==='ar' ? (t.purpose_ar || '') : (t.purpose_en || '');
+      // Lab test data is always shown in English, regardless of the site's AR/EN toggle.
+      const name = t.name_en;
+      const altName = t.name_ar || t.aliases || '';
+      const purpose = t.purpose_en || '';
       card.innerHTML =
         '<span class="cat-tag">' + t.category + '</span>' +
         '<h3>' + name + '</h3>' +
@@ -292,9 +293,9 @@
   function renderDetail(){
     if(!currentDetail) return;
     const t = currentDetail;
-    const ar = L()==='ar';
-    const name = ar ? t.name_ar : t.name_en;
-    const altName = ar ? t.name_en : t.name_ar;
+    const ar = L()==='ar'; // controls UI chrome labels only -- test content itself stays English
+    const name = t.name_en;
+    const altName = t.name_ar || t.aliases || '';
 
     let html = '';
     html += '<div class="detail-title">';
@@ -304,7 +305,7 @@
     html += '</div>';
 
     // Purpose
-    const purpose = ar ? t.purpose_ar : t.purpose_en;
+    const purpose = t.purpose_en;
     if(purpose){
       html += '<div class="section-card"><h2><span class="dot"></span>' + (ar?'الغرض من التحليل':'Purpose') + '</h2><p>' + esc(purpose) + '</p></div>';
     }
@@ -312,12 +313,12 @@
     // Specimen + collection
     html += '<div class="grid-2">';
     html += '<div class="section-card"><h2><span class="dot"></span>' + (ar?'نوع العينة':'Specimen Type') + '</h2><p>' + esc(t.specimen_type||'—') + '</p></div>';
-    const collection = ar ? t.collection_notes_ar : t.collection_notes_en;
+    const collection = t.collection_notes_en;
     html += '<div class="section-card"><h2><span class="dot"></span>' + (ar?'طريقة السحب/الجمع':'Collection Notes') + '</h2><p>' + esc(collection||'—') + '</p></div>';
     html += '</div>';
 
     // Methodology
-    const method = ar ? t.methodology_ar : t.methodology_en;
+    const method = t.methodology_en;
     if(method){
       html += '<div class="section-card"><h2><span class="dot"></span>' + (ar?'المنهجية (Methodology)':'Methodology') + '</h2><p>' + esc(method) + '</p></div>';
     }
@@ -346,7 +347,7 @@
     html += '</div>';
 
     // Clinical significance
-    const sig = ar ? t.clinical_significance_ar : t.clinical_significance_en;
+    const sig = t.clinical_significance_en;
     if(sig){
       html += '<div class="section-card"><h2><span class="dot"></span>' + (ar?'الدلالة الإكلينيكية':'Clinical Significance') + '</h2><p>' + esc(sig) + '</p></div>';
     }

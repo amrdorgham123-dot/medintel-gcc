@@ -1,6 +1,14 @@
 """
-Seed script for the MedForsa GCC Lab Test Reference ("دليل التحاليل المخبرية").
+Seed script for the MedForsa GCC Lab Info reference ("دليل التحاليل المخبرية").
 Populates the first batch of 8 common lab tests with sourced, verified content.
+
+NOTE: As of the latest platform decision, Lab Info test *content* (name, purpose,
+methodology, clinical significance, etc.) is English-only going forward. The
+name_ar / *_ar fields below are kept only because they were part of this first
+batch; new tests added after this file should leave the _ar fields empty/None --
+the lab-info.html page displays English content regardless of the site's AR/EN
+UI toggle (only the surrounding interface labels are translated).
+
 Run once: python3 seed_lab_tests.py
 """
 import sqlite3

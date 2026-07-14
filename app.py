@@ -1273,7 +1273,7 @@ def send_patient_chat(patient_id: int, payload: PatientChatMessage):
 class LabTestCreate(BaseModel):
     slug: str = Field(..., min_length=1, max_length=100)
     name_en: str = Field(..., min_length=1)
-    name_ar: str = Field(..., min_length=1)
+    name_ar: str | None = None  # Lab Info content is English-only going forward; kept for legacy compatibility
     aliases: str | None = None
     category: str = Field(..., min_length=1)
     purpose_en: str | None = None
@@ -1362,7 +1362,7 @@ def create_lab_test(payload: LabTestCreate):
          reference_ranges_json, reference_ranges_verified, clinical_significance_en, clinical_significance_ar,
          associated_conditions_json, sources_json, is_published)
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        (payload.slug, payload.name_en, payload.name_ar, payload.aliases, payload.category,
+        (payload.slug, payload.name_en, payload.name_ar or "", payload.aliases, payload.category,
          payload.purpose_en, payload.purpose_ar, payload.specimen_type,
          payload.collection_notes_en, payload.collection_notes_ar,
          payload.methodology_en, payload.methodology_ar,
