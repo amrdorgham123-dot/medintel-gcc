@@ -93,6 +93,26 @@
   .detail-head .back-btn{font-size:13.5px; color:var(--muted); cursor:pointer; display:flex; align-items:center; gap:6px;}
   .detail-head .back-btn:hover{color:var(--paper);}
 
+  .detail-layout{display:grid; grid-template-columns:220px 1fr; gap:24px; align-items:start;}
+  @media (max-width:820px){ .detail-layout{grid-template-columns:1fr;} .onpage-nav{position:static !important; margin-bottom:20px;} }
+
+  .onpage-nav{
+    position:sticky; top:88px; background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    overflow:hidden;
+  }
+  .onpage-nav .onpage-head{
+    background:var(--surface-2); padding:12px 16px; font-size:12.5px; font-weight:700;
+    letter-spacing:.3px;
+  }
+  .onpage-nav ul{list-style:none; padding:8px 0;}
+  .onpage-nav li{display:flex; align-items:center; gap:8px; padding:8px 16px; font-size:13px; color:var(--muted); cursor:pointer; transition:color .15s;}
+  .onpage-nav li:hover{color:var(--paper);}
+  .onpage-nav li .marker{width:12px; flex-shrink:0; font-size:11px; color:var(--assay); opacity:0;}
+  .onpage-nav li.active{color:var(--assay); font-weight:600;}
+  .onpage-nav li.active .marker{opacity:1;}
+  .onpage-nav li.active::before{content:none;}
+  .detail-content{min-width:0;}
+
   .detail-title{margin-bottom:26px;}
   .detail-title .cat-tag{
     display:inline-block; font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:.5px;
@@ -193,7 +213,13 @@
           <span data-ar="&larr; رجوع للدليل" data-en="&larr; Back to guide"></span>
         </span>
       </div>
-      <div id="detailContent"></div>
+      <div class="detail-layout">
+        <nav class="onpage-nav" id="onpageNav">
+          <div class="onpage-head" data-ar="في هذه الصفحة" data-en="On this page"></div>
+          <ul id="onpageList"></ul>
+        </nav>
+        <div class="detail-content" id="detailContent"></div>
+      </div>
     </div>
 
   </div>
@@ -211,6 +237,8 @@
   const categorySelect = document.getElementById('categorySelect');
   const detailContent = document.getElementById('detailContent');
   const backToList = document.getElementById('backToList');
+  const onpageNav = document.getElementById('onpageNav');
+  const onpageList = document.getElementById('onpageList');
 
   let currentLang = document.documentElement.lang || 'ar';
   let currentResults = [];
@@ -296,6 +324,7 @@
     const ar = L()==='ar'; // controls UI chrome labels only -- test content itself stays English
     const name = t.name_en;
     const altName = t.name_ar || t.aliases || '';
+    const sections = []; // {id, ar, en} -- built as we go, drives the "On this page" nav
 
     let html = '';
     html += '<div class="detail-title">';
@@ -307,11 +336,13 @@
     // Purpose
     const purpose = t.purpose_en;
     if(purpose){
-      html += '<div class="section-card"><h2><span class="dot"></span>' + (ar?'الغرض من التحليل':'Purpose') + '</h2><p>' + esc(purpose) + '</p></div>';
+      sections.push({id:'sec-purpose', ar:'الغرض من التحليل', en:'Purpose'});
+      html += '<div class="section-card" id="sec-purpose"><h2><span class="dot"></span>' + (ar?'الغرض من التحليل':'Purpose') + '</h2><p>' + esc(purpose) + '</p></div>';
     }
 
     // Specimen + collection
-    html += '<div class="grid-2">';
+    sections.push({id:'sec-specimen', ar:'نوع العينة والسحب', en:'Specimen & Collection'});
+    html += '<div class="grid-2" id="sec-specimen">';
     html += '<div class="section-card"><h2><span class="dot"></span>' + (ar?'نوع العينة':'Specimen Type') + '</h2><p>' + esc(t.specimen_type||'—') + '</p></div>';
     const collection = t.collection_notes_en;
     html += '<div class="section-card"><h2><span class="dot"></span>' + (ar?'طريقة السحب/الجمع':'Collection Notes') + '</h2><p>' + esc(collection||'—') + '</p></div>';
@@ -320,11 +351,13 @@
     // Methodology
     const method = t.methodology_en;
     if(method){
-      html += '<div class="section-card"><h2><span class="dot"></span>' + (ar?'المنهجية (Methodology)':'Methodology') + '</h2><p>' + esc(method) + '</p></div>';
+      sections.push({id:'sec-methodology', ar:'المنهجية', en:'Methodology'});
+      html += '<div class="section-card" id="sec-methodology"><h2><span class="dot"></span>' + (ar?'المنهجية (Methodology)':'Methodology') + '</h2><p>' + esc(method) + '</p></div>';
     }
 
     // Reference ranges
-    html += '<div class="section-card">';
+    sections.push({id:'sec-ranges', ar:'القيم المرجعية', en:'Reference Ranges'});
+    html += '<div class="section-card" id="sec-ranges">';
     html += '<h2><span class="dot"></span>' + (ar?'القيم المرجعية':'Reference Ranges') + '</h2>';
     html += '<span class="verify-badge ' + (t.reference_ranges_verified?'verified':'unverified') + '">' +
       (t.reference_ranges_verified ? (ar?'✓ موثّقة من مصدر معتمد':'✓ Verified from a cited source') : (ar?'⚠ غير مؤكدة — راجع مصدرًا محليًا':'⚠ Unconfirmed — verify against a local reference')) +
@@ -349,12 +382,14 @@
     // Clinical significance
     const sig = t.clinical_significance_en;
     if(sig){
-      html += '<div class="section-card"><h2><span class="dot"></span>' + (ar?'الدلالة الإكلينيكية':'Clinical Significance') + '</h2><p>' + esc(sig) + '</p></div>';
+      sections.push({id:'sec-significance', ar:'الدلالة الإكلينيكية', en:'Clinical Significance'});
+      html += '<div class="section-card" id="sec-significance"><h2><span class="dot"></span>' + (ar?'الدلالة الإكلينيكية':'Clinical Significance') + '</h2><p>' + esc(sig) + '</p></div>';
     }
 
     // Associated conditions
     if(t.associated_conditions && t.associated_conditions.length){
-      html += '<div class="section-card"><h2><span class="dot"></span>' + (ar?'حالات مرضية مرتبطة':'Associated Conditions') + '</h2><ul class="cond-list">';
+      sections.push({id:'sec-conditions', ar:'حالات مرضية مرتبطة', en:'Associated Conditions'});
+      html += '<div class="section-card" id="sec-conditions"><h2><span class="dot"></span>' + (ar?'حالات مرضية مرتبطة':'Associated Conditions') + '</h2><ul class="cond-list">';
       t.associated_conditions.forEach(function(c){
         html += '<li><span>' + esc(c.condition||'') + '</span><span class="dir mono">' + esc(c.direction||'') + '</span></li>';
       });
@@ -363,7 +398,8 @@
 
     // Sources
     if(t.sources && t.sources.length){
-      html += '<div class="section-card"><h2><span class="dot"></span>' + (ar?'المصادر':'Sources') + '</h2><ul class="source-list">';
+      sections.push({id:'sec-sources', ar:'المصادر', en:'Sources'});
+      html += '<div class="section-card" id="sec-sources"><h2><span class="dot"></span>' + (ar?'المصادر':'Sources') + '</h2><ul class="source-list">';
       t.sources.forEach(function(s){
         html += '<li>' + esc(s.name||'') +
           (s.url ? ' — <a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + (ar?'رابط':'link') + '</a>' : '') +
@@ -374,12 +410,49 @@
     }
 
     detailContent.innerHTML = html;
+    renderOnpageNav(sections, ar);
+  }
+
+  let scrollSpyHandler = null;
+
+  function renderOnpageNav(sections, ar){
+    if(!sections.length){ onpageNav.style.display = 'none'; return; }
+    onpageNav.style.display = 'block';
+    onpageList.innerHTML = sections.map(function(s, i){
+      return '<li data-target="' + s.id + '"' + (i===0?' class="active"':'') + '>' +
+        '<span class="marker">' + (ar?'◂':'▸') + '</span><span>' + (ar?s.ar:s.en) + '</span></li>';
+    }).join('');
+
+    onpageList.querySelectorAll('li').forEach(function(li){
+      li.addEventListener('click', function(){
+        const target = document.getElementById(li.dataset.target);
+        if(target){
+          const y = target.getBoundingClientRect().top + window.pageYOffset - 78;
+          window.scrollTo({top: y, behavior:'smooth'});
+        }
+      });
+    });
+
+    if(scrollSpyHandler) window.removeEventListener('scroll', scrollSpyHandler);
+    scrollSpyHandler = function(){
+      let currentId = sections[0].id;
+      for(const s of sections){
+        const el = document.getElementById(s.id);
+        if(el && el.getBoundingClientRect().top - 96 <= 0) currentId = s.id;
+      }
+      onpageList.querySelectorAll('li').forEach(function(li){
+        li.classList.toggle('active', li.dataset.target === currentId);
+      });
+    };
+    window.addEventListener('scroll', scrollSpyHandler, {passive:true});
+    scrollSpyHandler();
   }
 
   backToList.addEventListener('click', function(){
     detailView.style.display = 'none';
     listView.style.display = 'block';
     currentDetail = null;
+    if(scrollSpyHandler){ window.removeEventListener('scroll', scrollSpyHandler); scrollSpyHandler = null; }
     if(window.history && window.history.replaceState){
       window.history.replaceState({}, '', '/lab-info');
     }
