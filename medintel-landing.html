@@ -395,7 +395,10 @@
   }
   .ad-embed-inner iframe{
     position:absolute; top:0; left:0; width:1600px; height:900px; border:0;
-    transform-origin:top left;
+    transform-origin:top left; pointer-events:none;
+  }
+  .ad-embed-click{
+    position:absolute; inset:0; z-index:2; cursor:pointer; background:transparent;
   }
   @media (max-width:600px){
     .ad-embed-wrap{padding-top:96px;}
@@ -434,6 +437,7 @@
 <div class="ad-embed-wrap">
   <div class="ad-embed-inner" id="adEmbedInner">
     <iframe id="adEmbedFrame" src="/snibe-biochem-ad.html" title="Snibe Biochemistry promotional ad" scrolling="no"></iframe>
+    <div class="ad-embed-click" id="adEmbedClick" aria-label="Open Snibe profile"></div>
   </div>
 </div>
 
@@ -718,6 +722,11 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   scaleAdEmbed();
   window.addEventListener('resize', scaleAdEmbed);
+
+  const adEmbedClick = document.getElementById('adEmbedClick');
+  if(adEmbedClick){
+    adEmbedClick.addEventListener('click', ()=> goToCompanyByName('Snibe'));
+  }
 
   const heroSearch = document.getElementById('heroSearch');
   const searchResults = document.getElementById('searchResults');
