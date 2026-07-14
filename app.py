@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import Literal, Any
 import sqlite3
 import os
+import json
 import logging
 import bcrypt
 import jwt
@@ -71,6 +72,10 @@ def snibe_biochem_ad():
 @app.get("/doctor-ai")
 def doctor_ai_page():
     return FileResponse(os.path.join(os.path.dirname(__file__), "doctor-ai.html"), media_type="text/html")
+
+@app.get("/lab-tests")
+def lab_tests_page():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "lab-tests.html"), media_type="text/html")
 
 @app.get("/logo.svg")
 def logo():
@@ -1190,3 +1195,113 @@ def send_patient_chat(patient_id: int, payload: PatientChatMessage):
     conn.close()
     logger.info(f"POST /patients/{patient_id}/chat -> exchanged message")
     return {"reply": reply_text}
+
+# ---------------- Lab Test Reference ("دليل التحاليل المخبرية") ----------------
+
+class LabTestCreate(BaseModel):
+    slug: str = Field(..., min_length=1, max_length=100)
+    name_en: str = Field(..., min_length=1)
+    name_ar: str = Field(..., min_length=1)
+    aliases: str | None = None
+    category: str = Field(..., min_length=1)
+    purpose_en: str | None = None
+    purpose_ar: str | None = None
+    specimen_type: str | None = None
+    collection_notes_en: str | None = None
+    collection_notes_ar: str | None = None
+    methodology_en: str | None = None
+    methodology_ar: str | None = None
+    reference_ranges: list[dict] | None = None
+    reference_ranges_verified: bool = False
+    clinical_significance_en: str | None = None
+    clinical_significance_ar: str | None = None
+    associated_conditions: list[dict] | None = None
+    sources: list[dict] = Field(..., min_length=1)
+    is_published: bool = True
+
+def _lab_test_row_to_dict(row):
+    d = dict(row)
+    for json_field, key in [("reference_ranges_json", "reference_ranges"),
+                             ("associated_conditions_json", "associated_conditions"),
+                             ("sources_json", "sources")]:
+        raw = d.pop(json_field, None)
+        try:
+            d[key] = json.loads(raw) if raw else []
+        except (ValueError, TypeError):
+            d[key] = []
+    d["reference_ranges_verified"] = bool(d.get("reference_ranges_verified"))
+    d["is_published"] = bool(d.get("is_published"))
+    return d
+
+@app.get("/lab-tests-list")
+def list_lab_tests(q: str | None = None, category: str | None = None,
+                    limit: int = 50, offset: int = 0, include_unpublished: bool = False):
+    if limit < 1 or limit > 200:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 200")
+    conn = get_conn()
+    query = "SELECT * FROM lab_tests WHERE 1=1"
+    params = []
+    if not include_unpublished:
+        query += " AND is_published = 1"
+    if category:
+        query += " AND category = ?"
+        params.append(category)
+    if q:
+        query += " AND (name_en LIKE ? OR name_ar LIKE ? OR aliases LIKE ?)"
+        like = f"%{q}%"
+        params += [like, like, like]
+    total = conn.execute(f"SELECT count(*) c FROM ({query})", params).fetchone()["c"]
+    query += " ORDER BY name_en LIMIT ? OFFSET ?"
+    params += [limit, offset]
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    return {"total": total, "limit": limit, "offset": offset,
+            "results": [_lab_test_row_to_dict(r) for r in rows]}
+
+@app.get("/lab-tests-categories")
+def lab_test_categories():
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT category, count(*) c FROM lab_tests WHERE is_published = 1 GROUP BY category ORDER BY category"
+    ).fetchall()
+    conn.close()
+    return {"categories": [dict(r) for r in rows]}
+
+@app.get("/lab-tests-detail/{slug}")
+def get_lab_test(slug: str):
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM lab_tests WHERE slug = ?", (slug,)).fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Lab test not found")
+    return _lab_test_row_to_dict(row)
+
+@app.post("/lab-tests-list")
+def create_lab_test(payload: LabTestCreate):
+    conn = get_conn()
+    existing = conn.execute("SELECT id FROM lab_tests WHERE slug = ?", (payload.slug,)).fetchone()
+    if existing:
+        conn.close()
+        raise HTTPException(status_code=409, detail="A lab test with this slug already exists")
+    cur = conn.execute(
+        """INSERT INTO lab_tests
+        (slug, name_en, name_ar, aliases, category, purpose_en, purpose_ar, specimen_type,
+         collection_notes_en, collection_notes_ar, methodology_en, methodology_ar,
+         reference_ranges_json, reference_ranges_verified, clinical_significance_en, clinical_significance_ar,
+         associated_conditions_json, sources_json, is_published)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (payload.slug, payload.name_en, payload.name_ar, payload.aliases, payload.category,
+         payload.purpose_en, payload.purpose_ar, payload.specimen_type,
+         payload.collection_notes_en, payload.collection_notes_ar,
+         payload.methodology_en, payload.methodology_ar,
+         json.dumps(payload.reference_ranges or []), int(payload.reference_ranges_verified),
+         payload.clinical_significance_en, payload.clinical_significance_ar,
+         json.dumps(payload.associated_conditions or []), json.dumps(payload.sources),
+         int(payload.is_published))
+    )
+    conn.commit()
+    new_id = cur.lastrowid
+    log_action(conn, "lab_tests", new_id, "create", f"Added lab test: {payload.name_en}")
+    conn.close()
+    logger.info(f"POST /lab-tests-list -> created lab test '{payload.slug}'")
+    return {"id": new_id, "slug": payload.slug, "status": "created"}
