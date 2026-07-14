@@ -466,9 +466,9 @@
           <a class="btn btn-ghost" href="#categories" data-ar="تصفّح الفئات" data-en="Browse categories">تصفّح الفئات</a>
         </div>
         <div class="stats-row">
-          <div class="stat"><span class="stat-num" data-target="83">0</span><span class="stat-label" data-ar="شركة مصنّعة مرصودة" data-en="manufacturers tracked">شركة مصنّعة مرصودة</span></div>
-          <div class="stat"><span class="stat-num" data-target="244">0</span><span class="stat-label" data-ar="منتج ضمن قاعدة البيانات" data-en="products in the database">منتج ضمن قاعدة البيانات</span></div>
-          <div class="stat"><span class="stat-num" data-target="10">0</span><span class="stat-label" data-ar="فئة تشخيصية مرصودة" data-en="diagnostic categories tracked">فئة تشخيصية مرصودة</span></div>
+          <div class="stat"><span class="stat-num" data-stat="companies" data-target="95">0</span><span class="stat-label" data-ar="شركة مصنّعة مرصودة" data-en="manufacturers tracked">شركة مصنّعة مرصودة</span></div>
+          <div class="stat"><span class="stat-num" data-stat="products" data-target="244">0</span><span class="stat-label" data-ar="منتج ضمن قاعدة البيانات" data-en="products in the database">منتج ضمن قاعدة البيانات</span></div>
+          <div class="stat"><span class="stat-num" data-stat="categories" data-target="11">0</span><span class="stat-label" data-ar="فئة تشخيصية مرصودة" data-en="diagnostic categories tracked">فئة تشخيصية مرصودة</span></div>
         </div>
       </div>
       <div class="hero-visual">
@@ -689,15 +689,40 @@ document.addEventListener('DOMContentLoaded', function(){
     track.innerHTML += track.innerHTML;
   });
 
+  const statCompanies = document.querySelector('.stat-num[data-stat="companies"]');
+  const statProducts = document.querySelector('.stat-num[data-stat="products"]');
+  const statCategories = document.querySelector('.stat-num[data-stat="categories"]');
+
+  (async function loadLiveStats(){
+    try{
+      const [companiesRes, productsRes, categoriesRes] = await Promise.all([
+        fetch('/companies?limit=1'),
+        fetch('/products'),
+        fetch('/categories')
+      ]);
+      const companiesData = await companiesRes.json();
+      const productsData = await productsRes.json();
+      const categoriesData = await categoriesRes.json();
+
+      if(typeof companiesData.total === 'number' && statCompanies) statCompanies.dataset.target = companiesData.total;
+      else if(Array.isArray(companiesData.results) && statCompanies) statCompanies.dataset.target = companiesData.results.length;
+
+      if(Array.isArray(productsData) && statProducts) statProducts.dataset.target = productsData.length;
+      if(Array.isArray(categoriesData) && statCategories) statCategories.dataset.target = categoriesData.length;
+    }catch(e){
+      // Keep the fallback numbers already in data-target if the API isn't reachable
+    }
+  })();
+
   const counters = document.querySelectorAll('.stat-num');
   const io = new IntersectionObserver((entries)=>{
     entries.forEach(entry=>{
       if(entry.isIntersecting){
         const el = entry.target;
-        const target = parseInt(el.dataset.target, 10);
         const dur = 1400;
         const start = performance.now();
         function step(now){
+          const target = parseInt(el.dataset.target, 10) || 0;
           const p = Math.min((now-start)/dur, 1);
           const eased = 1 - Math.pow(1-p, 3);
           el.textContent = '+' + Math.floor(eased*target);
