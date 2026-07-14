@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<link rel="icon" type="image/svg+xml" href="/logo.svg">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MedForsa GCC — نبض تشخيصات الخليج</title>
@@ -384,6 +383,23 @@
   .search-item .si-sub{font-size:12px; color:var(--muted);}
   .search-item .si-type{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--assay); flex-shrink:0;}
   .search-empty, .search-loading{padding:16px; font-size:13px; color:var(--muted); text-align:center;}
+  /* ---------- FEATURED AD EMBED ---------- */
+  .ad-embed-wrap{
+    padding:110px 0 0; display:flex; justify-content:center;
+  }
+  .ad-embed-inner{
+    width:100%; max-width:520px; aspect-ratio:1/1; position:relative;
+    border-radius:24px; overflow:hidden; border:1px solid var(--line);
+    box-shadow:0 30px 70px rgba(0,0,0,0.5);
+  }
+  .ad-embed-inner iframe{
+    position:absolute; top:0; left:0; width:1080px; height:1080px; border:0;
+    transform-origin:top left;
+  }
+  @media (max-width:600px){
+    .ad-embed-wrap{padding-top:96px;}
+    .ad-embed-inner{max-width:340px;}
+  }
 </style>
 </head>
 <body>
@@ -413,6 +429,12 @@
     <button class="lang-toggle" id="langToggleMobile" data-lang-toggle>EN</button>
   </div>
 </header>
+
+<div class="ad-embed-wrap">
+  <div class="ad-embed-inner" id="adEmbedInner">
+    <iframe id="adEmbedFrame" src="/snibe-ad.html" title="Snibe MAGLUMI promotional ad" scrolling="no"></iframe>
+  </div>
+</div>
 
 <section class="hero">
   <div class="hero-bg">
@@ -685,6 +707,16 @@ document.addEventListener('DOMContentLoaded', function(){
   counters.forEach(c=>io.observe(c));
 
   MedForsaLang.initLangToggle('ar');
+
+  function scaleAdEmbed(){
+    const wrap = document.getElementById('adEmbedInner');
+    const frame = document.getElementById('adEmbedFrame');
+    if(!wrap || !frame) return;
+    const scale = wrap.clientWidth / 1080;
+    frame.style.transform = 'scale(' + scale + ')';
+  }
+  scaleAdEmbed();
+  window.addEventListener('resize', scaleAdEmbed);
 
   const heroSearch = document.getElementById('heroSearch');
   const searchResults = document.getElementById('searchResults');
