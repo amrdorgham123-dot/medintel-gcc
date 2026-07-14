@@ -64,6 +64,10 @@ def lang_js():
 def snibe_ad():
     return FileResponse(os.path.join(os.path.dirname(__file__), "snibe-ad.html"), media_type="text/html")
 
+@app.get("/snibe-biochem-ad.html")
+def snibe_biochem_ad():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "snibe-biochem-ad.html"), media_type="text/html")
+
 @app.get("/logo.svg")
 def logo():
     return FileResponse(os.path.join(os.path.dirname(__file__), "logo.svg"), media_type="image/svg+xml")
