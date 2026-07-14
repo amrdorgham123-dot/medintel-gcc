@@ -164,6 +164,7 @@
     </div>
   </div>
   <a class="back-link" href="/">→ MedForsa GCC</a>
+  <a class="back-link" href="/lab-info" target="_blank" rel="noopener" style="color:var(--assay);">Lab Info ↗</a>
   <div class="header-right" id="headerRight">
     <button class="auth-btn" id="authOpenBtn">تسجيل الدخول</button>
   </div>
@@ -597,11 +598,18 @@ document.addEventListener('DOMContentLoaded', function(){
       if(!res.ok) throw new Error('status ' + res.status);
       const data = await res.json();
       typingEl.remove();
-      addMsg((data.reply || '').replace(/\n/g, '<br>'), 'bot');
+      addMsg(linkifyLabInfo((data.reply || '').replace(/\n/g, '<br>')), 'bot');
     }catch(err){
       typingEl.remove();
       addMsg('Could not reach the assistant right now. Please try again shortly.', 'bot');
     }
+  }
+
+  function linkifyLabInfo(text){
+    // Turns bare "/lab-info?slug=xyz" references from Doctor AI's replies into clickable links.
+    return text.replace(/\/lab-info\?slug=([a-z0-9-]+)/gi, function(match, slug){
+      return '<a href="/lab-info?slug=' + slug + '" target="_blank" rel="noopener" style="color:var(--assay); text-decoration:underline;">' + match + '</a>';
+    });
   }
 
   sendBtn.addEventListener('click', sendMessage);

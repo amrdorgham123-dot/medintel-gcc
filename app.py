@@ -73,9 +73,14 @@ def snibe_biochem_ad():
 def doctor_ai_page():
     return FileResponse(os.path.join(os.path.dirname(__file__), "doctor-ai.html"), media_type="text/html")
 
+@app.get("/lab-info")
+def lab_info_page():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "lab-info.html"), media_type="text/html")
+
 @app.get("/lab-tests")
-def lab_tests_page():
-    return FileResponse(os.path.join(os.path.dirname(__file__), "lab-tests.html"), media_type="text/html")
+def lab_tests_page_legacy():
+    # Legacy URL kept working -- the page and feature are now branded "Lab Info".
+    return FileResponse(os.path.join(os.path.dirname(__file__), "lab-info.html"), media_type="text/html")
 
 @app.get("/logo.svg")
 def logo():
@@ -1147,7 +1152,67 @@ DOCTOR_AI_PATIENT_SYSTEM = (
     "direct clinical evaluation. For medication or dosing questions, give only general reference-level "
     "information and recommend consulting current prescribing references. Reply in the same language the "
     "user writes in (Arabic or English). Keep responses focused and clinically useful."
+    "{lab_info_block}"
 )
+
+def _extract_text_for_matching(content):
+    """Pull plain text out of a chat message's content, whether it's a plain string
+    or a list of Anthropic content blocks (text/image/document)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                parts.append(block.get("text", ""))
+        return " ".join(parts)
+    return ""
+
+def find_matching_lab_tests(conn, text, limit=5):
+    """Look up MedForsa GCC's internal Lab Info reference library (lab_tests table)
+    for any test named or aliased in the given text, so Doctor AI grounds its
+    answer in our own sourced reference ranges instead of relying on memory alone."""
+    text_lower = (text or "").lower()
+    if not text_lower.strip():
+        return []
+    rows = conn.execute(
+        "SELECT slug, name_en, name_ar, aliases, reference_ranges_json, reference_ranges_verified, "
+        "clinical_significance_en FROM lab_tests WHERE is_published = 1"
+    ).fetchall()
+    matches = []
+    for r in rows:
+        candidates = [r["name_en"], r["name_ar"]] + (r["aliases"].split(",") if r["aliases"] else [])
+        for c in candidates:
+            c = c.strip().lower()
+            if c and len(c) >= 3 and c in text_lower:
+                matches.append(r)
+                break
+        if len(matches) >= limit:
+            break
+    return matches
+
+def build_lab_info_block(matches):
+    if not matches:
+        return ""
+    lines = [
+        "\n\nInternal Lab Info reference data (MedForsa GCC's own sourced test library -- "
+        "prefer these values over general memory when discussing the tests below, and mention "
+        "to the clinician that more detail is available on the platform's Lab Info page):"
+    ]
+    for m in matches:
+        try:
+            ranges = json.loads(m["reference_ranges_json"]) if m["reference_ranges_json"] else []
+        except (ValueError, TypeError):
+            ranges = []
+        range_str = "; ".join(
+            f"{rg.get('parameter','')} ({rg.get('population','')}): {rg.get('range','')}" for rg in ranges
+        ) or "no structured ranges on file"
+        verified = "verified" if m["reference_ranges_verified"] else "UNVERIFIED -- flag to clinician if used"
+        lines.append(
+            f"- {m['name_en']} / {m['name_ar']} [{verified}] -- {range_str}. "
+            f"Full page: /lab-info?slug={m['slug']}"
+        )
+    return "\n".join(lines)
 
 @app.post("/patients/{patient_id}/chat")
 def send_patient_chat(patient_id: int, payload: PatientChatMessage):
@@ -1177,7 +1242,14 @@ def send_patient_chat(patient_id: int, payload: PatientChatMessage):
         f"{patient['full_name']}, {patient['age']}-year-old {patient['gender'] or 'unknown gender'}, "
         f"department: {patient['department'] or 'not specified'}, visit type: {patient['visit_type']}."
     )
-    system_prompt = DOCTOR_AI_PATIENT_SYSTEM.format(patient_context=patient_context)
+
+    latest_text = _extract_text_for_matching(payload.content)
+    lab_matches = find_matching_lab_tests(conn, latest_text)
+    lab_info_block = build_lab_info_block(lab_matches)
+
+    system_prompt = DOCTOR_AI_PATIENT_SYSTEM.format(
+        patient_context=patient_context, lab_info_block=lab_info_block
+    )
 
     result = call_anthropic(system_prompt, messages)
     reply_text = "\n".join(b.get("text", "") for b in result.get("content", []) if b.get("type") == "text")
