@@ -31,6 +31,50 @@
   .brand-sub{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--assay); letter-spacing:1px;}
   .back-link{font-size:13.5px; color:var(--muted); display:flex; align-items:center; gap:6px;}
   .back-link:hover{color:var(--paper);}
+  .header-right{display:flex; align-items:center; gap:16px;}
+  .auth-btn{
+    font-family:'IBM Plex Mono'; font-size:12.5px; font-weight:500; color:var(--ink);
+    background:var(--assay); padding:8px 16px; border-radius:999px; cursor:pointer; border:none;
+  }
+  .user-chip{
+    display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); cursor:pointer;
+  }
+  .user-chip .avatar{
+    width:26px; height:26px; border-radius:50%; background:var(--assay-dim); color:var(--assay);
+    display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono'; font-size:11px; font-weight:600;
+  }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(5,8,16,0.75); backdrop-filter:blur(6px);
+    display:none; align-items:center; justify-content:center; z-index:100;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal-box{
+    width:100%; max-width:380px; background:var(--surface); border:1px solid var(--line); border-radius:18px;
+    padding:28px; position:relative;
+  }
+  .modal-close{position:absolute; top:16px; left:16px; background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer;}
+  .modal-tabs{display:flex; gap:8px; margin-bottom:20px; background:var(--surface-2); border-radius:10px; padding:4px;}
+  .modal-tabs button{
+    flex:1; background:none; border:none; padding:9px; border-radius:8px; font-family:'Tajawal'; font-size:13.5px; color:var(--muted); cursor:pointer;
+  }
+  .modal-tabs button.active{background:var(--assay); color:var(--ink); font-weight:700;}
+  .modal-box h3{font-family:'Almarai'; font-size:18px; margin-bottom:6px;}
+  .modal-box .sub{font-size:12.5px; color:var(--muted); margin-bottom:18px;}
+  .form-field{margin-bottom:12px;}
+  .form-field label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px;}
+  .form-field input{
+    width:100%; background:var(--ink); border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+    color:var(--paper); font-family:inherit; font-size:14px;
+  }
+  .form-field input:focus{outline:none; border-color:var(--assay);}
+  .modal-submit{
+    width:100%; background:var(--assay); color:var(--ink); border:none; padding:12px; border-radius:10px;
+    font-weight:700; font-size:14px; cursor:pointer; margin-top:6px;
+  }
+  .modal-error{color:var(--plasma); font-size:12.5px; margin-top:10px; display:none;}
+  .modal-skip{display:block; text-align:center; font-size:12.5px; color:var(--muted); margin-top:16px; cursor:pointer;}
+  .modal-skip:hover{color:var(--paper);}
 
   .disclaimer{
     background:var(--gold-dim); border-bottom:1px solid rgba(255,180,67,0.3);
@@ -104,7 +148,42 @@
     </div>
   </div>
   <a class="back-link" href="/">→ MedForsa GCC</a>
+  <div class="header-right" id="headerRight">
+    <button class="auth-btn" id="authOpenBtn" data-ar="تسجيل الدخول" data-en="Sign in">تسجيل الدخول</button>
+  </div>
 </header>
+
+<div class="modal-overlay" id="authModal">
+  <div class="modal-box">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="modal-tabs">
+      <button class="active" id="tabLogin" data-ar="دخول" data-en="Log in">دخول</button>
+      <button id="tabRegister" data-ar="حساب جديد" data-en="Create account">حساب جديد</button>
+    </div>
+
+    <div id="loginForm">
+      <h3 data-ar="أهلاً بيك تاني" data-en="Welcome back">أهلاً بيك تاني</h3>
+      <p class="sub" data-ar="سجّل دخولك عشان تحافظ على سجل محادثاتك." data-en="Sign in to keep your conversation history.">سجّل دخولك عشان تحافظ على سجل محادثاتك.</p>
+      <div class="form-field"><label data-ar="البريد الإلكتروني" data-en="Email">البريد الإلكتروني</label><input type="email" id="loginEmail"></div>
+      <div class="form-field"><label data-ar="كلمة المرور" data-en="Password">كلمة المرور</label><input type="password" id="loginPassword"></div>
+      <button class="modal-submit" id="loginSubmit" data-ar="دخول" data-en="Log in">دخول</button>
+      <div class="modal-error" id="loginError"></div>
+    </div>
+
+    <div id="registerForm" style="display:none;">
+      <h3 data-ar="إنشاء حساب" data-en="Create your account">إنشاء حساب</h3>
+      <p class="sub" data-ar="مجاني، وهتقدر تستخدمه مباشرة." data-en="Free, and you can start using it right away.">مجاني، وهتقدر تستخدمه مباشرة.</p>
+      <div class="form-field"><label data-ar="الاسم الكامل" data-en="Full name">الاسم الكامل</label><input type="text" id="regName"></div>
+      <div class="form-field"><label data-ar="اسم المنشأة / المختبر" data-en="Company / lab name">اسم المنشأة / المختبر</label><input type="text" id="regCompany"></div>
+      <div class="form-field"><label data-ar="البريد الإلكتروني" data-en="Email">البريد الإلكتروني</label><input type="email" id="regEmail"></div>
+      <div class="form-field"><label data-ar="كلمة المرور (8 أحرف على الأقل)" data-en="Password (8+ characters)">كلمة المرور (8 أحرف على الأقل)</label><input type="password" id="regPassword"></div>
+      <button class="modal-submit" id="registerSubmit" data-ar="إنشاء الحساب" data-en="Create account">إنشاء الحساب</button>
+      <div class="modal-error" id="registerError"></div>
+    </div>
+
+    <span class="modal-skip" id="modalSkip" data-ar="تخطّي دلوقتي" data-en="Skip for now">تخطّي دلوقتي</span>
+  </div>
+</div>
 
 <div class="disclaimer">
   <b>أداة دعم قرار علمي</b> — مش بديل عن الفحص السريري أو حكم الطبيب المعالج. النتائج والتفسيرات هنا للمراجعة والمناقشة فقط، ولازم تتأكد منها بالحكم الإكلينيكي المباشر مع المريض.
@@ -139,6 +218,107 @@
 <script>
 document.addEventListener('DOMContentLoaded', function(){
   MedForsaLang.initLangToggle('ar');
+
+  // ---------- Optional auth (ready for future gating) ----------
+  const TOKEN_KEY = 'medforsa_token';
+  const USER_KEY = 'medforsa_user';
+  const authModal = document.getElementById('authModal');
+  const authOpenBtn = document.getElementById('authOpenBtn');
+  const modalClose = document.getElementById('modalClose');
+  const modalSkip = document.getElementById('modalSkip');
+  const tabLogin = document.getElementById('tabLogin');
+  const tabRegister = document.getElementById('tabRegister');
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+  const headerRight = document.getElementById('headerRight');
+
+  function getStoredUser(){
+    try{ return JSON.parse(localStorage.getItem(USER_KEY) || 'null'); }catch(e){ return null; }
+  }
+
+  function renderAuthState(){
+    const user = getStoredUser();
+    if(user){
+      headerRight.innerHTML = `<div class="user-chip" id="userChip"><div class="avatar">${(user.full_name||user.email||'U').charAt(0).toUpperCase()}</div><span>${user.full_name || user.email}</span></div>`;
+      document.getElementById('userChip').addEventListener('click', ()=>{
+        const lang = MedForsaLang.getCurrentLang();
+        if(confirm(lang==='ar' ? 'تسجيل الخروج؟' : 'Log out?')){
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+          renderAuthState();
+        }
+      });
+    } else {
+      headerRight.innerHTML = '<button class="auth-btn" id="authOpenBtn" data-ar="تسجيل الدخول" data-en="Sign in">تسجيل الدخول</button>';
+      document.getElementById('authOpenBtn').addEventListener('click', openModal);
+      const lang = MedForsaLang.getCurrentLang();
+      document.getElementById('authOpenBtn').textContent = lang==='ar' ? 'تسجيل الدخول' : 'Sign in';
+    }
+  }
+
+  function openModal(){ authModal.classList.add('open'); }
+  function closeModal(){ authModal.classList.remove('open'); }
+  authOpenBtn.addEventListener('click', openModal);
+  modalClose.addEventListener('click', closeModal);
+  modalSkip.addEventListener('click', closeModal);
+  authModal.addEventListener('click', e=>{ if(e.target === authModal) closeModal(); });
+
+  tabLogin.addEventListener('click', ()=>{
+    tabLogin.classList.add('active'); tabRegister.classList.remove('active');
+    loginForm.style.display = 'block'; registerForm.style.display = 'none';
+  });
+  tabRegister.addEventListener('click', ()=>{
+    tabRegister.classList.add('active'); tabLogin.classList.remove('active');
+    registerForm.style.display = 'block'; loginForm.style.display = 'none';
+  });
+
+  document.getElementById('loginSubmit').addEventListener('click', async ()=>{
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('loginError');
+    errEl.style.display = 'none';
+    try{
+      const res = await fetch('/auth/login', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({email, password})
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.detail || 'Login failed');
+      localStorage.setItem(TOKEN_KEY, data.access_token);
+      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      closeModal();
+      renderAuthState();
+    }catch(err){
+      errEl.textContent = err.message;
+      errEl.style.display = 'block';
+    }
+  });
+
+  document.getElementById('registerSubmit').addEventListener('click', async ()=>{
+    const full_name = document.getElementById('regName').value.trim();
+    const company_name = document.getElementById('regCompany').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const errEl = document.getElementById('registerError');
+    errEl.style.display = 'none';
+    try{
+      const res = await fetch('/auth/register', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({email, password, company_name, full_name})
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.detail || 'Registration failed');
+      localStorage.setItem(TOKEN_KEY, data.access_token);
+      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      closeModal();
+      renderAuthState();
+    }catch(err){
+      errEl.textContent = err.message;
+      errEl.style.display = 'block';
+    }
+  });
+
+  renderAuthState();
 
   const chatBody = document.getElementById('chatBody');
   const emptyState = document.getElementById('emptyState');
