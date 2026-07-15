@@ -307,8 +307,27 @@
   .catalog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
   .pcard{background:var(--glass-bg);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));border:1px solid var(--glass-border);border-radius:14px;overflow:hidden;cursor:pointer;transition:box-shadow .15s,transform .15s;display:flex;flex-direction:column;box-shadow:0 2px 10px rgba(15,30,50,.06);}
   .pcard:hover{box-shadow:0 6px 16px rgba(0,0,0,.08);transform:translateY(-2px);}
-  .pcard-media{height:92px;background:var(--ent-blue-soft);display:flex;align-items:center;justify-content:center;color:var(--ent-blue);}
+  .pcard-media{height:92px;background:var(--ent-blue-soft);display:flex;align-items:center;justify-content:center;color:var(--ent-blue);overflow:hidden;}
   .pcard-media svg{width:36px;height:36px;opacity:.65;}
+  .pcard-media img{width:100%;height:100%;object-fit:cover;display:block;}
+  .pcard-view-btn{font-size:11.5px;color:var(--ent-blue);background:none;border:none;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+  .pcard-mfr-link{font-size:11.5px;color:var(--ink-soft);cursor:pointer;}
+  .pcard-mfr-link:hover{color:var(--ent-blue);}
+
+  .modal-wide .modal{max-width:720px;}
+  .pdetail-media{width:100%;height:220px;border-radius:10px;overflow:hidden;background:var(--ent-blue-soft);display:flex;align-items:center;justify-content:center;color:var(--ent-blue);margin-bottom:16px;}
+  .pdetail-media img{width:100%;height:100%;object-fit:contain;display:block;}
+  .pdetail-media svg{width:64px;height:64px;opacity:.5;}
+  .pdetail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:4px;}
+  .pdetail-mfr{font-size:13px;color:var(--ink-soft);cursor:pointer;margin-bottom:14px;}
+  .pdetail-mfr:hover{color:var(--ent-blue);text-decoration:underline;}
+  .pdetail-section-title{font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--ink-soft);margin:18px 0 8px;}
+  .pdetail-specs{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line,#e5e5e5);border-radius:8px;overflow:hidden;}
+  .pdetail-spec-row{display:contents;}
+  .pdetail-spec-row .k{padding:9px 12px;font-size:12.5px;color:var(--ink-soft);background:rgba(0,0,0,.02);border-bottom:1px solid var(--line,#e5e5e5);}
+  .pdetail-spec-row .v{padding:9px 12px;font-size:12.5px;border-bottom:1px solid var(--line,#e5e5e5);font-weight:600;}
+  .pdetail-desc{font-size:13.5px;line-height:1.7;color:var(--ink-soft);}
+  @media (max-width:600px){ .pdetail-specs{grid-template-columns:1fr;} }
   .pcard-body{padding:12px 14px 14px;flex:1;display:flex;flex-direction:column;}
   .pcard-type{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--ent-cyan);}
   .pcard-title{font-family:var(--sans);font-size:14px;font-weight:600;margin:3px 0 2px;color:var(--ink);line-height:1.3;}
@@ -1592,6 +1611,89 @@ function extractSpecs(text){
   if(volt) specs.push(volt[0].replace(/\s+/g,''));
   return [...new Set(specs)].slice(0,3);
 }
+function buildFullSpecs(p){
+  // Structured specs_json (if the record has been curated with real key/value specs)
+  // always takes priority; falls back to the dedicated columns and a best-effort
+  // extraction from the free-text description so every product still shows *something*
+  // useful in the full-detail view, matching how MedicalExpo always shows a spec table.
+  let rows = [];
+  if(p.specs_json){
+    try{
+      const parsed = JSON.parse(p.specs_json);
+      if(parsed && typeof parsed === 'object'){
+        rows = Object.entries(parsed).map(([k,v]) => ({k, v: String(v)}));
+      }
+    }catch(e){ /* ignore malformed specs_json, fall through to heuristics below */ }
+  }
+  if(p.throughput) rows.push({k:'Throughput', v:p.throughput});
+  if(p.sample_types) rows.push({k:'Sample types', v:p.sample_types});
+  if(p.department) rows.push({k:'Department', v:p.department});
+  if(p.origin) rows.push({k:'Manufacturer origin', v:p.origin});
+  if(!rows.length && p.description){
+    // Best-effort heuristic extraction so older, un-curated records aren't empty.
+    const text = p.description;
+    const patterns = [
+      [/(\d{2,6})\s*(?:tests?\/h(?:our|r)?|p\/h)\b/i, 'Throughput'],
+      [/(\d{1,4}(?:\.\d+)?)\s*(?:m?l)\b/i, 'Volume'],
+      [/(\d{2,4})\s*kg\b/i, 'Weight'],
+      [/-?\d{2,3}\s*°?C\b/i, 'Temperature'],
+      [/\d{2,3}(?:[~\-–]\d{2,3})?\s*V\b/i, 'Voltage'],
+      [/\d{2,4}\s*positions?\b/i, 'Positions'],
+    ];
+    patterns.forEach(([re, label]) => {
+      const m = text.match(re);
+      if(m) rows.push({k:label, v:m[0]});
+    });
+  }
+  return rows;
+}
+function openProductDetail(p){
+  const existing = document.getElementById('product-detail-modal');
+  if(existing) existing.remove();
+  const specs = buildFullSpecs(p);
+  const mediaHtml = p.image_url
+    ? `<img src="${p.image_url}" alt="${p.product_name}" onerror="this.parentElement.innerHTML='<svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.4\\'>${productIcon(p.product_type)}</svg>'">`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">${productIcon(p.product_type)}</svg>`;
+  const div = document.createElement('div');
+  div.className = 'modal-backdrop modal-wide';
+  div.id = 'product-detail-modal';
+  div.onclick = (e) => { if(e.target === div) div.remove(); };
+  div.innerHTML = `
+    <div class="modal">
+      <div class="pdetail-media">${mediaHtml}</div>
+      <div class="pdetail-head">
+        <div>
+          <div class="pcard-type">${originFlag(p.origin)}${p.product_type||''}</div>
+          <h3>${p.product_name}</h3>
+        </div>
+        ${badge(p.confidence_tier, (p.confidence_tier||'').toUpperCase())}
+      </div>
+      <div class="pdetail-mfr" id="pdetail-mfr-link">${p.manufacturer_name} — view manufacturer →</div>
+      ${specs.length ? `
+        <div class="pdetail-section-title">Specifications</div>
+        <div class="pdetail-specs">${specs.map(s => `<div class="pdetail-spec-row"><div class="k">${s.k}</div><div class="v">${s.v}</div></div>`).join('')}</div>
+      ` : ''}
+      <div class="pdetail-section-title">Description</div>
+      <div class="pdetail-desc">${p.description||'—'}</div>
+      ${p.certifications ? `<div class="pdetail-section-title">Certifications</div><div class="pcard-certs">${certBadges(p.certifications)}</div>` : ''}
+      ${p.source ? `<div class="pdetail-section-title">Source</div><div class="pdetail-desc" style="font-size:11.5px;">${p.source}</div>` : ''}
+      <div class="modal-actions">
+        ${p.brochure_url ? `<a class="ghost" href="${p.brochure_url}" target="_blank" rel="noopener">Brochure ↗</a>` : ''}
+        <button class="ghost" onclick="document.getElementById('product-detail-modal').remove()">Close</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(div);
+  const mfrLink = document.getElementById('pdetail-mfr-link');
+  if(mfrLink){
+    mfrLink.addEventListener('click', () => {
+      div.remove();
+      apiGet('/companies?q=' + encodeURIComponent(p.manufacturer_name.split(' (')[0])).then(r => {
+        if(r.results[0]){ activeTab = 'manufacturers'; openCompany(r.results[0].id); }
+      });
+    });
+  }
+}
 function certBadges(certifications){
   if(!certifications) return '';
   return certifications.split(';').map(c => `<span class="cert-badge">${c.trim().split(':')[0]}</span>`).join('');
@@ -1666,13 +1768,16 @@ async function renderProducts(){
     if(shown.length===0){ grid.innerHTML = '<div class="empty">No matching products.</div>'; return; }
     grid.innerHTML = shown.map(p => {
       const specs = extractSpecs(p.description);
+      const mediaHtml = p.image_url
+        ? `<img src="${p.image_url}" alt="${p.product_name}" loading="lazy" onerror="this.parentElement.innerHTML='<svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.6\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'>${productIcon(p.product_type)}</svg>'">`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${productIcon(p.product_type)}</svg>`;
       return `
       <div class="pcard">
         <label class="pcard-check" onclick="event.stopPropagation()">
           <input type="checkbox" ${compareIds.includes(p.id)?'checked':''} onchange="toggleCompare(${p.id})">
         </label>
-        <div class="pcard-clickzone" onclick="apiGet('/companies?q='+encodeURIComponent(p.manufacturer_name.split(' (')[0])).then(r=>{if(r.results[0]){activeTab='manufacturers';openCompany(r.results[0].id);}})">
-          <div class="pcard-media"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${productIcon(p.product_type)}</svg></div>
+        <div class="pcard-clickzone" onclick='openProductDetail(${JSON.stringify(p).replace(/'/g,"&#39;")})'>
+          <div class="pcard-media">${mediaHtml}</div>
           <div class="pcard-body">
             <div class="pcard-type">${originFlag(p.origin)}${p.product_type||''}</div>
             <h3 class="pcard-title">${p.product_name}</h3>
@@ -1681,6 +1786,7 @@ async function renderProducts(){
             <div class="pcard-desc">${p.description}</div>
             ${p.certifications ? `<div class="pcard-certs">${certBadges(p.certifications)}</div>` : ''}
             <div class="pcard-foot">${badge(p.confidence_tier, p.confidence_tier.toUpperCase())}<span class="pcard-cat">${p.category}</span></div>
+            <button class="pcard-view-btn" onclick='event.stopPropagation();openProductDetail(${JSON.stringify(p).replace(/'/g,"&#39;")})'>View full specs →</button>
           </div>
         </div>
       </div>`;
