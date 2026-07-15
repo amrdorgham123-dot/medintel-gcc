@@ -179,7 +179,7 @@
 <body>
 
 <header>
-  <a class="back-link" href="/app" data-ar="&larr; رجوع" data-en="&larr; Back"></a>
+  <a class="back-link" href="/" id="topBackLink" data-ar="&larr; رجوع" data-en="&larr; Back"></a>
   <div class="brand">
     <div class="brand-mark"><img src="/logo.svg" alt="MedForsa GCC"></div>
     <div>
@@ -247,6 +247,7 @@
   const categorySelect = document.getElementById('categorySelect');
   const detailContent = document.getElementById('detailContent');
   const backToList = document.getElementById('backToList');
+  const topBackLink = document.getElementById('topBackLink');
   const onpageNav = document.getElementById('onpageNav');
   const onpageList = document.getElementById('onpageList');
 
@@ -487,7 +488,7 @@
     scrollSpyHandler();
   }
 
-  backToList.addEventListener('click', function(){
+  function goToList(){
     detailView.style.display = 'none';
     listView.style.display = 'block';
     currentDetail = null;
@@ -496,6 +497,19 @@
       window.history.replaceState({}, '', '/lab-info');
     }
     if(currentResults.length === 0) loadList();
+  }
+
+  backToList.addEventListener('click', goToList);
+
+  // Top header "Back" link is context-aware: from the test list it exits to the
+  // main site (href="/"); from a test's detail view it instead returns to the
+  // list (same as "Back to guide"), rather than leaving Lab Info entirely.
+  topBackLink.addEventListener('click', function(e){
+    if(detailView.style.display === 'block'){
+      e.preventDefault();
+      goToList();
+    }
+    // else: let the default link navigation to "/" proceed
   });
 
   searchInput.addEventListener('input', function(){
