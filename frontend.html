@@ -1648,9 +1648,15 @@ function buildFullSpecs(p){
   return rows;
 }
 function openProductDetailById(id){
-  const p = productsById[id];
-  if(!p){ showToast('Could not load this product', true); return; }
-  openProductDetail(p);
+  try{
+    const p = productsById[id];
+    if(!p){ showToast('Could not find product id ' + id + ' (productsById has ' + Object.keys(productsById).length + ' entries)', true); return; }
+    openProductDetail(p);
+  }catch(err){
+    console.error('openProductDetailById failed:', err);
+    showToast('Product detail error: ' + err.message, true);
+    alert('Product detail failed to open.\n\nError: ' + err.message + '\n\nPlease send this message to support.');
+  }
 }
 function openProductDetail(p){
   const existing = document.getElementById('product-detail-modal');
