@@ -49,38 +49,44 @@ class NewCompany(BaseModel):
     portfolio: str = "Not described yet"
     status_tag: Literal["covered", "unclear", "open"] = "unclear"
 
+NO_CACHE_HEADERS = {
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
+}
+
 @app.get("/")
 def root():
-    return FileResponse(LANDING_PATH)
+    return FileResponse(LANDING_PATH, headers=NO_CACHE_HEADERS)
 
 @app.get("/app")
 def dashboard_page():
-    return FileResponse(FRONTEND_PATH)
+    return FileResponse(FRONTEND_PATH, headers=NO_CACHE_HEADERS)
 
 @app.get("/lang.js")
 def lang_js():
-    return FileResponse(LANG_JS_PATH, media_type="application/javascript")
+    return FileResponse(LANG_JS_PATH, media_type="application/javascript", headers=NO_CACHE_HEADERS)
 
 @app.get("/snibe-ad.html")
 def snibe_ad():
-    return FileResponse(os.path.join(os.path.dirname(__file__), "snibe-ad.html"), media_type="text/html")
+    return FileResponse(os.path.join(os.path.dirname(__file__), "snibe-ad.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
 
 @app.get("/snibe-biochem-ad.html")
 def snibe_biochem_ad():
-    return FileResponse(os.path.join(os.path.dirname(__file__), "snibe-biochem-ad.html"), media_type="text/html")
+    return FileResponse(os.path.join(os.path.dirname(__file__), "snibe-biochem-ad.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
 
 @app.get("/doctor-ai")
 def doctor_ai_page():
-    return FileResponse(os.path.join(os.path.dirname(__file__), "doctor-ai.html"), media_type="text/html")
+    return FileResponse(os.path.join(os.path.dirname(__file__), "doctor-ai.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
 
 @app.get("/lab-info")
 def lab_info_page():
-    return FileResponse(os.path.join(os.path.dirname(__file__), "lab-info.html"), media_type="text/html")
+    return FileResponse(os.path.join(os.path.dirname(__file__), "lab-info.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
 
 @app.get("/lab-tests")
 def lab_tests_page_legacy():
     # Legacy URL kept working -- the page and feature are now branded "Lab Info".
-    return FileResponse(os.path.join(os.path.dirname(__file__), "lab-info.html"), media_type="text/html")
+    return FileResponse(os.path.join(os.path.dirname(__file__), "lab-info.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
 
 @app.get("/logo.svg")
 def logo():
