@@ -1647,6 +1647,11 @@ function buildFullSpecs(p){
   }
   return rows;
 }
+function openProductDetailById(id){
+  const p = productsById[id];
+  if(!p){ showToast('Could not load this product', true); return; }
+  openProductDetail(p);
+}
 function openProductDetail(p){
   const existing = document.getElementById('product-detail-modal');
   if(existing) existing.remove();
@@ -1708,10 +1713,13 @@ function productIcon(ptype){
 }
 
 let compareIds = [];
+let productsById = {};
 async function renderProducts(){
   const main = document.getElementById('main');
   main.innerHTML = `<div class="skel"></div><div class="skel"></div>`;
   const items = await apiGet('/products');
+  productsById = {};
+  items.forEach(p => { productsById[p.id] = p; });
   const categories = [...new Set(items.map(p=>p.category))].sort();
   const manufacturers = [...new Set(items.map(p=>p.manufacturer_name))].sort();
   const origins = [...new Set(items.map(p=>p.origin))].filter(Boolean).sort();
@@ -1776,7 +1784,7 @@ async function renderProducts(){
         <label class="pcard-check" onclick="event.stopPropagation()">
           <input type="checkbox" ${compareIds.includes(p.id)?'checked':''} onchange="toggleCompare(${p.id})">
         </label>
-        <div class="pcard-clickzone" onclick='openProductDetail(${JSON.stringify(p).replace(/'/g,"&#39;")})'>
+        <div class="pcard-clickzone" onclick="openProductDetailById(${p.id})">
           <div class="pcard-media">${mediaHtml}</div>
           <div class="pcard-body">
             <div class="pcard-type">${originFlag(p.origin)}${p.product_type||''}</div>
@@ -1786,7 +1794,7 @@ async function renderProducts(){
             <div class="pcard-desc">${p.description}</div>
             ${p.certifications ? `<div class="pcard-certs">${certBadges(p.certifications)}</div>` : ''}
             <div class="pcard-foot">${badge(p.confidence_tier, p.confidence_tier.toUpperCase())}<span class="pcard-cat">${p.category}</span></div>
-            <button class="pcard-view-btn" onclick='event.stopPropagation();openProductDetail(${JSON.stringify(p).replace(/'/g,"&#39;")})'>View full specs →</button>
+            <button class="pcard-view-btn" onclick="event.stopPropagation();openProductDetailById(${p.id})">View full specs →</button>
           </div>
         </div>
       </div>`;
