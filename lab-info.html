@@ -60,6 +60,30 @@
   .page-head h1{font-size:24px; font-weight:800; margin-bottom:6px;}
   .page-head p{color:var(--muted); font-size:14px; max-width:640px;}
 
+  .view-tabs{display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid var(--line);}
+  .view-tab{
+    background:none; border:none; color:var(--muted); font-family:inherit; font-size:14px; font-weight:600;
+    padding:10px 4px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;
+  }
+  .view-tab.active{color:var(--assay); border-bottom-color:var(--assay);}
+  .view-tab:hover{color:var(--paper);}
+
+  .sets-intro{color:var(--muted); font-size:13.5px; margin-bottom:18px; max-width:640px;}
+  .sets-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:14px;}
+  .set-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px;
+    cursor:pointer; transition:border-color .15s;
+  }
+  .set-card:hover{border-color:var(--assay);}
+  .set-card .cat-tag{
+    display:inline-block; font-family:'IBM Plex Mono'; font-size:10.5px; letter-spacing:.5px;
+    color:var(--gold); background:var(--gold-dim); padding:4px 10px; border-radius:999px; margin-bottom:10px;
+  }
+  .set-card h3{font-size:16px; font-weight:700; margin-bottom:6px;}
+  .set-card p{font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:12px;}
+  .set-card .set-count{font-family:'IBM Plex Mono'; font-size:11.5px; color:var(--assay);}
+  .set-detail-chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+
   .filters{
     display:grid; grid-template-columns:2fr 1fr; gap:12px;
     background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:22px;
@@ -206,14 +230,27 @@
         <p data-ar="مرجع منظم لأشهر التحاليل المخبرية: الغرض، نوع العينة، المنهجية، القيم المرجعية، والدلالة الإكلينيكية — كل معلومة موثّقة بمصدرها." data-en="A structured reference for common lab tests: purpose, specimen type, methodology, reference ranges, and clinical significance — every fact is sourced."></p>
       </div>
 
-      <div class="filters">
-        <input type="text" id="searchInput" data-ar-placeholder="ابحث باسم التحليل (عربي أو إنجليزي)..." data-en-placeholder="Search by test name (Arabic or English)..." placeholder="">
-        <select id="categorySelect"></select>
+      <div class="view-tabs">
+        <button class="view-tab active" id="tabTests" data-ar="كل التحاليل" data-en="All Tests"></button>
+        <button class="view-tab" id="tabSets" data-ar="مجموعات التحاليل" data-en="Order Sets"></button>
       </div>
 
-      <div id="gridWrap" class="test-grid"></div>
-      <div id="loadingList" class="loading" data-ar="جاري التحميل..." data-en="Loading..."></div>
-      <div id="emptyState" class="empty-state" style="display:none;" data-ar="لا توجد نتائج مطابقة." data-en="No matching results."></div>
+      <div id="testsPane">
+        <div class="filters">
+          <input type="text" id="searchInput" data-ar-placeholder="ابحث باسم التحليل (عربي أو إنجليزي)..." data-en-placeholder="Search by test name (Arabic or English)..." placeholder="">
+          <select id="categorySelect"></select>
+        </div>
+
+        <div id="gridWrap" class="test-grid"></div>
+        <div id="loadingList" class="loading" data-ar="جاري التحميل..." data-en="Loading..."></div>
+        <div id="emptyState" class="empty-state" style="display:none;" data-ar="لا توجد نتائج مطابقة." data-en="No matching results."></div>
+      </div>
+
+      <div id="setsPane" style="display:none;">
+        <p class="sets-intro" data-ar="مجموعات جاهزة من التحاليل الشائع طلبها معًا — دوس على أي مجموعة عشان تشوف كل التحاليل اللي فيها." data-en="Curated panels of commonly co-ordered tests — click any panel to see its full test list."></p>
+        <div id="setsGridWrap" class="sets-grid"></div>
+        <div id="loadingSets" class="loading" data-ar="جاري التحميل..." data-en="Loading..." style="display:none;"></div>
+      </div>
     </div>
 
     <!-- DETAIL VIEW -->
@@ -245,6 +282,12 @@
   const emptyState = document.getElementById('emptyState');
   const searchInput = document.getElementById('searchInput');
   const categorySelect = document.getElementById('categorySelect');
+  const tabTests = document.getElementById('tabTests');
+  const tabSets = document.getElementById('tabSets');
+  const testsPane = document.getElementById('testsPane');
+  const setsPane = document.getElementById('setsPane');
+  const setsGridWrap = document.getElementById('setsGridWrap');
+  const loadingSets = document.getElementById('loadingSets');
   const detailContent = document.getElementById('detailContent');
   const backToList = document.getElementById('backToList');
   const topBackLink = document.getElementById('topBackLink');
@@ -523,6 +566,71 @@
     renderGrid();
     if(currentDetail) renderDetail();
     loadCategories();
+  });
+
+  let orderSetsCache = null;
+
+  async function loadOrderSets(){
+    if(orderSetsCache){ renderOrderSets(); return; }
+    loadingSets.style.display = 'block';
+    try{
+      const res = await fetch('/order-sets-list');
+      const data = await res.json();
+      orderSetsCache = data.results || [];
+      renderOrderSets();
+    }catch(e){
+      setsGridWrap.innerHTML = '<div class="empty-state">' + (currentLang==='ar'?'تعذر تحميل المجموعات.':'Could not load order sets.') + '</div>';
+    }
+    loadingSets.style.display = 'none';
+  }
+
+  function renderOrderSets(){
+    if(!orderSetsCache || !orderSetsCache.length){
+      setsGridWrap.innerHTML = '<div class="empty-state">' + (currentLang==='ar'?'لا توجد مجموعات بعد.':'No order sets yet.') + '</div>';
+      return;
+    }
+    setsGridWrap.innerHTML = orderSetsCache.map(function(s){
+      return '<div class="set-card" data-set-slug="' + s.slug + '">' +
+        '<span class="cat-tag">' + (s.category||'') + '</span>' +
+        '<h3>' + s.name_en + '</h3>' +
+        '<p>' + (s.description_en||'') + '</p>' +
+        '<span class="set-count">' + s.test_count + ' ' + (currentLang==='ar'?'تحليل':'tests') + '</span>' +
+        '<div class="set-detail-chips" style="display:none;"></div>' +
+        '</div>';
+    }).join('');
+    setsGridWrap.querySelectorAll('.set-card').forEach(function(card){
+      card.addEventListener('click', function(e){
+        if(e.target.closest('.related-chip')) return;
+        const chipsWrap = card.querySelector('.set-detail-chips');
+        const isOpen = chipsWrap.style.display !== 'none';
+        setsGridWrap.querySelectorAll('.set-detail-chips').forEach(function(c){ c.style.display = 'none'; });
+        if(isOpen) return;
+        const setData = orderSetsCache.find(function(s){ return s.slug === card.dataset.setSlug; });
+        if(setData){
+          chipsWrap.innerHTML = setData.tests.map(function(t){
+            return '<span class="related-chip" data-slug="' + t.slug + '">' + t.name_en + '</span>';
+          }).join('');
+          chipsWrap.querySelectorAll('.related-chip').forEach(function(chip){
+            chip.addEventListener('click', function(ev){
+              ev.stopPropagation();
+              listView.style.display = 'none';
+              openDetail(chip.dataset.slug);
+            });
+          });
+        }
+        chipsWrap.style.display = 'flex';
+      });
+    });
+  }
+
+  tabTests.addEventListener('click', function(){
+    tabTests.classList.add('active'); tabSets.classList.remove('active');
+    testsPane.style.display = 'block'; setsPane.style.display = 'none';
+  });
+  tabSets.addEventListener('click', function(){
+    tabSets.classList.add('active'); tabTests.classList.remove('active');
+    testsPane.style.display = 'none'; setsPane.style.display = 'block';
+    loadOrderSets();
   });
 
   // init

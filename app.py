@@ -1435,3 +1435,93 @@ def create_lab_test(payload: LabTestCreate):
     conn.close()
     logger.info(f"POST /lab-tests-list -> created lab test '{payload.slug}'")
     return {"id": new_id, "slug": payload.slug, "status": "created"}
+
+# ---------------- Order Sets ("مجموعات التحاليل") ----------------
+
+class OrderSetCreate(BaseModel):
+    slug: str = Field(..., min_length=1, max_length=100)
+    name_en: str = Field(..., min_length=1)
+    description_en: str | None = None
+    category: str | None = None
+    test_slugs: list[str] = Field(..., min_length=1)
+    is_published: bool = True
+
+@app.get("/order-sets-list")
+def list_order_sets():
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM order_sets WHERE is_published = 1 ORDER BY name_en"
+    ).fetchall()
+    results = []
+    for row in rows:
+        d = dict(row)
+        try:
+            slugs = json.loads(d.pop("test_slugs_json") or "[]")
+        except (ValueError, TypeError):
+            slugs = []
+        d["is_published"] = bool(d.get("is_published"))
+        # Resolve each member test to its name for a quick preview on the card,
+        # without needing the client to make N follow-up detail calls.
+        tests = []
+        if slugs:
+            placeholders = ",".join("?" for _ in slugs)
+            test_rows = conn.execute(
+                f"SELECT slug, name_en, category FROM lab_tests WHERE slug IN ({placeholders}) AND is_published = 1",
+                slugs
+            ).fetchall()
+            by_slug = {r["slug"]: r for r in test_rows}
+            for s in slugs:
+                if s in by_slug:
+                    r = by_slug[s]
+                    tests.append({"slug": r["slug"], "name_en": r["name_en"], "category": r["category"]})
+        d["tests"] = tests
+        d["test_count"] = len(tests)
+        results.append(d)
+    conn.close()
+    return {"results": results}
+
+@app.get("/order-sets-detail/{slug}")
+def get_order_set(slug: str):
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM order_sets WHERE slug = ?", (slug,)).fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Order set not found")
+    d = dict(row)
+    try:
+        slugs = json.loads(d.pop("test_slugs_json") or "[]")
+    except (ValueError, TypeError):
+        slugs = []
+    d["is_published"] = bool(d.get("is_published"))
+    tests = []
+    if slugs:
+        placeholders = ",".join("?" for _ in slugs)
+        test_rows = conn.execute(
+            f"SELECT slug, name_en, category, purpose_en, specimen_type FROM lab_tests WHERE slug IN ({placeholders}) AND is_published = 1",
+            slugs
+        ).fetchall()
+        by_slug = {r["slug"]: dict(r) for r in test_rows}
+        for s in slugs:
+            if s in by_slug:
+                tests.append(by_slug[s])
+    d["tests"] = tests
+    conn.close()
+    return d
+
+@app.post("/order-sets-list")
+def create_order_set(payload: OrderSetCreate):
+    conn = get_conn()
+    existing = conn.execute("SELECT id FROM order_sets WHERE slug = ?", (payload.slug,)).fetchone()
+    if existing:
+        conn.close()
+        raise HTTPException(status_code=409, detail="An order set with this slug already exists")
+    cur = conn.execute(
+        "INSERT INTO order_sets (slug, name_en, description_en, category, test_slugs_json, is_published) VALUES (?,?,?,?,?,?)",
+        (payload.slug, payload.name_en, payload.description_en, payload.category,
+         json.dumps(payload.test_slugs), int(payload.is_published))
+    )
+    conn.commit()
+    new_id = cur.lastrowid
+    conn.close()
+    logger.info(f"POST /order-sets-list -> created order set '{payload.slug}'")
+    return {"id": new_id, "slug": payload.slug, "status": "created"}
