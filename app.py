@@ -3,9 +3,9 @@ MedForsa GCC API — minimal real backend.
 Run: uvicorn app:app --reload --port 8420
 Docs auto-generated at: http://127.0.0.1:8420/docs
 """
-from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import FastAPI, HTTPException, Header, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field, EmailStr
 from typing import Literal, Any
 import sqlite3
@@ -1541,3 +1541,72 @@ def create_order_set(payload: OrderSetCreate):
     conn.close()
     logger.info(f"POST /order-sets-list -> created order set '{payload.slug}'")
     return {"id": new_id, "slug": payload.slug, "status": "created"}
+
+# ---------------- WhatsApp Assistant (Twilio) ----------------
+
+WHATSAPP_SYSTEM_PROMPT = (
+    "You are the MedForsa GCC WhatsApp assistant, helping physicians, laboratory professionals, "
+    "and IVD distribution contacts across Saudi Arabia and the Gulf with quick questions about "
+    "lab tests, reference ranges, and clinical significance. You draw on MedForsa GCC's own Lab "
+    "Info reference library, which is provided to you below when relevant -- prefer that sourced "
+    "data over general memory whenever it's given to you.\n\n"
+    "Keep replies concise and WhatsApp-appropriate: short paragraphs, no long tables, no markdown "
+    "headers. You are a reference and discussion tool, not a diagnostic authority -- never state a "
+    "definitive diagnosis, frame clinical points as possibilities ('may suggest', 'is consistent "
+    "with') not certainties, and make clear that direct clinical evaluation and the treating "
+    "physician's judgment take priority. For medication/dosing questions, give only general "
+    "reference-level information. Reply in the same language the user writes in (Arabic or English)."
+    "{lab_info_block}"
+)
+
+def _twiml_response(message_text: str) -> Response:
+    import xml.sax.saxutils as saxutils
+    escaped = saxutils.escape(message_text or "")
+    xml = f'<?xml version="1.0" encoding="UTF-8"?><Response><Message>{escaped}</Message></Response>'
+    return Response(content=xml, media_type="application/xml")
+
+@app.post("/whatsapp-webhook")
+async def whatsapp_webhook(request: Request):
+    """Twilio WhatsApp inbound webhook. Twilio POSTs form-encoded fields
+    (Body, From, WaId, ...) for every inbound message; we reply with TwiML."""
+    form = await request.form()
+    body_text = (form.get("Body") or "").strip()
+    from_number = form.get("From") or form.get("WaId") or "unknown"
+
+    if not body_text:
+        return _twiml_response("I didn't receive any text in that message -- please send your question as text.")
+
+    conn = get_conn()
+    history_rows = conn.execute(
+        "SELECT role, content FROM whatsapp_messages WHERE phone_number = ? ORDER BY id DESC LIMIT 12",
+        (from_number,)
+    ).fetchall()
+    history_rows = list(reversed(history_rows))
+    messages = [{"role": r["role"], "content": r["content"]} for r in history_rows]
+    messages.append({"role": "user", "content": body_text})
+
+    lab_matches = find_matching_lab_tests(conn, body_text)
+    lab_info_block = build_lab_info_block(lab_matches)
+    system_prompt = WHATSAPP_SYSTEM_PROMPT.format(lab_info_block=lab_info_block)
+
+    try:
+        result = call_anthropic(system_prompt, messages)
+        reply_text = "".join(
+            block.get("text", "") for block in result.get("content", []) if block.get("type") == "text"
+        ).strip() or "Sorry, I couldn't generate a response just now. Please try again shortly."
+    except Exception as e:
+        logger.error(f"WhatsApp webhook call_anthropic failed: {e}")
+        reply_text = "Sorry, I'm having trouble reaching the assistant right now. Please try again shortly."
+
+    conn.execute(
+        "INSERT INTO whatsapp_messages (phone_number, role, content) VALUES (?,?,?)",
+        (from_number, "user", body_text)
+    )
+    conn.execute(
+        "INSERT INTO whatsapp_messages (phone_number, role, content) VALUES (?,?,?)",
+        (from_number, "assistant", reply_text)
+    )
+    conn.commit()
+    conn.close()
+    logger.info(f"POST /whatsapp-webhook -> replied to {from_number}")
+    return _twiml_response(reply_text)
