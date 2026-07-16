@@ -1648,6 +1648,7 @@ function buildFullSpecs(p){
   return rows;
 }
 function openProductDetailById(id){
+  document.title = 'CLICK RECEIVED id=' + id + ' — ' + new Date().toLocaleTimeString();
   try{
     const p = productsById[id];
     if(!p){ showToast('Could not find product id ' + id + ' (productsById has ' + Object.keys(productsById).length + ' entries)', true); return; }
