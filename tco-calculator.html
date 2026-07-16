@@ -89,6 +89,11 @@
     background:var(--assay); color:var(--ink); border:none; border-radius:9px; padding:11px 20px;
     font-family:inherit; font-weight:700; font-size:13.5px; cursor:pointer;
   }
+  .maint-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  .maint-table th, .maint-table td{padding:8px 10px; border-bottom:1px solid var(--line); text-align:left;}
+  .maint-table th{color:var(--muted); font-family:'IBM Plex Mono'; font-size:10.5px; text-transform:uppercase;}
+  .maint-table td.val{font-family:'IBM Plex Mono'; text-align:right;}
+  .maint-table tfoot td{font-weight:700; color:var(--assay); border-top:2px solid var(--assay); border-bottom:none;}
 </style>
 </head>
 <body>
@@ -117,7 +122,7 @@
 
   <div class="view-tabs">
     <button class="view-tab active" id="tabTco">Cost Per Test (TCO)</button>
-    <button class="view-tab" id="tabRental">Reagent Rental vs. Cash Purchase</button>
+    <button class="view-tab" id="tabRental">Reagent Rental Deal Pricing</button>
   </div>
 
   <!-- TCO CALCULATOR -->
@@ -156,37 +161,41 @@
     </div>
   </div>
 
-  <!-- REAGENT RENTAL VS CASH -->
+  <!-- REAGENT RENTAL DEAL PRICING -->
   <div id="paneRental" style="display:none;">
+    <p class="field-hint" style="margin-bottom:18px; font-size:13px;">
+      Calculates the price-per-test needed to recover the instrument's cost, total reagent (kit) cost, and escalating annual
+      maintenance over the contract — i.e. the price you quote the customer in a "free placement" reagent rental deal.
+    </p>
     <div class="calc-grid">
       <div class="device-card a">
-        <h3><span class="dot"></span>Option A — Cash Purchase</h3>
-        <div class="field-row"><label>Instrument purchase price (SAR)</label><input type="number" id="r-a-price" value="150000" min="0"></div>
-        <div class="field-row"><label>Reagent cost per test (SAR)</label><input type="number" id="r-a-reagent" value="7" min="0" step="0.1"></div>
+        <h3><span class="dot"></span>Deal &amp; Instrument</h3>
+        <div class="field-row">
+          <label>Contract duration (years)</label>
+          <select id="rr-years" style="width:100%;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--paper);font-family:'IBM Plex Mono';font-size:14px;">
+            <option value="3">3 years</option>
+            <option value="5">5 years</option>
+            <option value="6">6 years</option>
+          </select>
+        </div>
+        <div class="field-row"><label>Instrument cost / value (SAR)</label><input type="number" id="rr-instrument" value="150000" min="0"></div>
+        <div class="field-row"><label>Average monthly test consumption</label><input type="number" id="rr-volume" value="1000" min="0"></div>
+        <div class="field-row"><label>Desired profit margin on top of cost recovery (%)</label><input type="number" id="rr-margin" value="0" min="0" step="1"></div>
       </div>
       <div class="device-card b">
-        <h3><span class="dot"></span>Option B — Free Placement / Reagent Rental</h3>
-        <div class="field-row"><label>Instrument price</label><input type="number" value="0" disabled style="opacity:.5;"></div>
-        <div class="field-hint" style="margin-top:-10px; margin-bottom:12px;">Instrument provided free against a reagent purchase commitment.</div>
-        <div class="field-row"><label>Committed reagent cost per test (SAR)</label><input type="number" id="r-b-reagent" value="10" min="0" step="0.1"></div>
-        <div class="field-row"><label>Minimum monthly test commitment</label><input type="number" id="r-b-min" value="800" min="0"></div>
-      </div>
-    </div>
-    <div class="calc-grid" style="grid-template-columns:1fr 1fr; margin-bottom:8px;">
-      <div class="field-row">
-        <label>Your expected actual monthly test volume</label>
-        <input type="number" id="r-volume" value="1000" min="0">
-      </div>
-      <div class="field-row">
-        <label>Contract period (years)</label>
-        <input type="number" id="r-years" value="3" min="1" max="10">
+        <h3><span class="dot"></span>Kit &amp; Maintenance</h3>
+        <div class="field-row"><label>Kit price (SAR)</label><input type="number" id="rr-kit-price" value="1200" min="0"></div>
+        <div class="field-row"><label>Tests per kit</label><input type="number" id="rr-kit-tests" value="300" min="1"></div>
+        <div class="field-row"><label>Kit volume (mL, optional label only)</label><input type="number" id="rr-kit-volume" value="70" min="0"></div>
+        <div class="field-row"><label>Annual maintenance — starting % (Year 1), increasing by the same % each year</label><input type="number" id="rr-maint-pct" value="8" min="0" step="0.5"></div>
+        <div class="field-hint">e.g. 8% → Year 1 = 8%, Year 2 = 16%, Year 3 = 24%, etc. — applied to instrument value.</div>
       </div>
     </div>
 
     <div class="results-card">
-      <h3>Results</h3>
+      <h3>Deal Pricing Results</h3>
       <div id="rentalResults"></div>
-      <div class="bar-compare" id="rentalBars"></div>
+      <div id="maintTableWrap" style="margin-top:18px;"></div>
     </div>
   </div>
 
@@ -267,55 +276,57 @@
     bars.innerHTML = barsHtml;
   }
 
-  // ---- Rental vs Cash calculator ----
+  // ---- Reagent Rental Deal Pricing calculator ----
   function renderRental(){
-    const priceA = num('r-a-price');
-    const reagentA = num('r-a-reagent');
-    const reagentB = num('r-b-reagent');
-    const minB = num('r-b-min');
-    const actualVolume = num('r-volume');
-    const years = num('r-years');
+    const years = parseInt(document.getElementById('rr-years').value, 10) || 3;
+    const instrumentCost = num('rr-instrument');
+    const monthlyVolume = num('rr-volume');
+    const marginPct = num('rr-margin');
+    const kitPrice = num('rr-kit-price');
+    const kitTests = num('rr-kit-tests') || 1;
+    const maintStartPct = num('rr-maint-pct');
+
     const months = years * 12;
+    const totalTests = monthlyVolume * months;
+    const rawCostPerTest = kitPrice / kitTests;
+    const totalReagentCost = rawCostPerTest * totalTests;
 
-    const effectiveVolumeB = Math.max(actualVolume, minB);
-    const totalCostA = priceA + (actualVolume * reagentA * months);
-    const totalCostB = effectiveVolumeB * reagentB * months;
-
-    // Break-even monthly volume: instrumentPriceA / (months * (reagentB - reagentA))
-    const reagentDelta = reagentB - reagentA;
-    let breakEven = null;
-    if(reagentDelta > 0 && months > 0){
-      breakEven = priceA / (months * reagentDelta);
+    // Escalating annual maintenance: Year N = (maintStartPct * N)% of instrument cost
+    const maintByYear = [];
+    let totalMaintCost = 0;
+    for(let y = 1; y <= years; y++){
+      const pct = maintStartPct * y;
+      const amount = instrumentCost * (pct / 100);
+      maintByYear.push({year: y, pct: pct, amount: amount});
+      totalMaintCost += amount;
     }
+
+    const totalCostToRecover = instrumentCost + totalReagentCost + totalMaintCost;
+    const totalCostWithMargin = totalCostToRecover * (1 + marginPct / 100);
+    const pricePerTest = totalTests > 0 ? totalCostWithMargin / totalTests : 0;
+    const totalDealValue = pricePerTest * totalTests;
 
     let html = '';
-    html += '<div class="result-row"><span>Option A (cash) — total cost over ' + years + ' year(s)</span><span class="val">' + fmt(totalCostA) + '</span></div>';
-    html += '<div class="result-row"><span>Option B (rental) — total cost over ' + years + ' year(s)</span><span class="val">' + fmt(totalCostB) + '</span></div>';
-    const diff = totalCostB - totalCostA;
-    const cheaper = diff > 0 ? 'Cash Purchase (Option A)' : 'Reagent Rental (Option B)';
-    html += '<div class="result-row highlight"><span>💡 Cheaper option at your volume</span><span class="val">' + cheaper + '</span></div>';
-    html += '<div class="result-row"><span>Difference in total cost</span><span class="val">' + fmt(Math.abs(diff)) + '</span></div>';
-    if(breakEven !== null){
-      html += '<div class="result-row"><span>Break-even monthly volume (A = B)</span><span class="val">' + Math.round(breakEven).toLocaleString() + ' tests/month</span></div>';
-      html += '<div class="result-row"><span style="font-size:12px;color:var(--muted);">Above this volume, cash purchase becomes cheaper; below it, reagent rental wins.</span><span></span></div>';
-    } else {
-      html += '<div class="result-row warn"><span>⚠ Note</span><span class="val" style="font-size:12px;">Rental reagent price is not higher than cash reagent price — rental is cheaper per test at every volume, so cash purchase only helps at very high volume via the instrument cost spread.</span></div>';
-    }
-    if(actualVolume < minB){
-      html += '<div class="result-row warn"><span>⚠ Your expected volume is below the committed minimum</span><span class="val">' + (minB - actualVolume).toLocaleString() + ' tests/month short</span></div>';
-      html += '<div class="result-row"><span style="font-size:12px;color:var(--muted);">You may still be billed for the committed ' + minB.toLocaleString() + ' tests/month regardless of actual usage — confirm this in the contract terms.</span><span></span></div>';
-    }
+    html += '<div class="result-row"><span>Raw reagent cost per test (kit price ÷ tests per kit)</span><span class="val">' + fmt2(rawCostPerTest) + '</span></div>';
+    html += '<div class="result-row"><span>Total committed tests over ' + years + '-year contract</span><span class="val">' + totalTests.toLocaleString() + ' tests</span></div>';
+    html += '<div class="result-row"><span>Total reagent (kit) cost over contract</span><span class="val">' + fmt(totalReagentCost) + '</span></div>';
+    html += '<div class="result-row"><span>Total escalating maintenance cost over contract</span><span class="val">' + fmt(totalMaintCost) + '</span></div>';
+    html += '<div class="result-row"><span>Instrument cost to recover</span><span class="val">' + fmt(instrumentCost) + '</span></div>';
+    html += '<div class="result-row" style="border-top:2px solid var(--line); margin-top:6px; padding-top:14px;"><span>Total cost to recover' + (marginPct>0 ? ' (incl. ' + marginPct + '% margin)' : '') + '</span><span class="val">' + fmt(totalCostWithMargin) + '</span></div>';
+    html += '<div class="result-row highlight"><span>💰 Price per test to quote in the deal</span><span class="val">' + fmt2(pricePerTest) + '</span></div>';
+    html += '<div class="result-row highlight"><span>📄 Total deal / contract value (' + years + ' years)</span><span class="val">' + fmt(totalDealValue) + '</span></div>';
     document.getElementById('rentalResults').innerHTML = html;
 
-    const bars = document.getElementById('rentalBars');
-    const maxVal = Math.max(totalCostA, totalCostB, 1);
-    document.getElementById('rentalBars').innerHTML =
-      '<div class="bar-col"><div class="bar-value">' + fmt(totalCostA) + '</div><div class="bar a" style="height:' + Math.max(6,(totalCostA/maxVal*100)) + '%"></div><div class="bar-label">Cash Purchase</div></div>' +
-      '<div class="bar-col"><div class="bar-value">' + fmt(totalCostB) + '</div><div class="bar b" style="height:' + Math.max(6,(totalCostB/maxVal*100)) + '%"></div><div class="bar-label">Reagent Rental</div></div>';
+    let tableHtml = '<table class="maint-table"><thead><tr><th>Year</th><th>Maintenance %</th><th>Amount (SAR)</th></tr></thead><tbody>';
+    maintByYear.forEach(function(m){
+      tableHtml += '<tr><td>Year ' + m.year + '</td><td>' + m.pct.toFixed(1) + '%</td><td class="val">' + fmt(m.amount) + '</td></tr>';
+    });
+    tableHtml += '</tbody><tfoot><tr><td colspan="2">Total maintenance over contract</td><td class="val">' + fmt(totalMaintCost) + '</td></tr></tfoot></table>';
+    document.getElementById('maintTableWrap').innerHTML = tableHtml;
   }
 
   document.querySelectorAll('#paneTco input').forEach(function(el){ el.addEventListener('input', renderTco); });
-  document.querySelectorAll('#paneRental input').forEach(function(el){ el.addEventListener('input', renderRental); });
+  document.querySelectorAll('#paneRental input, #paneRental select').forEach(function(el){ el.addEventListener('input', renderRental); });
 
   renderTco();
   renderRental();
