@@ -1648,15 +1648,13 @@ function buildFullSpecs(p){
   return rows;
 }
 function openProductDetailById(id){
-  document.title = 'CLICK RECEIVED id=' + id + ' — ' + new Date().toLocaleTimeString();
   try{
     const p = productsById[id];
-    if(!p){ showToast('Could not find product id ' + id + ' (productsById has ' + Object.keys(productsById).length + ' entries)', true); return; }
+    if(!p){ showToast('Could not load this product', true); return; }
     openProductDetail(p);
   }catch(err){
     console.error('openProductDetailById failed:', err);
-    showToast('Product detail error: ' + err.message, true);
-    alert('Product detail failed to open.\n\nError: ' + err.message + '\n\nPlease send this message to support.');
+    showToast('Could not open product details', true);
   }
 }
 function openProductDetail(p){
@@ -1924,6 +1922,5 @@ async function renderMarketEvents(){
   }
 })();
 </script>
-<div id="build-marker" style="position:fixed;bottom:6px;right:8px;font:11px monospace;color:#9993;background:rgba(0,0,0,.55);color:#fff;padding:2px 8px;border-radius:6px;z-index:9999;pointer-events:none;">build: PRODUCT-SPECS-FIX-v3</div>
 </body>
 </html>
