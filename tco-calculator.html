@@ -426,13 +426,13 @@
         return;
       }
       uploadStatus.className = 'upload-status';
-      uploadStatus.textContent = 'Found ' + data.items.length + ' item(s). Enter each kit\'s expected monthly consumption, then press Calculate.';
-      let tableHtml = '<table class="extracted-table"><thead><tr><th>Item</th><th>Price</th><th>Tests/Kit</th><th>Monthly consumption</th></tr></thead><tbody>';
+      uploadStatus.textContent = 'Found ' + data.items.length + ' item(s). Enter each kit\'s expected monthly consumption in NUMBER OF TESTS (not kit boxes), then press Calculate. If "Tests/Kit" is blank, the price list didn\'t include it — enter it manually.';
+      let tableHtml = '<table class="extracted-table"><thead><tr><th>Item</th><th>Price</th><th>Tests/Kit</th><th>Monthly consumption (tests, not boxes)</th></tr></thead><tbody>';
       data.items.forEach(function(item, i){
         tableHtml += '<tr>' +
           '<td>' + (item.name || '—') + '</td>' +
           '<td>' + (item.price != null ? item.price : '—') + '</td>' +
-          '<td>' + (item.tests_per_kit != null ? item.tests_per_kit : '—') + '</td>' +
+          '<td><input type="number" class="tests-per-kit-input" data-idx="' + i + '" min="1" value="' + (item.tests_per_kit != null ? item.tests_per_kit : '') + '" placeholder="?" style="width:70px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--paper);font-family:\'IBM Plex Mono\';font-size:12px;"></td>' +
           '<td><input type="number" class="consumption-input" data-idx="' + i + '" min="0" value="0" style="width:90px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--paper);font-family:\'IBM Plex Mono\';font-size:12px;"></td>' +
           '</tr>';
       });
@@ -446,10 +446,12 @@
         let totalMonthlyCost = 0;
         const breakdown = [];
         data.items.forEach(function(item, i){
-          const input = uploadResultsWrap.querySelector('.consumption-input[data-idx="' + i + '"]');
-          const consumption = parseFloat(input.value) || 0;
-          if(consumption <= 0 || item.price == null || !item.tests_per_kit) return;
-          const costPerTest = item.price / item.tests_per_kit;
+          const consumptionInput = uploadResultsWrap.querySelector('.consumption-input[data-idx="' + i + '"]');
+          const testsPerKitInput = uploadResultsWrap.querySelector('.tests-per-kit-input[data-idx="' + i + '"]');
+          const consumption = parseFloat(consumptionInput.value) || 0;
+          const testsPerKit = parseFloat(testsPerKitInput.value) || 0;
+          if(consumption <= 0 || item.price == null || !testsPerKit) return;
+          const costPerTest = item.price / testsPerKit;
           const monthlyCost = consumption * costPerTest;
           totalMonthlyVolume += consumption;
           totalMonthlyCost += monthlyCost;

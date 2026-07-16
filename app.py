@@ -1622,6 +1622,10 @@ PRICE_KEYWORDS = ["price", "cost", "unit price", "سعر", "التكلفه", "ا
 QTY_KEYWORDS = ["test", "tests", "qty", "quantity", "pack", "kit size", "size", "اختبار",
                 "اختبارات", "عدد", "عبوه", "عبوة", "حجم"]
 NAME_KEYWORDS = ["name", "product", "item", "kit", "description", "اسم", "منتج", "الصنف", "الكيت"]
+# Columns matching these should never be guessed as price or tests-per-kit --
+# catalog/reference numbers look numeric but aren't a usable quantity or price.
+EXCLUDE_KEYWORDS = ["code", "catalog", "cat.", "cat no", "sku", "ref", "reference", "item no",
+                    "part no", "id", "كود", "رقم الصنف", "الرقم المرجعي"]
 
 def _guess_column(headers, keywords):
     """Best-effort column detection: returns the header string whose lowercase
@@ -1649,16 +1653,24 @@ def _extract_numeric(value):
 def _rows_from_dataframe(df):
     """Given a pandas DataFrame with a header row, best-effort extract
     {name, price, tests_per_kit} for each row using keyword-matched columns,
-    falling back to the first two numeric columns if no keyword match is found."""
+    falling back to the first two numeric columns if no keyword match is found.
+    Excludes catalog/product-code columns (numeric-looking but not a usable
+    price or quantity) and sanity-checks the tests-per-kit column so an
+    implausible value (e.g. a 9-digit product code) is left blank rather than
+    shown as if it were real data -- the frontend then leaves that cell empty
+    for the user to fill in manually instead of misleading them."""
     import pandas as pd
     headers = list(df.columns)
-    name_col = _guess_column(headers, NAME_KEYWORDS)
-    price_col = _guess_column(headers, PRICE_KEYWORDS)
-    qty_col = _guess_column(headers, QTY_KEYWORDS)
+    is_excluded = lambda h: any(kw in str(h).strip().lower() for kw in EXCLUDE_KEYWORDS)
+    usable_headers = [h for h in headers if not is_excluded(h)]
+
+    name_col = _guess_column(usable_headers, NAME_KEYWORDS)
+    price_col = _guess_column(usable_headers, PRICE_KEYWORDS)
+    qty_col = _guess_column(usable_headers, QTY_KEYWORDS)
 
     numeric_cols = []
     if price_col is None or qty_col is None:
-        for h in headers:
+        for h in usable_headers:
             try:
                 if pd.to_numeric(df[h], errors="coerce").notna().sum() > 0:
                     numeric_cols.append(h)
@@ -1671,9 +1683,21 @@ def _rows_from_dataframe(df):
         remaining = [c for c in numeric_cols if c != price_col]
         if remaining:
             qty_col = remaining[0]
+
+    # Sanity check: a real "tests per kit" value is realistically 1-5,000.
+    # If the candidate qty column's values are mostly outside that range (e.g.
+    # a product-code column that slipped through), don't use it -- leave
+    # tests_per_kit blank rather than show a misleading number.
+    if qty_col is not None:
+        numeric_qty = pd.to_numeric(df[qty_col], errors="coerce").dropna()
+        if len(numeric_qty) > 0:
+            plausible_fraction = ((numeric_qty >= 1) & (numeric_qty <= 5000)).mean()
+            if plausible_fraction < 0.5:
+                qty_col = None
+
     if name_col is None:
-        non_numeric = [h for h in headers if h not in (price_col, qty_col)]
-        name_col = non_numeric[0] if non_numeric else headers[0]
+        non_numeric = [h for h in usable_headers if h not in (price_col, qty_col)]
+        name_col = non_numeric[0] if non_numeric else (usable_headers[0] if usable_headers else headers[0])
 
     results = []
     for _, row in df.iterrows():
