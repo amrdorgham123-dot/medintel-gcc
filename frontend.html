@@ -1786,12 +1786,13 @@ async function renderProducts(){
       const mediaHtml = p.image_url
         ? `<img src="${p.image_url}" alt="${p.product_name}" loading="lazy" onerror="this.parentElement.innerHTML='<svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.6\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'>${productIcon(p.product_type)}</svg>'">`
         : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${productIcon(p.product_type)}</svg>`;
+      const tier = (p.confidence_tier || 'unverified');
       return `
       <div class="pcard">
-        <label class="pcard-check" onclick="event.stopPropagation()">
-          <input type="checkbox" ${compareIds.includes(p.id)?'checked':''} onchange="toggleCompare(${p.id})">
+        <label class="pcard-check">
+          <input type="checkbox" data-compare-id="${p.id}" ${compareIds.includes(p.id)?'checked':''}>
         </label>
-        <div class="pcard-clickzone" onclick="openProductDetailById(${p.id})">
+        <div class="pcard-clickzone" data-open-id="${p.id}">
           <div class="pcard-media">${mediaHtml}</div>
           <div class="pcard-body">
             <div class="pcard-type">${originFlag(p.origin)}${p.product_type||''}</div>
@@ -1800,12 +1801,24 @@ async function renderProducts(){
             ${specs.length ? `<div class="pcard-specs">${specs.map(s=>`<span class="spec-chip">${s}</span>`).join('')}</div>` : ''}
             <div class="pcard-desc">${p.description}</div>
             ${p.certifications ? `<div class="pcard-certs">${certBadges(p.certifications)}</div>` : ''}
-            <div class="pcard-foot">${badge(p.confidence_tier, p.confidence_tier.toUpperCase())}<span class="pcard-cat">${p.category}</span></div>
-            <button class="pcard-view-btn" onclick="event.stopPropagation();openProductDetailById(${p.id})">View full specs →</button>
+            <div class="pcard-foot">${badge(tier, tier.toUpperCase())}<span class="pcard-cat">${p.category}</span></div>
+            <button type="button" class="pcard-view-btn" data-open-id="${p.id}">View full specs →</button>
           </div>
         </div>
       </div>`;
     }).join('');
+    // Event delegation: one listener on the grid handles every card, regardless
+    // of how many cards re-render -- more robust than per-card inline onclick
+    // attributes, which can be fragile depending on browser/extension setups.
+    if(!grid.dataset.delegated){
+      grid.dataset.delegated = '1';
+      grid.addEventListener('click', function(e){
+        const checkbox = e.target.closest('[data-compare-id]');
+        if(checkbox){ toggleCompare(parseInt(checkbox.dataset.compareId, 10)); return; }
+        const opener = e.target.closest('[data-open-id]');
+        if(opener){ openProductDetailById(parseInt(opener.dataset.openId, 10)); }
+      });
+    }
     updateCompareBar();
   }
   document.getElementById('search').oninput = paint;
@@ -1872,6 +1885,9 @@ async function renderMarketEvents(){
 }
 
 (function boot(){
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+  }
   const params = new URLSearchParams(window.location.search);
   const companyId = params.get('company');
   const distributorName = params.get('distributor');
