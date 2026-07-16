@@ -11,6 +11,7 @@ from typing import Literal, Any
 import sqlite3
 import os
 import json
+import base64
 import logging
 import bcrypt
 import jwt
@@ -1742,3 +1743,351 @@ async def parse_price_list(file: UploadFile = File(...)):
 
     logger.info(f"POST /parse-price-list -> extracted {len(items)} line items from {filename}")
     return {"filename": file.filename, "items": items[:200], "warnings": warnings}
+
+# ---------------- Quotation Generator (brochure parsing + letterhead + docx output) ----------------
+
+@app.post("/parse-brochure")
+async def parse_brochure(file: UploadFile = File(...)):
+    """Extracts a device name, manufacturer, an overview/feature bullet list,
+    and a specs table from an uploaded product brochure PDF, for pre-filling
+    the Quotation Generator. Heuristic and PDF-only (brochures are almost
+    always distributed as PDF) -- the frontend lets the user review/edit
+    everything before generating the final quotation."""
+    filename = (file.filename or "").lower()
+    if not filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Please upload a PDF brochure")
+    content = await file.read()
+    if len(content) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 20MB)")
+
+    import io
+    import pandas as pd
+    import pdfplumber
+
+    device_name = ""
+    manufacturer = ""
+    overview_bullets = []
+    specs = []
+
+    try:
+        with pdfplumber.open(io.BytesIO(content)) as pdf:
+            first_page_text = pdf.pages[0].extract_text() or "" if pdf.pages else ""
+            lines = [l.strip() for l in first_page_text.split("\n") if l.strip()]
+            # Heuristic: the device name is usually one of the first few short,
+            # title-cased lines on page 1 that isn't a company name/address/date.
+            skip_markers = ["attieh", "jeddah", "saudi", "rfq", "ref", "page", "attn", "2026", "2025", "2027"]
+            for l in lines[:12]:
+                if len(l) < 60 and not any(m in l.lower() for m in skip_markers) and any(c.isalpha() for c in l):
+                    device_name = l
+                    break
+
+            # Manufacturer can appear on any page (often near the pricing table) --
+            # search every page's text for a "Manufacturer:" line or a known brand name.
+            known_brands = ["snibe", "roche", "abbott", "sysmex", "mindray", "siemens", "beckman",
+                             "bio-rad", "biorad", "ortho", "bd ", "diasorin", "werfen"]
+            for page in pdf.pages:
+                page_text = page.extract_text() or ""
+                for l in page_text.split("\n"):
+                    l = l.strip()
+                    if "manufacturer" in l.lower():
+                        manufacturer = l.split(":", 1)[-1].strip() if ":" in l else l
+                        break
+                    if any(l.lower().startswith(b) for b in known_brands):
+                        manufacturer = l
+                        break
+                if manufacturer:
+                    break
+
+            noise_markers = ["attieh", "jeddah", "saudi arabia", "rfq", "our ref", "no of page",
+                              "attn:", "www.", "email", "unified number", "paid-up capital",
+                              device_name.lower()] if device_name else \
+                             ["attieh", "jeddah", "saudi arabia", "rfq", "our ref", "no of page",
+                              "attn:", "www.", "email", "unified number", "paid-up capital"]
+            import re as _re
+            date_pattern = _re.compile(r"\b\d{1,2}\s*(st|nd|rd|th)?\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)", _re.I)
+
+            for page in pdf.pages[:2]:
+                text = page.extract_text() or ""
+                for l in text.split("\n"):
+                    l = l.strip()
+                    if len(l) <= 15 or len(l) >= 140:
+                        continue
+                    if l.lower().startswith(("category", "attieh", "www.", "email")):
+                        continue
+                    if any(m in l.lower() for m in noise_markers):
+                        continue
+                    if date_pattern.search(l):
+                        continue
+                    if l in overview_bullets or any(k in l for k in ["|", "SAR", "C/N"]):
+                        continue
+                    overview_bullets.append(l)
+                if len(overview_bullets) > 20:
+                    break
+            overview_bullets = overview_bullets[:14]
+
+            for page in pdf.pages:
+                for table in page.extract_tables():
+                    if not table or len(table) < 2:
+                        continue
+                    header = [str(h or "").strip().lower() for h in table[0]]
+                    if any("categor" in h for h in header) or any("detail" in h for h in header):
+                        for row in table[1:]:
+                            if len(row) >= 2 and row[0] and row[1]:
+                                specs.append({"key": str(row[0]).strip(), "value": str(row[1]).strip()})
+    except Exception as e:
+        logger.error(f"parse_brochure failed for {filename}: {e}")
+        raise HTTPException(status_code=422, detail=f"Could not parse this brochure: {e}")
+
+    logger.info(f"POST /parse-brochure -> extracted device='{device_name}', {len(specs)} specs from {filename}")
+    return {
+        "filename": file.filename,
+        "device_name": device_name,
+        "manufacturer": manufacturer,
+        "overview": overview_bullets,
+        "specs": specs,
+    }
+
+@app.post("/upload-letterhead")
+async def upload_letterhead(file: UploadFile = File(...)):
+    """Stores the company logo (as base64 in the database, so it survives
+    redeploys the same way all other MedForsa GCC data does) for reuse in
+    generated quotations."""
+    content = await file.read()
+    if len(content) > 3 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Logo file too large (max 3MB)")
+    ext = (file.filename or "").split(".")[-1].lower()
+    if ext not in ("png", "jpg", "jpeg"):
+        raise HTTPException(status_code=400, detail="Please upload a PNG or JPG logo")
+    b64 = base64.b64encode(content).decode("ascii")
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO company_settings (key, value) VALUES ('letterhead_logo', ?) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (f"data:image/{ext};base64,{b64}",)
+    )
+    conn.execute(
+        "INSERT INTO company_settings (key, value) VALUES ('letterhead_logo_ext', ?) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (ext,)
+    )
+    conn.commit()
+    conn.close()
+    logger.info("POST /upload-letterhead -> logo saved")
+    return {"status": "saved"}
+
+@app.get("/company-settings")
+def get_company_settings():
+    conn = get_conn()
+    rows = conn.execute("SELECT key, value FROM company_settings").fetchall()
+    conn.close()
+    settings = {r["key"]: r["value"] for r in rows}
+    return {"has_logo": "letterhead_logo" in settings, "company_name": settings.get("company_name", "")}
+
+class QuotationRequest(BaseModel):
+    device_name: str
+    manufacturer: str | None = None
+    overview: list[str] = []
+    specs: list[dict] = []
+    client_name: str | None = None
+    client_location: str | None = None
+    quotation_ref: str | None = None
+    years: int = 3
+    total_tests: int = 0
+    price_per_test: float = 0.0
+    total_deal_value: float = 0.0
+    vat_pct: float = 15.0
+    validity: str = "2 months from the date of quotation."
+    delivery: str = "30 days from the date of firm Purchase Order"
+    warranty: str = "As per manufacturer's standard warranty terms."
+    installation: str = "By certified service engineer on site."
+    power_rating: str = "220V/60Hz"
+    payment: str = "Payment will be arranged under the reagent deal."
+    prepared_by: str | None = None
+    prepared_by_title: str | None = None
+    approved_by: str | None = None
+    approved_by_title: str | None = None
+
+@app.post("/generate-quotation")
+def generate_quotation(payload: QuotationRequest):
+    from docx import Document
+    from docx.shared import Pt, Inches, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.enum.table import WD_TABLE_ALIGNMENT
+    import io
+
+    conn = get_conn()
+    logo_row = conn.execute("SELECT value FROM company_settings WHERE key = 'letterhead_logo'").fetchone()
+    conn.close()
+
+    doc = Document()
+    for section in doc.sections:
+        section.left_margin = Inches(0.7)
+        section.right_margin = Inches(0.7)
+
+    navy = RGBColor(0x1A, 0x2B, 0x6B)
+
+    if logo_row and logo_row["value"]:
+        try:
+            header, b64data = logo_row["value"].split(",", 1)
+            logo_bytes = base64.b64decode(b64data)
+            p = doc.add_paragraph()
+            run = p.add_run()
+            run.add_picture(io.BytesIO(logo_bytes), width=Inches(1.6))
+        except Exception as e:
+            logger.warning(f"Could not embed letterhead logo: {e}")
+
+    date_p = doc.add_paragraph()
+    date_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    date_run = date_p.add_run(datetime.utcnow().strftime("%d %b %Y"))
+    date_run.font.size = Pt(10); date_run.font.bold = True
+
+    if payload.quotation_ref:
+        ref_p = doc.add_paragraph()
+        ref_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        ref_run = ref_p.add_run(f"Our Ref.: {payload.quotation_ref}")
+        ref_run.font.size = Pt(9.5)
+
+    if payload.client_name:
+        client_p = doc.add_paragraph()
+        client_run = client_p.add_run(payload.client_name)
+        client_run.font.bold = True; client_run.font.size = Pt(11)
+        if payload.client_location:
+            loc_p = doc.add_paragraph()
+            loc_run = loc_p.add_run(payload.client_location)
+            loc_run.font.size = Pt(10)
+
+    doc.add_paragraph()
+    title_p = doc.add_paragraph()
+    title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    title_run = title_p.add_run(payload.device_name)
+    title_run.font.bold = True; title_run.font.size = Pt(15); title_run.font.color.rgb = navy
+    title_run.font.underline = True
+    if payload.manufacturer:
+        mfr_p = doc.add_paragraph()
+        mfr_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        mfr_run = mfr_p.add_run(payload.manufacturer)
+        mfr_run.font.size = Pt(10.5); mfr_run.font.italic = True
+
+    if payload.overview:
+        doc.add_paragraph()
+        ov_head = doc.add_paragraph()
+        ov_head_run = ov_head.add_run("Overview")
+        ov_head_run.font.bold = True; ov_head_run.font.size = Pt(12)
+        for b in payload.overview:
+            bullet_p = doc.add_paragraph(style="List Bullet")
+            bullet_run = bullet_p.add_run(b)
+            bullet_run.font.size = Pt(10)
+
+    if payload.specs:
+        doc.add_paragraph()
+        spec_head = doc.add_paragraph()
+        spec_head_run = spec_head.add_run("Summary")
+        spec_head_run.font.bold = True; spec_head_run.font.size = Pt(12)
+        table = doc.add_table(rows=1, cols=2)
+        table.style = "Table Grid"
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        hdr = table.rows[0].cells
+        hdr[0].text = "Category"; hdr[1].text = "Details"
+        for cell in hdr:
+            for p in cell.paragraphs:
+                for r in p.runs:
+                    r.font.bold = True; r.font.size = Pt(9.5)
+        for spec in payload.specs:
+            row = table.add_row().cells
+            row[0].text = str(spec.get("key", ""))
+            row[1].text = str(spec.get("value", ""))
+            for cell in row:
+                for p in cell.paragraphs:
+                    for r in p.runs:
+                        r.font.size = Pt(9.5)
+
+    doc.add_paragraph()
+    deal_head = doc.add_paragraph()
+    deal_head_run = deal_head.add_run(f"Contract will be ready after acceptance the prices below — {payload.device_name} Reagent Deal")
+    deal_head_run.font.bold = True; deal_head_run.font.size = Pt(11)
+    price_note = doc.add_paragraph()
+    price_note_run = price_note.add_run(f"Price / test: {payload.price_per_test:.2f} SAR")
+    price_note_run.font.bold = True; price_note_run.font.size = Pt(10.5)
+
+    ptable = doc.add_table(rows=1, cols=5)
+    ptable.style = "Table Grid"
+    phdr = ptable.rows[0].cells
+    for i, label in enumerate(["C/N", "Description", "Qty", "U/Price", "T/Price (SAR)"]):
+        phdr[i].text = label
+        for p in phdr[i].paragraphs:
+            for r in p.runs:
+                r.font.bold = True; r.font.size = Pt(9.5)
+
+    r1 = ptable.add_row().cells
+    r1[0].text = "1"; r1[1].text = f"{payload.device_name} — Fully automated analyzer with computer and printer"
+    r1[2].text = "1"; r1[3].text = "FOC"; r1[4].text = "FOC"
+
+    r2 = ptable.add_row().cells
+    r2[0].text = "2"
+    r2[1].text = f"{payload.total_tests:,} tests / {payload.years} years as a reagent deal"
+    r2[2].text = f"{payload.total_tests:,}"
+    r2[3].text = f"{payload.price_per_test:.2f}"
+    r2[4].text = f"{payload.total_deal_value:,.2f}"
+
+    vat_amount = payload.total_deal_value * (payload.vat_pct / 100)
+    r3 = ptable.add_row().cells
+    r3[0].text = ""; r3[1].text = f"VAT {payload.vat_pct:.0f}%"
+    r3[2].text = ""; r3[3].text = ""; r3[4].text = f"{vat_amount:,.2f}"
+
+    r4 = ptable.add_row().cells
+    r4[0].text = ""; r4[1].text = "Net Total (SAR)"
+    r4[2].text = ""; r4[3].text = ""
+    net_total_run_cell = r4[4]
+    net_total_run_cell.text = f"{(payload.total_deal_value + vat_amount):,.2f}"
+    for p in r4[1].paragraphs + net_total_run_cell.paragraphs:
+        for r in p.runs:
+            r.font.bold = True
+
+    doc.add_paragraph()
+    terms = [
+        ("Validity", payload.validity),
+        ("Delivery", payload.delivery),
+        ("Warranty", payload.warranty),
+        ("Installation", payload.installation),
+        ("Power Rating", payload.power_rating),
+        ("Payment", payload.payment),
+    ]
+    ttable = doc.add_table(rows=0, cols=2)
+    ttable.style = "Table Grid"
+    for label, value in terms:
+        row = ttable.add_row().cells
+        row[0].text = label; row[1].text = value
+        for p in row[0].paragraphs:
+            for r in p.runs:
+                r.font.bold = True; r.font.size = Pt(9.5)
+        for p in row[1].paragraphs:
+            for r in p.runs:
+                r.font.size = Pt(9.5)
+
+    doc.add_paragraph()
+    sig_table = doc.add_table(rows=1, cols=2)
+    sig_left, sig_right = sig_table.rows[0].cells
+    if payload.prepared_by:
+        p = sig_left.paragraphs[0]
+        p.add_run("Prepared by:\n").font.bold = True
+        p.add_run(payload.prepared_by + "\n")
+        if payload.prepared_by_title:
+            p.add_run(payload.prepared_by_title)
+    if payload.approved_by:
+        p = sig_right.paragraphs[0]
+        p.add_run("Approved by:\n").font.bold = True
+        p.add_run(payload.approved_by + "\n")
+        if payload.approved_by_title:
+            p.add_run(payload.approved_by_title)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    safe_name = "".join(c for c in payload.device_name if c.isalnum() or c in " -_").strip()
+    safe_name = safe_name.replace(" ", "_")[:60] or "quotation"
+    logger.info(f"POST /generate-quotation -> generated quotation for '{payload.device_name}'")
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="Quotation_{safe_name}.docx"'}
+    )

@@ -225,6 +225,44 @@
       <div id="rentalResults"></div>
       <div id="maintTableWrap" style="margin-top:18px;"></div>
     </div>
+
+    <div class="results-card" style="border-color:var(--gold);">
+      <h3 style="color:var(--gold);">📄 Generate Professional Quotation</h3>
+      <p class="field-hint" style="margin-bottom:16px; font-size:13px;">Turns this deal into a formatted, downloadable, editable Word (.docx) quotation — with the device brochure specs and your company letterhead.</p>
+
+      <div class="upload-box">
+        <input type="file" id="brochureFile" accept=".pdf" style="display:none;">
+        <button type="button" class="upload-btn" id="brochureBtn">📎 Upload Device Brochure (PDF)</button>
+        <div class="upload-hint">Extracts the device name, manufacturer, features, and specs table automatically.</div>
+        <div id="brochureStatus"></div>
+      </div>
+
+      <div class="upload-box">
+        <input type="file" id="letterheadFile" accept=".png,.jpg,.jpeg" style="display:none;">
+        <button type="button" class="upload-btn" id="letterheadBtn">🏢 Upload Company Logo (once — saved for all future quotations)</button>
+        <div id="letterheadStatus" class="upload-hint"></div>
+      </div>
+
+      <div class="calc-grid" style="margin-top:10px;">
+        <div>
+          <div class="field-row"><label>Device name</label><input type="text" id="q-device-name" placeholder="e.g. Biossays 240 Plus" style="width:100%;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--paper);font-family:inherit;font-size:13px;"></div>
+          <div class="field-row"><label>Manufacturer</label><input type="text" id="q-manufacturer" placeholder="e.g. Snibe – China" style="width:100%;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--paper);font-family:inherit;font-size:13px;"></div>
+          <div class="field-row"><label>Client / lab name</label><input type="text" id="q-client-name" placeholder="e.g. Advanced MED-LAB" style="width:100%;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--paper);font-family:inherit;font-size:13px;"></div>
+          <div class="field-row"><label>Client location</label><input type="text" id="q-client-location" placeholder="e.g. Jeddah, Saudi Arabia" style="width:100%;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--paper);font-family:inherit;font-size:13px;"></div>
+          <div class="field-row"><label>Quotation reference</label><input type="text" id="q-ref" placeholder="e.g. AMQ/TK/AE/26-05-Q09" style="width:100%;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--paper);font-family:inherit;font-size:13px;"></div>
+        </div>
+        <div>
+          <div class="field-row"><label>Prepared by</label><input type="text" id="q-prepared-by" style="width:100%;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--paper);font-family:inherit;font-size:13px;"></div>
+          <div class="field-row"><label>Prepared by — title</label><input type="text" id="q-prepared-title" placeholder="e.g. IVD-Product Specialist" style="width:100%;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--paper);font-family:inherit;font-size:13px;"></div>
+          <div class="field-row"><label>Approved by (optional)</label><input type="text" id="q-approved-by" style="width:100%;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--paper);font-family:inherit;font-size:13px;"></div>
+          <div class="field-row"><label>Approved by — title</label><input type="text" id="q-approved-title" style="width:100%;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--paper);font-family:inherit;font-size:13px;"></div>
+          <div class="field-row"><label>VAT %</label><input type="number" id="q-vat" value="15" min="0" step="0.5"></div>
+        </div>
+      </div>
+
+      <button type="button" class="upload-btn" id="generateQuoteBtn" style="background:var(--gold-dim); color:var(--gold); border-color:rgba(255,180,67,.4); margin-top:6px;">📥 Generate &amp; Download Quotation (.docx)</button>
+      <div id="quoteStatus" class="upload-hint" style="margin-top:8px;"></div>
+    </div>
   </div>
 
   <div class="no-print" style="text-align:right;">
@@ -448,6 +486,141 @@
     }catch(err){
       uploadStatus.className = 'upload-status error';
       uploadStatus.textContent = 'Error: ' + err.message;
+    }
+  });
+
+  // ---- Quotation Generator ----
+  let parsedBrochure = { overview: [], specs: [] };
+
+  const brochureFile = document.getElementById('brochureFile');
+  const brochureBtn = document.getElementById('brochureBtn');
+  const brochureStatus = document.getElementById('brochureStatus');
+  brochureBtn.addEventListener('click', function(){ brochureFile.click(); });
+  brochureFile.addEventListener('change', async function(){
+    const file = brochureFile.files[0];
+    if(!file) return;
+    brochureStatus.className = 'upload-status';
+    brochureStatus.textContent = 'Reading brochure...';
+    const formData = new FormData();
+    formData.append('file', file);
+    try{
+      const res = await fetch('/parse-brochure', {method:'POST', body: formData});
+      if(!res.ok){
+        const err = await res.json().catch(()=>({detail:'Upload failed'}));
+        throw new Error(err.detail || 'Upload failed');
+      }
+      const data = await res.json();
+      document.getElementById('q-device-name').value = data.device_name || '';
+      document.getElementById('q-manufacturer').value = data.manufacturer || '';
+      parsedBrochure.overview = data.overview || [];
+      parsedBrochure.specs = data.specs || [];
+      brochureStatus.className = 'upload-status';
+      brochureStatus.textContent = '✓ Extracted "' + (data.device_name || 'device') + '" — ' + parsedBrochure.specs.length + ' specs, ' + parsedBrochure.overview.length + ' feature bullets. Review the device name/manufacturer above, then generate the quotation below.';
+    }catch(err){
+      brochureStatus.className = 'upload-status error';
+      brochureStatus.textContent = 'Error: ' + err.message;
+    }
+  });
+
+  const letterheadFile = document.getElementById('letterheadFile');
+  const letterheadBtn = document.getElementById('letterheadBtn');
+  const letterheadStatus = document.getElementById('letterheadStatus');
+  letterheadBtn.addEventListener('click', function(){ letterheadFile.click(); });
+  letterheadFile.addEventListener('change', async function(){
+    const file = letterheadFile.files[0];
+    if(!file) return;
+    letterheadStatus.textContent = 'Uploading logo...';
+    const formData = new FormData();
+    formData.append('file', file);
+    try{
+      const res = await fetch('/upload-letterhead', {method:'POST', body: formData});
+      if(!res.ok){
+        const err = await res.json().catch(()=>({detail:'Upload failed'}));
+        throw new Error(err.detail || 'Upload failed');
+      }
+      letterheadStatus.textContent = '✓ Logo saved — it will now appear on every quotation you generate.';
+    }catch(err){
+      letterheadStatus.textContent = 'Error: ' + err.message;
+    }
+  });
+
+  (async function checkExistingLogo(){
+    try{
+      const res = await fetch('/company-settings');
+      const data = await res.json();
+      if(data.has_logo) letterheadStatus.textContent = '✓ A company logo is already saved and will be used.';
+    }catch(e){ /* non-critical */ }
+  })();
+
+  document.getElementById('generateQuoteBtn').addEventListener('click', async function(){
+    const quoteStatus = document.getElementById('quoteStatus');
+    const deviceName = document.getElementById('q-device-name').value.trim();
+    if(!deviceName){
+      quoteStatus.className = 'upload-status error';
+      quoteStatus.textContent = 'Please enter (or upload a brochure for) the device name first.';
+      return;
+    }
+    // Pull the current deal numbers directly from the calculator state.
+    const years = parseInt(document.getElementById('rr-years').value, 10) || 3;
+    const monthlyVolume = num('rr-volume');
+    const totalTests = monthlyVolume * years * 12;
+    const instrumentCost = num('rr-instrument');
+    const kitPrice = num('rr-kit-price');
+    const kitTests = num('rr-kit-tests') || 1;
+    const marginPct = num('rr-margin');
+    const maintStartPct = num('rr-maint-pct');
+    const rawCostPerTest = kitPrice / kitTests;
+    const totalReagentCost = rawCostPerTest * totalTests;
+    let totalMaintCost = 0;
+    for(let y = 1; y <= years; y++){ totalMaintCost += instrumentCost * (maintStartPct * y / 100); }
+    const totalCostToRecover = (instrumentCost + totalReagentCost + totalMaintCost) * (1 + marginPct/100);
+    const pricePerTest = totalTests > 0 ? totalCostToRecover / totalTests : 0;
+    const totalDealValue = pricePerTest * totalTests;
+
+    const payload = {
+      device_name: deviceName,
+      manufacturer: document.getElementById('q-manufacturer').value.trim(),
+      overview: parsedBrochure.overview,
+      specs: parsedBrochure.specs,
+      client_name: document.getElementById('q-client-name').value.trim(),
+      client_location: document.getElementById('q-client-location').value.trim(),
+      quotation_ref: document.getElementById('q-ref').value.trim(),
+      years: years,
+      total_tests: Math.round(totalTests),
+      price_per_test: pricePerTest,
+      total_deal_value: totalDealValue,
+      vat_pct: num('q-vat'),
+      prepared_by: document.getElementById('q-prepared-by').value.trim(),
+      prepared_by_title: document.getElementById('q-prepared-title').value.trim(),
+      approved_by: document.getElementById('q-approved-by').value.trim(),
+      approved_by_title: document.getElementById('q-approved-title').value.trim(),
+    };
+
+    quoteStatus.className = 'upload-status';
+    quoteStatus.textContent = 'Generating quotation...';
+    try{
+      const res = await fetch('/generate-quotation', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok){
+        const err = await res.json().catch(()=>({detail:'Generation failed'}));
+        throw new Error(err.detail || 'Generation failed');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Quotation_' + deviceName.replace(/[^a-z0-9]+/gi, '_') + '.docx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      quoteStatus.textContent = '✓ Quotation downloaded. Open it in Word to review or edit.';
+    }catch(err){
+      quoteStatus.className = 'upload-status error';
+      quoteStatus.textContent = 'Error: ' + err.message;
     }
   });
 
