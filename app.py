@@ -3,7 +3,7 @@ MedForsa GCC API — minimal real backend.
 Run: uvicorn app:app --reload --port 8420
 Docs auto-generated at: http://127.0.0.1:8420/docs
 """
-from fastapi import FastAPI, HTTPException, Header, Depends, Request
+from fastapi import FastAPI, HTTPException, Header, Depends, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field, EmailStr
@@ -1614,3 +1614,131 @@ async def whatsapp_webhook(request: Request):
     conn.close()
     logger.info(f"POST /whatsapp-webhook -> replied to {from_number}")
     return _twiml_response(reply_text)
+
+# ---------------- Price List Parser (for the Deal & TCO Calculator) ----------------
+
+PRICE_KEYWORDS = ["price", "cost", "unit price", "سعر", "التكلفه", "التكلفة", "قيمه", "قيمة"]
+QTY_KEYWORDS = ["test", "tests", "qty", "quantity", "pack", "kit size", "size", "اختبار",
+                "اختبارات", "عدد", "عبوه", "عبوة", "حجم"]
+NAME_KEYWORDS = ["name", "product", "item", "kit", "description", "اسم", "منتج", "الصنف", "الكيت"]
+
+def _guess_column(headers, keywords):
+    """Best-effort column detection: returns the header string whose lowercase
+    text contains one of the given keywords, or None if no match is found."""
+    for h in headers:
+        h_norm = str(h).strip().lower()
+        for kw in keywords:
+            if kw.lower() in h_norm:
+                return h
+    return None
+
+def _extract_numeric(value):
+    """Pulls a float out of a cell that might contain currency symbols, commas,
+    or Arabic digits mixed with text (e.g. 'SAR 1,200.00' -> 1200.0)."""
+    import re
+    if value is None:
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    s = s.replace(",", "").replace("SAR", "").replace("ريال", "").strip()
+    m = re.search(r"-?\d+(?:\.\d+)?", s)
+    return float(m.group()) if m else None
+
+def _rows_from_dataframe(df):
+    """Given a pandas DataFrame with a header row, best-effort extract
+    {name, price, tests_per_kit} for each row using keyword-matched columns,
+    falling back to the first two numeric columns if no keyword match is found."""
+    import pandas as pd
+    headers = list(df.columns)
+    name_col = _guess_column(headers, NAME_KEYWORDS)
+    price_col = _guess_column(headers, PRICE_KEYWORDS)
+    qty_col = _guess_column(headers, QTY_KEYWORDS)
+
+    numeric_cols = []
+    if price_col is None or qty_col is None:
+        for h in headers:
+            try:
+                if pd.to_numeric(df[h], errors="coerce").notna().sum() > 0:
+                    numeric_cols.append(h)
+            except Exception:
+                continue
+
+    if price_col is None and numeric_cols:
+        price_col = numeric_cols[0]
+    if qty_col is None:
+        remaining = [c for c in numeric_cols if c != price_col]
+        if remaining:
+            qty_col = remaining[0]
+    if name_col is None:
+        non_numeric = [h for h in headers if h not in (price_col, qty_col)]
+        name_col = non_numeric[0] if non_numeric else headers[0]
+
+    results = []
+    for _, row in df.iterrows():
+        name = str(row.get(name_col, "")).strip() if name_col else ""
+        price = _extract_numeric(row.get(price_col)) if price_col else None
+        qty = _extract_numeric(row.get(qty_col)) if qty_col else None
+        if not name or name.lower() == "nan":
+            continue
+        if price is None and qty is None:
+            continue
+        results.append({"name": name, "price": price, "tests_per_kit": qty})
+    return results
+
+@app.post("/parse-price-list")
+async def parse_price_list(file: UploadFile = File(...)):
+    """Accepts a PDF or Excel price list and returns a best-effort extraction
+    of {name, price, tests_per_kit} line items, for the Deal & TCO Calculator's
+    'Upload Price List' feature. Extraction is heuristic (keyword-matched
+    columns with a numeric-column fallback) since real-world price list layouts
+    vary widely -- the frontend lets the user review and pick the right row
+    rather than trusting the parse blindly."""
+    filename = (file.filename or "").lower()
+    content = await file.read()
+    if len(content) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 15MB)")
+
+    import io
+    import pandas as pd
+    items = []
+    warnings = []
+
+    try:
+        if filename.endswith((".xlsx", ".xls")):
+            xls = pd.ExcelFile(io.BytesIO(content))
+            for sheet_name in xls.sheet_names:
+                df = xls.parse(sheet_name)
+                df = df.dropna(axis=0, how="all")
+                if df.empty:
+                    continue
+                sheet_items = _rows_from_dataframe(df)
+                items.extend(sheet_items)
+            if not items:
+                warnings.append("No recognizable price/quantity columns found in the spreadsheet.")
+
+        elif filename.endswith(".pdf"):
+            import pdfplumber
+            with pdfplumber.open(io.BytesIO(content)) as pdf:
+                found_table = False
+                for page in pdf.pages:
+                    tables = page.extract_tables()
+                    for table in tables:
+                        if not table or len(table) < 2:
+                            continue
+                        header, rows = table[0], table[1:]
+                        df = pd.DataFrame(rows, columns=header)
+                        items.extend(_rows_from_dataframe(df))
+                        found_table = True
+                if not found_table:
+                    warnings.append("No tables detected in the PDF -- try exporting the price list as Excel/CSV for more reliable extraction, or enter the kit price and tests-per-kit manually.")
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file type -- please upload a .xlsx, .xls, or .pdf file")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"parse_price_list failed for {filename}: {e}")
+        raise HTTPException(status_code=422, detail=f"Could not parse this file: {e}")
+
+    logger.info(f"POST /parse-price-list -> extracted {len(items)} line items from {filename}")
+    return {"filename": file.filename, "items": items[:200], "warnings": warnings}

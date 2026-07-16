@@ -94,6 +94,27 @@
   .maint-table th{color:var(--muted); font-family:'IBM Plex Mono'; font-size:10.5px; text-transform:uppercase;}
   .maint-table td.val{font-family:'IBM Plex Mono'; text-align:right;}
   .maint-table tfoot td{font-weight:700; color:var(--assay); border-top:2px solid var(--assay); border-bottom:none;}
+
+  .upload-box{
+    background:var(--ink); border:1px dashed var(--line); border-radius:12px; padding:16px; margin-bottom:18px;
+  }
+  .upload-btn{
+    background:var(--assay-dim); color:var(--assay); border:1px solid rgba(31,224,206,.35); border-radius:9px;
+    padding:10px 16px; font-family:inherit; font-size:13.5px; font-weight:600; cursor:pointer; width:100%;
+  }
+  .upload-btn:hover{background:var(--assay); color:var(--ink);}
+  .upload-hint{font-size:11px; color:var(--muted); margin-top:8px; line-height:1.5;}
+  .upload-status{font-size:12.5px; margin-top:10px; color:var(--muted);}
+  .upload-status.error{color:var(--plasma);}
+  .extracted-table{width:100%; border-collapse:collapse; font-size:12px; margin-top:12px;}
+  .extracted-table th{color:var(--muted); font-family:'IBM Plex Mono'; font-size:9.5px; text-transform:uppercase; text-align:left; padding:6px 8px; border-bottom:1px solid var(--line);}
+  .extracted-table td{padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  .extracted-table tr:hover{background:rgba(31,224,206,.05);}
+  .use-row-btn{
+    background:var(--surface-2); color:var(--assay); border:1px solid var(--line); border-radius:6px;
+    padding:5px 10px; font-family:inherit; font-size:11px; cursor:pointer;
+  }
+  .use-row-btn:hover{border-color:var(--assay);}
 </style>
 </head>
 <body>
@@ -184,6 +205,13 @@
       </div>
       <div class="device-card b">
         <h3><span class="dot"></span>Kit &amp; Maintenance</h3>
+        <div class="upload-box" id="uploadBox">
+          <input type="file" id="priceListFile" accept=".pdf,.xlsx,.xls" style="display:none;">
+          <button type="button" class="upload-btn" id="uploadBtn">📁 Upload Price List (PDF/Excel)</button>
+          <div class="upload-hint">We'll extract kit names, prices, and tests-per-kit automatically — you pick the right row.</div>
+          <div id="uploadStatus"></div>
+          <div id="uploadResultsWrap"></div>
+        </div>
         <div class="field-row"><label>Kit price (SAR)</label><input type="number" id="rr-kit-price" value="1200" min="0"></div>
         <div class="field-row"><label>Tests per kit</label><input type="number" id="rr-kit-tests" value="300" min="1"></div>
         <div class="field-row"><label>Kit volume (mL, optional label only)</label><input type="number" id="rr-kit-volume" value="70" min="0"></div>
@@ -307,13 +335,19 @@
     const totalDealValue = pricePerTest * totalTests;
 
     let html = '';
+    html += '<div class="result-row" style="font-weight:700; color:var(--paper); border-bottom:none; padding-bottom:2px;"><span>Step 1 — Base price (reagents only, no maintenance or profit)</span><span></span></div>';
     html += '<div class="result-row"><span>Raw reagent cost per test (kit price ÷ tests per kit)</span><span class="val">' + fmt2(rawCostPerTest) + '</span></div>';
     html += '<div class="result-row"><span>Total committed tests over ' + years + '-year contract</span><span class="val">' + totalTests.toLocaleString() + ' tests</span></div>';
-    html += '<div class="result-row"><span>Total reagent (kit) cost over contract</span><span class="val">' + fmt(totalReagentCost) + '</span></div>';
-    html += '<div class="result-row"><span>Total escalating maintenance cost over contract</span><span class="val">' + fmt(totalMaintCost) + '</span></div>';
+    html += '<div class="result-row highlight"><span>Base contract value (reagents only)</span><span class="val">' + fmt(totalReagentCost) + '</span></div>';
+
+    html += '<div class="result-row" style="font-weight:700; color:var(--paper); border-bottom:none; padding-bottom:2px; margin-top:14px;"><span>Step 2 — Add instrument recovery + maintenance + margin</span><span></span></div>';
     html += '<div class="result-row"><span>Instrument cost to recover</span><span class="val">' + fmt(instrumentCost) + '</span></div>';
-    html += '<div class="result-row" style="border-top:2px solid var(--line); margin-top:6px; padding-top:14px;"><span>Total cost to recover' + (marginPct>0 ? ' (incl. ' + marginPct + '% margin)' : '') + '</span><span class="val">' + fmt(totalCostWithMargin) + '</span></div>';
-    html += '<div class="result-row highlight"><span>💰 Price per test to quote in the deal</span><span class="val">' + fmt2(pricePerTest) + '</span></div>';
+    html += '<div class="result-row"><span>Total escalating maintenance cost over contract</span><span class="val">' + fmt(totalMaintCost) + '</span></div>';
+    if(marginPct > 0){
+      html += '<div class="result-row"><span>Profit margin (' + marginPct + '%)</span><span class="val">' + fmt(totalCostWithMargin - totalCostToRecover) + '</span></div>';
+    }
+    html += '<div class="result-row" style="border-top:2px solid var(--line); margin-top:6px; padding-top:14px;"><span>Total cost to recover</span><span class="val">' + fmt(totalCostWithMargin) + '</span></div>';
+    html += '<div class="result-row highlight"><span>💰 Final price per test to quote in the deal</span><span class="val">' + fmt2(pricePerTest) + '</span></div>';
     html += '<div class="result-row highlight"><span>📄 Total deal / contract value (' + years + ' years)</span><span class="val">' + fmt(totalDealValue) + '</span></div>';
     document.getElementById('rentalResults').innerHTML = html;
 
@@ -324,6 +358,62 @@
     tableHtml += '</tbody><tfoot><tr><td colspan="2">Total maintenance over contract</td><td class="val">' + fmt(totalMaintCost) + '</td></tr></tfoot></table>';
     document.getElementById('maintTableWrap').innerHTML = tableHtml;
   }
+
+  // ---- Price list upload & parsing ----
+  const priceListFile = document.getElementById('priceListFile');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const uploadStatus = document.getElementById('uploadStatus');
+  const uploadResultsWrap = document.getElementById('uploadResultsWrap');
+
+  uploadBtn.addEventListener('click', function(){ priceListFile.click(); });
+
+  priceListFile.addEventListener('change', async function(){
+    const file = priceListFile.files[0];
+    if(!file) return;
+    uploadStatus.className = 'upload-status';
+    uploadStatus.textContent = 'Reading ' + file.name + '...';
+    uploadResultsWrap.innerHTML = '';
+    const formData = new FormData();
+    formData.append('file', file);
+    try{
+      const res = await fetch('/parse-price-list', {method:'POST', body: formData});
+      if(!res.ok){
+        const err = await res.json().catch(()=>({detail:'Upload failed'}));
+        throw new Error(err.detail || 'Upload failed');
+      }
+      const data = await res.json();
+      if(!data.items || !data.items.length){
+        uploadStatus.className = 'upload-status error';
+        uploadStatus.textContent = (data.warnings && data.warnings[0]) || 'No line items could be extracted from this file. Please enter the kit price and tests-per-kit manually.';
+        return;
+      }
+      uploadStatus.className = 'upload-status';
+      uploadStatus.textContent = 'Found ' + data.items.length + ' item(s) — click "Use" on the correct row:';
+      let tableHtml = '<table class="extracted-table"><thead><tr><th>Item</th><th>Price</th><th>Tests/Kit</th><th></th></tr></thead><tbody>';
+      data.items.forEach(function(item, i){
+        tableHtml += '<tr>' +
+          '<td>' + (item.name || '—') + '</td>' +
+          '<td>' + (item.price != null ? item.price : '—') + '</td>' +
+          '<td>' + (item.tests_per_kit != null ? item.tests_per_kit : '—') + '</td>' +
+          '<td><button type="button" class="use-row-btn" data-idx="' + i + '">Use →</button></td>' +
+          '</tr>';
+      });
+      tableHtml += '</tbody></table>';
+      uploadResultsWrap.innerHTML = tableHtml;
+      uploadResultsWrap.querySelectorAll('.use-row-btn').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          const item = data.items[parseInt(btn.dataset.idx, 10)];
+          if(item.price != null) document.getElementById('rr-kit-price').value = item.price;
+          if(item.tests_per_kit != null) document.getElementById('rr-kit-tests').value = item.tests_per_kit;
+          renderRental();
+          uploadStatus.textContent = 'Loaded "' + item.name + '" into the kit fields below.';
+        });
+      });
+    }catch(err){
+      uploadStatus.className = 'upload-status error';
+      uploadStatus.textContent = 'Error: ' + err.message;
+    }
+  });
 
   document.querySelectorAll('#paneTco input').forEach(function(el){ el.addEventListener('input', renderTco); });
   document.querySelectorAll('#paneRental input, #paneRental select').forEach(function(el){ el.addEventListener('input', renderRental); });
