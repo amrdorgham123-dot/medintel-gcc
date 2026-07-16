@@ -940,13 +940,25 @@ def compare_products(product_ids: str):
             WHERE cd.manufacturer_id = ?
         """, (p["manufacturer_id"],)).fetchall()
         p["distributors"] = [d["name"] for d in dists]
+        try:
+            p["specs"] = json.loads(p.get("specs_json") or "{}")
+        except (ValueError, TypeError):
+            p["specs"] = {}
         results.append(p)
     conn.close()
     if not results:
         raise HTTPException(status_code=404, detail="None of the requested product_ids were found")
     fields = ["product_name", "manufacturer_name", "origin", "category", "department", "product_type",
               "throughput", "sample_types", "certifications", "confidence_tier", "distributors", "description"]
-    return {"products": results, "comparison_fields": fields, "count": len(results)}
+    # Union of every structured spec key present across the compared products (in first-seen
+    # order), so the comparison table gains a row for each real spec attribute (e.g. "Throughput
+    # (single module)", "Cuvette capacity") without needing a fixed schema for every product type.
+    spec_keys = []
+    for p in results:
+        for k in p["specs"].keys():
+            if k not in spec_keys:
+                spec_keys.append(k)
+    return {"products": results, "comparison_fields": fields, "spec_fields": spec_keys, "count": len(results)}
 
 @app.get("/companies/{company_id}/insight")
 def company_insight(company_id: int):

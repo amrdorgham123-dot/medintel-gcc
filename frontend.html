@@ -347,6 +347,23 @@
   .compare-table th,.compare-table td{border:1px solid var(--border);padding:10px 12px;text-align:left;vertical-align:top;}
   .compare-table th{background:var(--ent-blue-soft);color:var(--ent-blue);font-weight:600;position:sticky;top:0;}
   .compare-table td.field-label{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;color:var(--ink-muted);background:var(--surface-sunk);white-space:nowrap;}
+  .compare-table tr.specs-divider td{background:var(--ent-blue-deep);color:#fff;font-weight:700;font-size:11px;letter-spacing:.5px;text-transform:uppercase;}
+  .report-print-header{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    #compare-report, #compare-report *{visibility:visible;}
+    #compare-report{position:absolute;top:0;left:0;width:100%;}
+    .no-print{display:none !important;}
+    .report-print-header{
+      display:flex; align-items:center; gap:14px; margin-bottom:18px; padding-bottom:14px;
+      border-bottom:2px solid #1a2b6b;
+    }
+    .report-logo{width:44px; height:44px;}
+    .report-title{font-size:19px; font-weight:800; color:#1a2b6b;}
+    .report-meta{font-size:11px; color:#666;}
+    .compare-table{font-size:11px;}
+    .compare-table th{background:#eef2fb !important; color:#1a2b6b !important;}
+  }
   .directory-layout{display:grid;grid-template-columns:270px 1fr;gap:0;border:1px solid var(--border);border-radius:14px;overflow:hidden;min-height:520px;}
   @media(max-width:760px){ .directory-layout{grid-template-columns:1fr;} }
   .directory-list{background:var(--surface-sunk);border-right:1px solid var(--border);overflow-y:auto;max-height:640px;}
@@ -1484,28 +1501,47 @@ async function renderCompare(){
       department:'Department', product_type:'Type', throughput:'Throughput', sample_types:'Sample types',
       certifications:'Certifications', confidence_tier:'Confidence', distributors:'KSA distributor(s)', description:'Description'
     };
+    const specFields = data.spec_fields || [];
     main.innerHTML = `
-      <p class="search-hint" style="margin-bottom:14px">Comparing ${data.count} products, side by side — every field pulled directly from verified records.</p>
-      <div class="compare-table-wrap">
-        <table class="compare-table">
-          <thead><tr><th>Field</th>${data.products.map(p=>`<th>${p.product_name}</th>`).join('')}</tr></thead>
-          <tbody>
-            ${data.comparison_fields.map(f => `
-              <tr>
-                <td class="field-label">${fieldLabels[f]||f}</td>
-                ${data.products.map(p => {
-                  let v = p[f];
-                  if(f==='origin') v = originFlag(v) + (v||'');
-                  else if(f==='confidence_tier') v = badge(v, (v||'').toUpperCase());
-                  else if(f==='distributors') v = (v && v.length) ? v.join(', ') : '<span style="color:var(--ink-muted)">Not on file</span>';
-                  else v = v || '<span style="color:var(--ink-muted)">—</span>';
-                  return `<td>${v}</td>`;
-                }).join('')}
-              </tr>`).join('')}
-          </tbody>
-        </table>
+      <div id="compare-report">
+        <div class="report-print-header">
+          <img src="/logo.svg" alt="MedForsa GCC" class="report-logo">
+          <div>
+            <div class="report-title">Product Comparison Report</div>
+            <div class="report-meta">Prepared via MedForsa GCC · ${new Date().toLocaleDateString()}</div>
+          </div>
+        </div>
+        <p class="search-hint no-print" style="margin-bottom:14px">Comparing ${data.count} products, side by side — every field pulled directly from verified records.</p>
+        <div class="compare-table-wrap">
+          <table class="compare-table">
+            <thead><tr><th>Field</th>${data.products.map(p=>`<th>${p.product_name}</th>`).join('')}</tr></thead>
+            <tbody>
+              ${data.comparison_fields.map(f => `
+                <tr>
+                  <td class="field-label">${fieldLabels[f]||f}</td>
+                  ${data.products.map(p => {
+                    let v = p[f];
+                    if(f==='origin') v = originFlag(v) + (v||'');
+                    else if(f==='confidence_tier') v = badge(v, (v||'').toUpperCase());
+                    else if(f==='distributors') v = (v && v.length) ? v.join(', ') : '<span style="color:var(--ink-muted)">Not on file</span>';
+                    else v = v || '<span style="color:var(--ink-muted)">—</span>';
+                    return `<td>${v}</td>`;
+                  }).join('')}
+                </tr>`).join('')}
+              ${specFields.length ? `<tr class="specs-divider"><td colspan="${data.products.length+1}">Specifications</td></tr>` : ''}
+              ${specFields.map(sf => `
+                <tr>
+                  <td class="field-label">${sf}</td>
+                  ${data.products.map(p => `<td>${(p.specs && p.specs[sf]) || '<span style="color:var(--ink-muted)">—</span>'}</td>`).join('')}
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
       </div>
-      <button style="margin-top:16px" onclick="compareIds=[];activeTab='products';render()">Clear and go back</button>
+      <div class="no-print" style="margin-top:16px; display:flex; gap:10px;">
+        <button class="primary" onclick="window.print()">🖨️ Print / Save as PDF</button>
+        <button onclick="compareIds=[];activeTab='products';render()">Clear and go back</button>
+      </div>
     `;
   } catch(err){ main.innerHTML = `<div class="conn-error">${err.message}</div>`; }
 }
