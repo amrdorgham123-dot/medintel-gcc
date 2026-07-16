@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compatibility Wizard — MedForsa GCC</title>
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A0E1C; --surface:#121A33; --surface-2:#1B2547; --line: rgba(237,239,247,0.10);
+    --plasma:#FF3B5C; --plasma-dim: rgba(255,59,92,0.16);
+    --assay:#1FE0CE; --assay-dim: rgba(31,224,206,0.14);
+    --gold:#FFB443; --gold-dim: rgba(255,180,67,0.14);
+    --paper:#EDEFF7; --muted:#8D95B3;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--ink); color:var(--paper); font-family:'Inter', sans-serif; min-height:100vh; line-height:1.7;}
+  h1,h2,h3{font-family:'Space Grotesk', sans-serif;}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+
+  header{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    padding:16px 28px; border-bottom:1px solid var(--line); background:rgba(10,14,28,0.85);
+    position:sticky; top:0; z-index:20; backdrop-filter:blur(10px);
+  }
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand-mark{width:36px; height:36px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; padding:5px;}
+  .brand-mark img{width:100%; height:100%;}
+  .brand-name{font-weight:700; font-size:16px;}
+  .brand-sub{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--assay); letter-spacing:1px;}
+  .back-link{font-size:13.5px; color:var(--muted);}
+  .back-link:hover{color:var(--paper);}
+
+  .disclaimer{
+    background:var(--gold-dim); border-bottom:1px solid rgba(255,180,67,0.3);
+    padding:10px 28px; font-size:12.5px; text-align:center; line-height:1.6;
+  }
+  .disclaimer b{color:var(--gold);}
+
+  main{max-width:760px; margin:0 auto; padding:36px 20px 80px;}
+  .page-head{margin-bottom:28px;}
+  .page-head h1{font-size:24px; font-weight:700; margin-bottom:8px;}
+  .page-head p{color:var(--muted); font-size:14px; max-width:600px;}
+
+  .wizard-card{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:28px; min-height:280px;}
+  .step-tag{font-family:'IBM Plex Mono'; font-size:11px; color:var(--assay); letter-spacing:.5px; margin-bottom:12px;}
+  .question{font-size:18px; font-weight:600; margin-bottom:20px; line-height:1.5;}
+  .options{display:flex; flex-direction:column; gap:10px;}
+  .opt-btn{
+    text-align:left; background:var(--ink); border:1px solid var(--line); border-radius:10px;
+    padding:14px 16px; color:var(--paper); font-family:inherit; font-size:14px; cursor:pointer;
+    transition:border-color .15s;
+  }
+  .opt-btn:hover{border-color:var(--assay);}
+
+  .result-box{
+    border-radius:12px; padding:20px; margin-bottom:16px; border:1px solid var(--line);
+  }
+  .result-box.action{background:var(--assay-dim); border-color:rgba(31,224,206,.35);}
+  .result-box.caution{background:var(--gold-dim); border-color:rgba(255,180,67,.35);}
+  .result-box h3{font-size:15px; margin-bottom:8px;}
+  .result-box.action h3{color:var(--assay);}
+  .result-box.caution h3{color:var(--gold);}
+  .result-box p{font-size:13.5px; color:var(--paper); line-height:1.8;}
+
+  .related-links{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
+  .related-links a{
+    font-size:12.5px; color:var(--assay); background:var(--assay-dim); padding:6px 12px;
+    border-radius:999px; text-decoration:none;
+  }
+  .related-links a:hover{text-decoration:underline;}
+
+  .wizard-footer{display:flex; justify-content:space-between; align-items:center; margin-top:22px;}
+  .restart-btn{background:none; border:1px solid var(--line); color:var(--muted); border-radius:8px; padding:9px 16px; font-size:13px; cursor:pointer;}
+  .restart-btn:hover{color:var(--paper); border-color:var(--assay);}
+  .breadcrumb{font-size:12px; color:var(--muted); font-family:'IBM Plex Mono';}
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="/">→ MedForsa GCC</a>
+  <div class="brand">
+    <div class="brand-mark"><img src="/logo.svg" alt="MedForsa GCC"></div>
+    <div>
+      <div class="brand-name">Compatibility Wizard</div>
+      <div class="brand-sub mono">MEDFORSA GCC · BLOOD BANK</div>
+    </div>
+  </div>
+  <a class="back-link" href="/lab-info" target="_blank" rel="noopener" style="color:var(--assay);">Lab Info ↗</a>
+</header>
+
+<div class="disclaimer">
+  <span><b>Educational decision-support only</b> — not a substitute for your institution's SOPs or a qualified blood bank professional's judgment. Always follow your facility's validated protocols.</span>
+</div>
+
+<main>
+  <div class="page-head">
+    <h1>Pretransfusion Compatibility Wizard</h1>
+    <p>A step-by-step guide through the standard pretransfusion decision pathway — from antibody screen result to crossmatch method selection.</p>
+  </div>
+
+  <div class="wizard-card" id="wizardCard"></div>
+</main>
+
+<script>
+(function(){
+  const card = document.getElementById('wizardCard');
+  const path = [];
+
+  // Each node: { tag, question, options: [{label, next}] } or a terminal { tag, result: {type, title, body, links} }
+  const NODES = {
+    start: {
+      tag: 'Step 1 of 3',
+      question: "What is the patient's antibody screen (IAT) result?",
+      options: [
+        {label: 'Negative', next: 'screenNegative'},
+        {label: 'Positive', next: 'screenPositive'},
+        {label: 'Not yet performed', next: 'needScreen'}
+      ]
+    },
+    needScreen: {
+      tag: 'Result',
+      result: {
+        type: 'caution',
+        title: 'Antibody screen required first',
+        body: "A current antibody screen (IAT) is a required part of routine pretransfusion testing, alongside ABO/Rh typing. Order the antibody screen before proceeding to crossmatch selection.",
+        links: [{label: 'Antibody Screen (IAT)', slug: 'antibody-screen'}, {label: 'ABO/Rh Typing', slug: 'abo-rh-typing'}]
+      }
+    },
+    screenNegative: {
+      tag: 'Step 2 of 3',
+      question: 'Does the patient have any history of a clinically significant red cell antibody (even if not currently detected)?',
+      options: [
+        {label: 'No known antibody history', next: 'negNoHistory'},
+        {label: 'Yes — prior clinically significant antibody on record', next: 'negWithHistory'}
+      ]
+    },
+    negNoHistory: {
+      tag: 'Result',
+      result: {
+        type: 'action',
+        title: 'Immediate-spin or electronic crossmatch may be appropriate',
+        body: "With a negative antibody screen and no history of a clinically significant antibody, many institutions permit an immediate-spin crossmatch (checks ABO compatibility only) or a validated electronic (computer) crossmatch — confirm this is permitted under your facility's validated policy and system.",
+        links: [{label: 'Crossmatch (Compatibility Testing)', slug: 'crossmatch'}]
+      }
+    },
+    negWithHistory: {
+      tag: 'Result',
+      result: {
+        type: 'caution',
+        title: 'AHG (antiglobulin) crossmatch recommended despite negative screen',
+        body: "A previously identified clinically significant antibody can become undetectable over time even though the risk of a hemolytic reaction on re-exposure remains. Standard practice is to perform an AHG (antiglobulin phase) crossmatch and select antigen-negative units for that specific antibody, regardless of the current screen result.",
+        links: [{label: 'Crossmatch (Compatibility Testing)', slug: 'crossmatch'}, {label: 'Antibody Identification Panel', slug: 'antibody-identification'}]
+      }
+    },
+    screenPositive: {
+      tag: 'Step 2 of 3',
+      question: 'Has antibody identification already been performed on this sample?',
+      options: [
+        {label: 'No — identification not yet done', next: 'needID'},
+        {label: 'Yes — antibody has been identified', next: 'idKnown'}
+      ]
+    },
+    needID: {
+      tag: 'Result',
+      result: {
+        type: 'caution',
+        title: 'Antibody identification is required next',
+        body: "A positive screen requires an antibody identification panel to determine the specific antibody (or antibodies) present before compatible donor units can be reliably selected. This can take additional time, so start it as early as possible if a transfusion is anticipated.",
+        links: [{label: 'Antibody Identification Panel', slug: 'antibody-identification'}]
+      }
+    },
+    idKnown: {
+      tag: 'Step 3 of 3',
+      question: 'Is the identified antibody clinically significant (e.g., anti-D, anti-K, anti-c, anti-E, anti-Jka/Jkb, anti-Fya/Fyb) or clinically insignificant (e.g., a cold-reactive antibody such as anti-Lea/Leb, anti-P1, or anti-M reacting only below body temperature)?',
+      options: [
+        {label: 'Clinically significant', next: 'significant'},
+        {label: 'Clinically insignificant (cold-reactive, per blood bank review)', next: 'insignificant'},
+        {label: "Not sure / needs blood bank physician review", next: 'unsure'}
+      ]
+    },
+    significant: {
+      tag: 'Result',
+      result: {
+        type: 'action',
+        title: 'Select antigen-negative units + AHG crossmatch',
+        body: "Donor units negative for the corresponding antigen(s) should be selected, followed by an AHG (antiglobulin phase) crossmatch. For patients likely to need chronic transfusion support (e.g., sickle cell disease, thalassemia), consider extended phenotype matching (C/c/E/e, K, and others per your institution's protocol) to reduce further alloimmunization risk.",
+        links: [{label: 'Crossmatch (Compatibility Testing)', slug: 'crossmatch'}, {label: 'Extended Rh Phenotype (C/c/E/e)', slug: 'rh-phenotype-extended'}]
+      }
+    },
+    insignificant: {
+      tag: 'Result',
+      result: {
+        type: 'action',
+        title: 'Standard crossmatch may proceed, per blood bank review',
+        body: "Antibodies confirmed as clinically insignificant (e.g., cold-reactive antibodies not reactive at 37°C) generally do not require antigen-negative unit selection. Confirm this classification and the appropriate crossmatch method with your blood bank physician or SOP before finalizing, since classification can be assay- and context-dependent.",
+        links: [{label: 'Crossmatch (Compatibility Testing)', slug: 'crossmatch'}]
+      }
+    },
+    unsure: {
+      tag: 'Result',
+      result: {
+        type: 'caution',
+        title: 'Escalate to blood bank physician / medical director review',
+        body: "When the clinical significance of an identified antibody is uncertain, this decision should not be made informally — escalate to your blood bank physician or medical director, who can weigh the specific antibody, titer, reaction phase, and patient context before a crossmatch method is finalized.",
+        links: [{label: 'Antibody Identification Panel', slug: 'antibody-identification'}]
+      }
+    }
+  };
+
+  function render(nodeKey){
+    const node = NODES[nodeKey];
+    path.push(nodeKey);
+    let html = '';
+    if(node.question){
+      html += '<div class="step-tag">' + node.tag + '</div>';
+      html += '<div class="question">' + node.question + '</div>';
+      html += '<div class="options">' + node.options.map(function(o){
+        return '<button class="opt-btn" data-next="' + o.next + '">' + o.label + '</button>';
+      }).join('') + '</div>';
+    } else {
+      const r = node.result;
+      html += '<div class="step-tag">' + node.tag + '</div>';
+      html += '<div class="result-box ' + r.type + '"><h3>' + (r.type==='action' ? '✓ ' : '⚠ ') + r.title + '</h3><p>' + r.body + '</p>';
+      html += '<div class="related-links">' + r.links.map(function(l){
+        return '<a href="/lab-info?slug=' + l.slug + '" target="_blank" rel="noopener">' + l.label + ' ↗</a>';
+      }).join('') + '</div></div>';
+      html += '<div class="wizard-footer"><button class="restart-btn" id="restartBtn">↺ Start over</button>' +
+        '<span class="breadcrumb">' + path.length + ' step' + (path.length>1?'s':'') + '</span></div>';
+    }
+    card.innerHTML = html;
+    card.querySelectorAll('.opt-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){ render(btn.dataset.next); });
+    });
+    const restartBtn = document.getElementById('restartBtn');
+    if(restartBtn) restartBtn.addEventListener('click', function(){ path.length = 0; render('start'); });
+  }
+
+  render('start');
+})();
+</script>
+
+</body>
+</html>

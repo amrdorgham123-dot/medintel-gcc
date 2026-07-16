@@ -88,6 +88,10 @@ def lab_tests_page_legacy():
     # Legacy URL kept working -- the page and feature are now branded "Lab Info".
     return FileResponse(os.path.join(os.path.dirname(__file__), "lab-info.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
 
+@app.get("/compatibility-wizard")
+def compatibility_wizard_page():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "compatibility-wizard.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
+
 @app.get("/logo.svg")
 def logo():
     return FileResponse(os.path.join(os.path.dirname(__file__), "logo.svg"), media_type="image/svg+xml")
