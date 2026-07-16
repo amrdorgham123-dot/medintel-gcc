@@ -92,6 +92,10 @@ def lab_tests_page_legacy():
 def compatibility_wizard_page():
     return FileResponse(os.path.join(os.path.dirname(__file__), "compatibility-wizard.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
 
+@app.get("/tco-calculator")
+def tco_calculator_page():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "tco-calculator.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
+
 @app.get("/logo.svg")
 def logo():
     return FileResponse(os.path.join(os.path.dirname(__file__), "logo.svg"), media_type="image/svg+xml")
