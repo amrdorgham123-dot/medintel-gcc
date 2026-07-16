@@ -212,8 +212,8 @@
           <div id="uploadStatus"></div>
           <div id="uploadResultsWrap"></div>
         </div>
-        <div class="field-row"><label>Kit price (SAR)</label><input type="number" id="rr-kit-price" value="1200" min="0"></div>
-        <div class="field-row"><label>Tests per kit</label><input type="number" id="rr-kit-tests" value="300" min="1"></div>
+        <div class="field-row"><label>Kit price (SAR) <span style="color:var(--muted); font-weight:400;">— or weighted-average cost, if applied from an uploaded price list</span></label><input type="number" id="rr-kit-price" value="1200" min="0" step="0.01"></div>
+        <div class="field-row"><label>Tests per kit <span style="color:var(--muted); font-weight:400;">— leave at 1 if using an applied weighted average</span></label><input type="number" id="rr-kit-tests" value="300" min="1"></div>
         <div class="field-row"><label>Kit volume (mL, optional label only)</label><input type="number" id="rr-kit-volume" value="70" min="0"></div>
         <div class="field-row"><label>Annual maintenance — starting % (Year 1), increasing by the same % each year</label><input type="number" id="rr-maint-pct" value="8" min="0" step="0.5"></div>
         <div class="field-hint">e.g. 8% → Year 1 = 8%, Year 2 = 16%, Year 3 = 24%, etc. — applied to instrument value.</div>
@@ -388,25 +388,61 @@
         return;
       }
       uploadStatus.className = 'upload-status';
-      uploadStatus.textContent = 'Found ' + data.items.length + ' item(s) — click "Use" on the correct row:';
-      let tableHtml = '<table class="extracted-table"><thead><tr><th>Item</th><th>Price</th><th>Tests/Kit</th><th></th></tr></thead><tbody>';
+      uploadStatus.textContent = 'Found ' + data.items.length + ' item(s). Enter each kit\'s expected monthly consumption, then press Calculate.';
+      let tableHtml = '<table class="extracted-table"><thead><tr><th>Item</th><th>Price</th><th>Tests/Kit</th><th>Monthly consumption</th></tr></thead><tbody>';
       data.items.forEach(function(item, i){
         tableHtml += '<tr>' +
           '<td>' + (item.name || '—') + '</td>' +
           '<td>' + (item.price != null ? item.price : '—') + '</td>' +
           '<td>' + (item.tests_per_kit != null ? item.tests_per_kit : '—') + '</td>' +
-          '<td><button type="button" class="use-row-btn" data-idx="' + i + '">Use →</button></td>' +
+          '<td><input type="number" class="consumption-input" data-idx="' + i + '" min="0" value="0" style="width:90px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--paper);font-family:\'IBM Plex Mono\';font-size:12px;"></td>' +
           '</tr>';
       });
       tableHtml += '</tbody></table>';
+      tableHtml += '<button type="button" class="upload-btn" id="calcAvgBtn" style="margin-top:12px;">🧮 Calculate Average Test Price</button>';
+      tableHtml += '<div id="avgResultBox"></div>';
       uploadResultsWrap.innerHTML = tableHtml;
-      uploadResultsWrap.querySelectorAll('.use-row-btn').forEach(function(btn){
-        btn.addEventListener('click', function(){
-          const item = data.items[parseInt(btn.dataset.idx, 10)];
-          if(item.price != null) document.getElementById('rr-kit-price').value = item.price;
-          if(item.tests_per_kit != null) document.getElementById('rr-kit-tests').value = item.tests_per_kit;
+
+      document.getElementById('calcAvgBtn').addEventListener('click', function(){
+        let totalMonthlyVolume = 0;
+        let totalMonthlyCost = 0;
+        const breakdown = [];
+        data.items.forEach(function(item, i){
+          const input = uploadResultsWrap.querySelector('.consumption-input[data-idx="' + i + '"]');
+          const consumption = parseFloat(input.value) || 0;
+          if(consumption <= 0 || item.price == null || !item.tests_per_kit) return;
+          const costPerTest = item.price / item.tests_per_kit;
+          const monthlyCost = consumption * costPerTest;
+          totalMonthlyVolume += consumption;
+          totalMonthlyCost += monthlyCost;
+          breakdown.push({name: item.name, consumption: consumption, costPerTest: costPerTest, monthlyCost: monthlyCost});
+        });
+        const avgResultBox = document.getElementById('avgResultBox');
+        if(totalMonthlyVolume <= 0){
+          avgResultBox.innerHTML = '<div class="upload-status error" style="margin-top:10px;">Enter at least one kit\'s monthly consumption before calculating.</div>';
+          return;
+        }
+        const weightedAvgCostPerTest = totalMonthlyCost / totalMonthlyVolume;
+
+        let boxHtml = '<div style="margin-top:14px; padding:14px; background:var(--surface-2); border-radius:10px; border:1px solid var(--assay);">';
+        boxHtml += '<div style="font-size:12.5px; color:var(--muted); margin-bottom:8px;">Weighted-average base reagent cost, across all kits used, weighted by monthly consumption:</div>';
+        boxHtml += '<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span style="font-size:13px;">Total monthly test volume (all kits)</span><span class="mono" style="font-weight:700;">' + totalMonthlyVolume.toLocaleString() + ' tests</span></div>';
+        boxHtml += '<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span style="font-size:13px;">Total monthly reagent cost (all kits)</span><span class="mono" style="font-weight:700;">SAR ' + totalMonthlyCost.toLocaleString(undefined,{maximumFractionDigits:2}) + '</span></div>';
+        boxHtml += '<div style="display:flex; justify-content:space-between; color:var(--assay); font-size:15px;"><span style="font-weight:700;">Weighted-average cost per test</span><span class="mono" style="font-weight:700;">SAR ' + weightedAvgCostPerTest.toLocaleString(undefined,{maximumFractionDigits:2}) + '</span></div>';
+        boxHtml += '<button type="button" class="upload-btn" id="applyAvgBtn" style="margin-top:12px;">✓ Apply to Deal Calculation</button>';
+        boxHtml += '</div>';
+        avgResultBox.innerHTML = boxHtml;
+
+        document.getElementById('applyAvgBtn').addEventListener('click', function(){
+          // A weighted average across multiple kits isn't itself a single "kit price ÷ tests"
+          // pair, so we represent it as price=weightedAvg, tests=1 -- rawCostPerTest then equals
+          // the weighted average directly, and the total monthly consumption across all kits
+          // becomes the customer's overall monthly volume for the rest of the deal calculation.
+          document.getElementById('rr-kit-price').value = weightedAvgCostPerTest.toFixed(2);
+          document.getElementById('rr-kit-tests').value = 1;
+          document.getElementById('rr-volume').value = Math.round(totalMonthlyVolume);
           renderRental();
-          uploadStatus.textContent = 'Loaded "' + item.name + '" into the kit fields below.';
+          uploadStatus.textContent = 'Applied: weighted-average cost per test (SAR ' + weightedAvgCostPerTest.toFixed(2) + ') and total monthly volume (' + Math.round(totalMonthlyVolume).toLocaleString() + ' tests) loaded into the deal calculation below.';
         });
       });
     }catch(err){
