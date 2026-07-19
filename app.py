@@ -1625,7 +1625,8 @@ NAME_KEYWORDS = ["name", "product", "item", "kit", "description", "اسم", "م�
 # Columns matching these should never be guessed as price or tests-per-kit --
 # catalog/reference numbers look numeric but aren't a usable quantity or price.
 EXCLUDE_KEYWORDS = ["code", "catalog", "cat.", "cat no", "sku", "ref", "reference", "item no",
-                    "part no", "id", "كود", "رقم الصنف", "الرقم المرجعي"]
+                    "part no", "id", "s.no", "sl.no", "sl no", "s/n", "sr.no", "sr no",
+                    "serial", "seq", "no.", "كود", "رقم الصنف", "الرقم المرجعي", "م."]
 
 def _guess_column(headers, keywords):
     """Best-effort column detection: returns the header string whose lowercase
@@ -1684,7 +1685,7 @@ def _rows_from_dataframe(df):
         if remaining:
             qty_col = remaining[0]
 
-    # Sanity check: a real "tests per kit" value is realistically 1-5,000.
+    # Sanity check 1: a real "tests per kit" value is realistically 1-5,000.
     # If the candidate qty column's values are mostly outside that range (e.g.
     # a product-code column that slipped through), don't use it -- leave
     # tests_per_kit blank rather than show a misleading number.
@@ -1693,6 +1694,21 @@ def _rows_from_dataframe(df):
         if len(numeric_qty) > 0:
             plausible_fraction = ((numeric_qty >= 1) & (numeric_qty <= 5000)).mean()
             if plausible_fraction < 0.5:
+                qty_col = None
+
+    # Sanity check 2: a row-index / serial-number column (1, 2, 3, 4, ...) can
+    # slip through as "numeric with no keyword match" regardless of its header
+    # text -- detect this by checking if the values are just a consecutive
+    # integer run starting at 0 or 1, and reject it if so.
+    if qty_col is not None:
+        numeric_qty = pd.to_numeric(df[qty_col], errors="coerce").dropna().tolist()
+        if len(numeric_qty) >= 3:
+            sorted_vals = sorted(numeric_qty)
+            is_sequential = all(
+                float(v) == float(sorted_vals[0]) + i for i, v in enumerate(sorted_vals)
+            )
+            starts_at_index = sorted_vals[0] in (0, 1)
+            if is_sequential and starts_at_index:
                 qty_col = None
 
     if name_col is None:
