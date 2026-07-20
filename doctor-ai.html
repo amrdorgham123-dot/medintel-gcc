@@ -132,6 +132,45 @@
   .send-btn svg{width:17px; height:17px; stroke:#0A0E1C; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
   .composer-hint{font-size:11.5px; color:var(--muted); text-align:center; margin-top:10px;}
 
+  .lang-toggle-btn{
+    font-family:'IBM Plex Mono'; font-size:12px; font-weight:600; color:var(--paper);
+    background:var(--surface-2); border:1px solid var(--line); padding:7px 13px; border-radius:999px; cursor:pointer;
+  }
+  .lang-toggle-btn:hover{border-color:var(--assay); color:var(--assay);}
+
+  .voice-toggle-btn{
+    display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--muted);
+    background:var(--surface-2); border:1px solid var(--line); padding:7px 14px; border-radius:999px; cursor:pointer;
+    margin-inline-start:auto; white-space:nowrap;
+  }
+  .voice-toggle-btn svg{width:15px; height:15px; stroke:var(--muted); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
+  .voice-toggle-btn.on{background:var(--assay-dim); border-color:rgba(31,224,206,0.4); color:var(--assay);}
+  .voice-toggle-btn.on svg{stroke:var(--assay);}
+
+  .mic-btn{
+    width:38px; height:38px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; position:relative;
+  }
+  .mic-btn svg{width:17px; height:17px; stroke:var(--assay); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
+  .mic-btn.listening{background:rgba(255,59,92,0.16); border-color:rgba(255,59,92,0.5);}
+  .mic-btn.listening svg{stroke:var(--plasma);}
+  .mic-btn.listening::after{
+    content:''; position:absolute; inset:-4px; border-radius:13px; border:1.5px solid var(--plasma);
+    animation:micPulse 1.4s ease-out infinite;
+  }
+  @keyframes micPulse{0%{opacity:.9; transform:scale(0.9);} 100%{opacity:0; transform:scale(1.35);}}
+  .mic-btn.unsupported{opacity:.35; cursor:not-allowed;}
+
+  .voice-status{
+    display:none; align-items:center; gap:8px; font-size:12.5px; color:var(--assay);
+    max-width:820px; margin:0 auto 10px; padding:8px 14px; background:var(--assay-dim);
+    border-radius:999px; width:fit-content;
+  }
+  .voice-status.show{display:flex;}
+  .voice-status .dot{width:6px; height:6px; border-radius:50%; background:var(--assay); animation:bounce 1.2s infinite;}
+  .voice-status.speaking{color:var(--gold); background:var(--gold-dim);}
+  .voice-status.speaking .dot{background:var(--gold);}
+
   .modal-overlay{position:fixed; inset:0; background:rgba(5,8,16,0.75); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:100; padding:20px;}
   .modal-overlay.open{display:flex;}
   .modal-box{width:100%; max-width:380px; background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:28px; position:relative; max-height:90vh; overflow-y:auto;}
@@ -160,69 +199,78 @@
     </div>
     <div>
       <div class="brand-name">Doctor AI</div>
-      <div class="brand-sub">CLINICAL REFERENCE ASSISTANT</div>
+      <div class="brand-sub" data-ar="مساعد مرجعي إكلينيكي" data-en="CLINICAL REFERENCE ASSISTANT">CLINICAL REFERENCE ASSISTANT</div>
     </div>
   </div>
-  <a class="back-link" href="/">→ MedForsa GCC</a>
-  <a class="back-link" href="/lab-info" target="_blank" rel="noopener" style="color:var(--assay);">Lab Info ↗</a>
+  <a class="back-link" href="/" data-ar="→ MedForsa GCC" data-en="→ MedForsa GCC">→ MedForsa GCC</a>
+  <a class="back-link" href="/lab-info" target="_blank" rel="noopener" style="color:var(--assay);" data-ar="دليل التحاليل ↗" data-en="Lab Info ↗">Lab Info ↗</a>
   <div class="header-right" id="headerRight">
-    <button class="auth-btn" id="authOpenBtn">تسجيل الدخول</button>
+    <button class="lang-toggle-btn" data-lang-toggle>AR</button>
+    <button class="auth-btn" id="authOpenBtn" data-ar="تسجيل الدخول" data-en="Sign in">Sign in</button>
   </div>
 </header>
 
-<div class="disclaimer">
+<div class="disclaimer" data-ar-html="&lt;b&gt;أداة دعم قرار علمي&lt;/b&gt; — مش بديل عن الفحص السريري أو حكم الطبيب المعالج. النتائج والتفسيرات هنا للمراجعة والمناقشة فقط." data-en-html="&lt;b&gt;Clinical decision-support tool&lt;/b&gt; — not a substitute for physical examination or the treating physician's judgment. Results and interpretations here are for review and discussion only.">
   <b>أداة دعم قرار علمي</b> — مش بديل عن الفحص السريري أو حكم الطبيب المعالج. النتائج والتفسيرات هنا للمراجعة والمناقشة فقط.
 </div>
 
 <main>
   <section id="listView">
     <div class="list-head">
-      <h1>Patients</h1>
-      <button class="add-patient-btn" id="addPatientBtn">+ Add Patient</button>
+      <h1 data-ar="المرضى" data-en="Patients">Patients</h1>
+      <button class="add-patient-btn" id="addPatientBtn" data-ar="+ إضافة مريض" data-en="+ Add Patient">+ Add Patient</button>
     </div>
     <div class="filters">
-      <input type="text" id="fCode" placeholder="Patient ID">
-      <input type="text" id="fName" placeholder="Patient Name">
+      <input type="text" id="fCode" data-ar-placeholder="رقم المريض" data-en-placeholder="Patient ID" placeholder="Patient ID">
+      <input type="text" id="fName" data-ar-placeholder="اسم المريض" data-en-placeholder="Patient Name" placeholder="Patient Name">
       <select id="fVisitType">
-        <option value="">All visit types</option>
-        <option value="Outpatient">Outpatient</option>
-        <option value="Inpatient">Inpatient</option>
-        <option value="Emergency">Emergency</option>
+        <option value="" data-ar="كل أنواع الزيارة" data-en="All visit types">All visit types</option>
+        <option value="Outpatient" data-ar="عيادة خارجية" data-en="Outpatient">Outpatient</option>
+        <option value="Inpatient" data-ar="نزيل" data-en="Inpatient">Inpatient</option>
+        <option value="Emergency" data-ar="طوارئ" data-en="Emergency">Emergency</option>
       </select>
-      <input type="text" id="fDept" placeholder="Department">
+      <input type="text" id="fDept" data-ar-placeholder="القسم" data-en-placeholder="Department" placeholder="Department">
       <div class="filters-actions">
-        <button class="btn-mini primary" id="searchBtn">Search</button>
-        <button class="btn-mini" id="resetBtn">Reset</button>
+        <button class="btn-mini primary" id="searchBtn" data-ar="بحث" data-en="Search">Search</button>
+        <button class="btn-mini" id="resetBtn" data-ar="إعادة تعيين" data-en="Reset">Reset</button>
       </div>
     </div>
     <div style="overflow-x:auto;">
       <table class="patient-table">
         <thead>
           <tr>
-            <th>Patient ID</th><th>Name</th><th>Gender</th><th>Age</th><th>Last Visit</th><th>Visit Type</th><th>Actions</th>
+            <th data-ar="رقم المريض" data-en="Patient ID">Patient ID</th><th data-ar="الاسم" data-en="Name">Name</th><th data-ar="النوع" data-en="Gender">Gender</th><th data-ar="السن" data-en="Age">Age</th><th data-ar="آخر زيارة" data-en="Last Visit">Last Visit</th><th data-ar="نوع الزيارة" data-en="Visit Type">Visit Type</th><th data-ar="الإجراءات" data-en="Actions">Actions</th>
           </tr>
         </thead>
         <tbody id="patientTableBody"></tbody>
       </table>
-      <div class="empty-list" id="emptyList" style="display:none;">No patients yet — add the first one to start.</div>
+      <div class="empty-list" id="emptyList" style="display:none;" data-ar="مفيش مرضى لسه — ضيف أول مريض عشان تبدأ." data-en="No patients yet — add the first one to start.">No patients yet — add the first one to start.</div>
     </div>
   </section>
 
   <section id="chatView">
     <div class="patient-header">
-      <span class="back-btn" id="backToList">← Back</span>
+      <span class="back-btn" id="backToList" data-ar="← رجوع" data-en="← Back">← Back</span>
       <div class="pinfo" id="patientInfoBar"></div>
       <span class="status-note" id="statusNote"></span>
+      <button class="voice-toggle-btn" id="voiceModeBtn" type="button">
+        <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M9 22h6"/></svg>
+        <span data-ar="محادثة صوتية" data-en="Voice conversation">Voice conversation</span>
+      </button>
+    </div>
+    <div class="voice-status" id="voiceStatus">
+      <span class="dot"></span>
+      <span id="voiceStatusText" data-ar="بيسمع..." data-en="Listening...">Listening...</span>
     </div>
     <div class="chat-scroll">
       <div class="chat-inner" id="chatInner">
         <div class="empty-chat" id="emptyChat">
           <div class="icon"><svg viewBox="0 0 24 24"><path d="M9 2v4M15 2v4M6 8h12l-1 5a5 5 0 0 1-10 0L6 8Z"/><path d="M9 20h6"/></svg></div>
-          <p>ابدأ برفع نتيجة أو تقرير لهذا المريض، أو اسأل مباشرة.</p>
+          <p data-ar="ابدأ برفع نتيجة أو تقرير لهذا المريض، أو اسأل مباشرة. تقدر كمان تدوس على الميكروفون وتتكلم عادي." data-en="Start by uploading a result or report for this patient, or just ask directly. You can also tap the microphone and talk normally.">ابدأ برفع نتيجة أو تقرير لهذا المريض، أو اسأل مباشرة.</p>
           <div class="suggest-row">
-            <button class="suggest-chip" data-msg="Give me a summary of this patient's history">Summary</button>
-            <button class="suggest-chip" data-msg="give me diagnosis and recommendation for any investigation">Diagnosis &amp; investigation</button>
-            <button class="suggest-chip" data-msg="What are the key risks to monitor for this patient?">Key risks</button>
+            <button class="suggest-chip" data-msg="Give me a summary of this patient's history" data-ar="ملخص الحالة" data-en="Summary">Summary</button>
+            <button class="suggest-chip" data-msg="give me diagnosis and recommendation for any investigation" data-ar="التشخيص والفحوصات المقترحة" data-en="Diagnosis &amp; investigation">Diagnosis &amp; investigation</button>
+            <button class="suggest-chip" data-msg="What are the key risks to monitor for this patient?" data-ar="أهم المخاطر اللي لازم نراقبها" data-en="Key risks">Key risks</button>
           </div>
         </div>
       </div>
@@ -235,12 +283,15 @@
             <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
           </div>
           <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,application/pdf" style="display:none" multiple>
-          <textarea id="chatInput" rows="1" placeholder="Describe symptoms or ask about this patient..."></textarea>
+          <div class="mic-btn" id="micBtn" title="Speak instead of typing">
+            <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M9 22h6"/></svg>
+          </div>
+          <textarea id="chatInput" rows="1" data-ar-placeholder="اكتب الأعراض أو اسأل عن الحالة..." data-en-placeholder="Describe symptoms or ask about this patient..." placeholder="Describe symptoms or ask about this patient..."></textarea>
           <div class="send-btn" id="sendBtn">
             <svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/></svg>
           </div>
         </div>
-        <div class="composer-hint">AI-generated content for reference only — not a substitute for clinical judgment.</div>
+        <div class="composer-hint" data-ar="محتوى مولّد بالذكاء الاصطناعي للمرجعية فقط — مش بديل عن الحكم الإكلينيكي." data-en="AI-generated content for reference only — not a substitute for clinical judgment.">AI-generated content for reference only — not a substitute for clinical judgment.</div>
       </div>
     </div>
   </section>
@@ -249,18 +300,18 @@
 <div class="modal-overlay" id="addPatientModal">
   <div class="modal-box">
     <button class="modal-close" id="addPatientClose">✕</button>
-    <h3>Add Patient</h3>
-    <p class="sub">Basic info to start a record.</p>
-    <div class="form-field"><label>Full name</label><input type="text" id="npName"></div>
-    <div class="form-field"><label>Gender</label>
-      <select id="npGender"><option value="">—</option><option>Male</option><option>Female</option></select>
+    <h3 data-ar="إضافة مريض" data-en="Add Patient">Add Patient</h3>
+    <p class="sub" data-ar="بيانات أساسية عشان نبدأ الملف." data-en="Basic info to start a record.">Basic info to start a record.</p>
+    <div class="form-field"><label data-ar="الاسم بالكامل" data-en="Full name">Full name</label><input type="text" id="npName"></div>
+    <div class="form-field"><label data-ar="النوع" data-en="Gender">Gender</label>
+      <select id="npGender"><option value="">—</option><option data-ar="ذكر" data-en="Male">Male</option><option data-ar="أنثى" data-en="Female">Female</option></select>
     </div>
-    <div class="form-field"><label>Age</label><input type="number" id="npAge" min="0" max="120"></div>
-    <div class="form-field"><label>Department</label><input type="text" id="npDept" placeholder="e.g. Internal Medicine"></div>
-    <div class="form-field"><label>Visit type</label>
-      <select id="npVisitType"><option>Outpatient</option><option>Inpatient</option><option>Emergency</option></select>
+    <div class="form-field"><label data-ar="السن" data-en="Age">Age</label><input type="number" id="npAge" min="0" max="120"></div>
+    <div class="form-field"><label data-ar="القسم" data-en="Department">Department</label><input type="text" id="npDept" data-ar-placeholder="مثال: باطنة" data-en-placeholder="e.g. Internal Medicine" placeholder="e.g. Internal Medicine"></div>
+    <div class="form-field"><label data-ar="نوع الزيارة" data-en="Visit type">Visit type</label>
+      <select id="npVisitType"><option data-ar="عيادة خارجية" data-en="Outpatient">Outpatient</option><option data-ar="نزيل" data-en="Inpatient">Inpatient</option><option data-ar="طوارئ" data-en="Emergency">Emergency</option></select>
     </div>
-    <button class="modal-submit" id="npSubmit">Add Patient</button>
+    <button class="modal-submit" id="npSubmit" data-ar="إضافة مريض" data-en="Add Patient">Add Patient</button>
     <div class="modal-error" id="npError"></div>
   </div>
 </div>
@@ -269,28 +320,28 @@
   <div class="modal-box">
     <button class="modal-close" id="modalClose">✕</button>
     <div class="modal-tabs">
-      <button class="active" id="tabLogin">Log in</button>
-      <button id="tabRegister">Create account</button>
+      <button class="active" id="tabLogin" data-ar="تسجيل الدخول" data-en="Log in">Log in</button>
+      <button id="tabRegister" data-ar="إنشاء حساب" data-en="Create account">Create account</button>
     </div>
     <div id="loginForm">
-      <h3>Welcome back</h3>
-      <p class="sub">Sign in to keep your records synced.</p>
-      <div class="form-field"><label>Email</label><input type="email" id="loginEmail"></div>
-      <div class="form-field"><label>Password</label><input type="password" id="loginPassword"></div>
-      <button class="modal-submit" id="loginSubmit">Log in</button>
+      <h3 data-ar="أهلاً بيك تاني" data-en="Welcome back">Welcome back</h3>
+      <p class="sub" data-ar="سجّل دخولك عشان تفاصيلك تتحفظ." data-en="Sign in to keep your records synced.">Sign in to keep your records synced.</p>
+      <div class="form-field"><label data-ar="البريد الإلكتروني" data-en="Email">Email</label><input type="email" id="loginEmail"></div>
+      <div class="form-field"><label data-ar="كلمة السر" data-en="Password">Password</label><input type="password" id="loginPassword"></div>
+      <button class="modal-submit" id="loginSubmit" data-ar="تسجيل الدخول" data-en="Log in">Log in</button>
       <div class="modal-error" id="loginError"></div>
     </div>
     <div id="registerForm" style="display:none;">
-      <h3>Create your account</h3>
-      <p class="sub">Free, and you can start right away.</p>
-      <div class="form-field"><label>Full name</label><input type="text" id="regName"></div>
-      <div class="form-field"><label>Company / lab name</label><input type="text" id="regCompany"></div>
-      <div class="form-field"><label>Email</label><input type="email" id="regEmail"></div>
-      <div class="form-field"><label>Password (8+ characters)</label><input type="password" id="regPassword"></div>
-      <button class="modal-submit" id="registerSubmit">Create account</button>
+      <h3 data-ar="إنشاء حسابك" data-en="Create your account">Create your account</h3>
+      <p class="sub" data-ar="مجاني، وتقدر تبدأ على طول." data-en="Free, and you can start right away.">Free, and you can start right away.</p>
+      <div class="form-field"><label data-ar="الاسم بالكامل" data-en="Full name">Full name</label><input type="text" id="regName"></div>
+      <div class="form-field"><label data-ar="اسم الشركة / المعمل" data-en="Company / lab name">Company / lab name</label><input type="text" id="regCompany"></div>
+      <div class="form-field"><label data-ar="البريد الإلكتروني" data-en="Email">Email</label><input type="email" id="regEmail"></div>
+      <div class="form-field"><label data-ar="كلمة السر (8 أحرف فأكتر)" data-en="Password (8+ characters)">Password (8+ characters)</label><input type="password" id="regPassword"></div>
+      <button class="modal-submit" id="registerSubmit" data-ar="إنشاء حساب" data-en="Create account">Create account</button>
       <div class="modal-error" id="registerError"></div>
     </div>
-    <span class="modal-skip" id="modalSkip">Skip for now</span>
+    <span class="modal-skip" id="modalSkip" data-ar="تخطي دلوقتي" data-en="Skip for now">Skip for now</span>
   </div>
 </div>
 
@@ -310,21 +361,26 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function renderAuthState(){
     const user = getStoredUser();
+    const isAr = MedForsaLang.getCurrentLang() === 'ar';
     if(user){
-      headerRight.innerHTML = '<div class="user-chip" id="userChip"><div class="avatar">' + (user.full_name||user.email||'U').charAt(0).toUpperCase() + '</div><span>' + (user.full_name || user.email) + '</span></div>';
+      headerRight.innerHTML = '<button class="lang-toggle-btn" data-lang-toggle>' + (isAr ? 'EN' : 'AR') + '</button><div class="user-chip" id="userChip"><div class="avatar">' + (user.full_name||user.email||'U').charAt(0).toUpperCase() + '</div><span>' + (user.full_name || user.email) + '</span></div>';
       document.getElementById('userChip').addEventListener('click', function(){
-        if(confirm('Log out?')){
+        if(confirm(isAr ? 'تسجيل خروج؟' : 'Log out?')){
           localStorage.removeItem(TOKEN_KEY);
           localStorage.removeItem(USER_KEY);
           renderAuthState();
         }
       });
     } else {
-      headerRight.innerHTML = '<button class="auth-btn" id="authOpenBtn">Sign in</button>';
+      headerRight.innerHTML = '<button class="lang-toggle-btn" data-lang-toggle>' + (isAr ? 'EN' : 'AR') + '</button><button class="auth-btn" id="authOpenBtn">' + (isAr ? 'تسجيل الدخول' : 'Sign in') + '</button>';
       document.getElementById('authOpenBtn').addEventListener('click', openAuthModal);
     }
+    headerRight.querySelectorAll('[data-lang-toggle]').forEach(function(btn){
+      btn.addEventListener('click', function(){ MedForsaLang.toggleLang(); });
+    });
   }
   renderAuthState();
+  document.addEventListener('medintel:langchange', renderAuthState);
 
   document.getElementById('modalClose').addEventListener('click', closeAuthModal);
   document.getElementById('modalSkip').addEventListener('click', closeAuthModal);
@@ -480,6 +536,158 @@ document.addEventListener('DOMContentLoaded', function(){
   const filePreviewRow = document.getElementById('filePreviewRow');
   let pendingFiles = [];
 
+  // ---------------- Voice engine: speech-to-text (input) + text-to-speech (replies) ----------------
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const speechSupported = !!SpeechRecognitionCtor;
+  const synth = window.speechSynthesis || null;
+
+  const micBtn = document.getElementById('micBtn');
+  const voiceModeBtn = document.getElementById('voiceModeBtn');
+  const voiceStatus = document.getElementById('voiceStatus');
+  const voiceStatusText = document.getElementById('voiceStatusText');
+
+  let recognition = null;
+  let isListening = false;
+  let voiceModeOn = false;
+  let ttsEnabledForThisTurn = false;
+
+  function currentSpeechLang(){
+    return MedForsaLang.getCurrentLang() === 'ar' ? 'ar-SA' : 'en-US';
+  }
+
+  function showVoiceStatus(mode){
+    if(!mode){ voiceStatus.classList.remove('show', 'speaking'); return; }
+    voiceStatus.classList.add('show');
+    voiceStatus.classList.toggle('speaking', mode === 'speaking');
+    const isAr = MedForsaLang.getCurrentLang() === 'ar';
+    voiceStatusText.textContent = mode === 'listening'
+      ? (isAr ? 'بيسمع...' : 'Listening...')
+      : (isAr ? 'بيرد...' : 'Speaking...');
+  }
+
+  if(!speechSupported){
+    micBtn.classList.add('unsupported');
+    micBtn.title = 'Voice input is not supported in this browser (try Chrome or Edge).';
+  }
+
+  function stopListening(){
+    isListening = false;
+    micBtn.classList.remove('listening');
+    showVoiceStatus(null);
+    if(recognition){ try{ recognition.abort(); }catch(e){} }
+  }
+
+  function startListening(){
+    if(!speechSupported || isListening) return;
+    recognition = new SpeechRecognitionCtor();
+    recognition.lang = currentSpeechLang();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    let finalTranscript = '';
+
+    recognition.onstart = function(){
+      isListening = true;
+      micBtn.classList.add('listening');
+      showVoiceStatus('listening');
+    };
+
+    recognition.onresult = function(event){
+      let interim = '';
+      for(let i = event.resultIndex; i < event.results.length; i++){
+        const transcript = event.results[i][0].transcript;
+        if(event.results[i].isFinal){ finalTranscript += transcript; }
+        else{ interim += transcript; }
+      }
+      chatInput.value = (finalTranscript + interim).trim();
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 140) + 'px';
+    };
+
+    recognition.onerror = function(event){
+      isListening = false;
+      micBtn.classList.remove('listening');
+      showVoiceStatus(null);
+      if(event.error === 'not-allowed' || event.error === 'service-not-allowed'){
+        const isAr = MedForsaLang.getCurrentLang() === 'ar';
+        alert(isAr ? 'محتاجين إذن استخدام الميكروفون عشان الميزة دي تشتغل.' : 'Microphone access is needed for voice input to work.');
+        voiceModeOn = false;
+        voiceModeBtn.classList.remove('on');
+      }
+    };
+
+    recognition.onend = function(){
+      isListening = false;
+      micBtn.classList.remove('listening');
+      showVoiceStatus(null);
+      if(finalTranscript.trim()){
+        sendMessage();
+      }
+    };
+
+    try{ recognition.start(); }catch(e){ isListening = false; }
+  }
+
+  micBtn.addEventListener('click', function(){
+    if(!speechSupported) return;
+    if(isListening){ stopListening(); }
+    else{ ttsEnabledForThisTurn = voiceModeOn; startListening(); }
+  });
+
+  voiceModeBtn.addEventListener('click', function(){
+    if(!speechSupported){
+      const isAr = MedForsaLang.getCurrentLang() === 'ar';
+      alert(isAr ? 'المحادثة الصوتية مش متاحة على المتصفح ده — جرّب Chrome.' : 'Voice conversation is not supported in this browser — try Chrome.');
+      return;
+    }
+    voiceModeOn = !voiceModeOn;
+    voiceModeBtn.classList.toggle('on', voiceModeOn);
+    const isAr = MedForsaLang.getCurrentLang() === 'ar';
+    voiceModeBtn.querySelector('span').textContent = voiceModeOn
+      ? (isAr ? 'المحادثة الصوتية شغالة' : 'Voice on — tap to end')
+      : (isAr ? 'محادثة صوتية' : 'Voice conversation');
+    if(voiceModeOn){
+      ttsEnabledForThisTurn = true;
+      startListening();
+    } else {
+      stopListening();
+      if(synth) synth.cancel();
+      showVoiceStatus(null);
+    }
+  });
+
+  function pickVoice(lang){
+    if(!synth) return null;
+    const voices = synth.getVoices();
+    if(!voices || !voices.length) return null;
+    const exact = voices.find(function(v){ return v.lang === lang; });
+    if(exact) return exact;
+    const prefix = lang.split('-')[0];
+    const loose = voices.find(function(v){ return v.lang && v.lang.indexOf(prefix) === 0; });
+    return loose || null;
+  }
+
+  function speakText(text){
+    if(!synth || !text) return;
+    synth.cancel();
+    const clean = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    if(!clean) return;
+    const lang = currentSpeechLang();
+    const utterance = new SpeechSynthesisUtterance(clean);
+    utterance.lang = lang;
+    const voice = pickVoice(lang);
+    if(voice) utterance.voice = voice;
+    utterance.rate = 1.0;
+    utterance.onstart = function(){ showVoiceStatus('speaking'); };
+    utterance.onend = function(){
+      showVoiceStatus(null);
+      if(voiceModeOn){ startListening(); }
+    };
+    utterance.onerror = function(){ showVoiceStatus(null); };
+    synth.speak(utterance);
+  }
+
   function addMsg(html, who){
     if(emptyChat) emptyChat.style.display = 'none';
     const div = document.createElement('div');
@@ -598,10 +806,15 @@ document.addEventListener('DOMContentLoaded', function(){
       if(!res.ok) throw new Error('status ' + res.status);
       const data = await res.json();
       typingEl.remove();
-      addMsg(linkifyLabInfo((data.reply || '').replace(/\n/g, '<br>')), 'bot');
+      const replyText = data.reply || '';
+      addMsg(linkifyLabInfo(replyText.replace(/\n/g, '<br>')), 'bot');
+      if(ttsEnabledForThisTurn || voiceModeOn){ speakText(replyText); }
+      ttsEnabledForThisTurn = false;
     }catch(err){
       typingEl.remove();
-      addMsg('Could not reach the assistant right now. Please try again shortly.', 'bot');
+      const isAr = MedForsaLang.getCurrentLang() === 'ar';
+      addMsg(isAr ? 'معرفناش نوصل للمساعد دلوقتي. جرّب تاني بعد شوية.' : 'Could not reach the assistant right now. Please try again shortly.', 'bot');
+      ttsEnabledForThisTurn = false;
     }
   }
 
