@@ -5,7 +5,7 @@ Docs auto-generated at: http://127.0.0.1:8420/docs
 """
 from fastapi import FastAPI, HTTPException, Header, Depends, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, Response, HTMLResponse
 from pydantic import BaseModel, Field, EmailStr
 from typing import Literal, Any
 import sqlite3
@@ -15,6 +15,7 @@ import base64
 import logging
 import bcrypt
 import jwt
+import html as html_lib
 from datetime import datetime, timedelta
 
 logging.basicConfig(
@@ -87,6 +88,141 @@ def admin_page():
 @app.get("/lab-info")
 def lab_info_page():
     return FileResponse(os.path.join(os.path.dirname(__file__), "lab-info.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
+
+# ---------------- SEO: server-rendered public pages, sitemap, robots.txt ----------------
+# These return real, readable HTML with meta/OG/JSON-LD baked in server-side -- unlike
+# /app (a JS-rendered SPA shell), a crawler or a link-preview bot sees actual content
+# on first response, no JS execution required.
+
+SITE_URL = os.environ.get("SITE_URL", "https://medintel-gcc.onrender.com")
+
+def _seo_page_shell(title: str, description: str, canonical_path: str, body_html: str, json_ld: dict) -> str:
+    title_e = html_lib.escape(title)
+    desc_e = html_lib.escape(description)
+    canonical = f"{SITE_URL}{canonical_path}"
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{title_e} — MedForsa GCC</title>
+<meta name="description" content="{desc_e}">
+<link rel="canonical" href="{canonical}">
+<meta property="og:title" content="{title_e}">
+<meta property="og:description" content="{desc_e}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{canonical}">
+<meta property="og:site_name" content="MedForsa GCC">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<script type="application/ld+json">{json.dumps(json_ld)}</script>
+<style>
+  :root{{ --ink:#0A0E1C; --surface:#121A33; --paper:#EDEFF7; --muted:#8D95B3; --assay:#1FE0CE; --line:rgba(237,239,247,0.12); }}
+  body{{ background:var(--ink); color:var(--paper); font-family:-apple-system,'Segoe UI',Tajawal,sans-serif; margin:0; line-height:1.65; }}
+  header{{ padding:20px 24px; border-bottom:1px solid var(--line); }}
+  header a{{ color:var(--assay); text-decoration:none; font-weight:600; font-size:14px; }}
+  main{{ max-width:760px; margin:0 auto; padding:36px 24px 80px; }}
+  h1{{ font-size:26px; margin:0 0 6px; }}
+  .sub{{ color:var(--muted); font-size:14px; margin-bottom:28px; }}
+  .card{{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px 22px; margin-bottom:16px; }}
+  .card h2{{ font-size:15px; margin:0 0 10px; color:var(--assay); }}
+  .card p{{ margin:0 0 8px; font-size:14.5px; }}
+  .row{{ display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid var(--line); font-size:13.5px; }}
+  .row:last-child{{ border-bottom:none; }}
+  .row .label{{ color:var(--muted); }}
+  .cta{{ display:inline-block; margin-top:8px; background:var(--assay); color:var(--ink); padding:10px 18px; border-radius:999px; text-decoration:none; font-weight:600; font-size:14px; }}
+  a{{ color:var(--assay); }}
+</style>
+</head>
+<body>
+<header><a href="/">← MedForsa GCC</a></header>
+<main>{body_html}</main>
+</body>
+</html>"""
+
+@app.get("/company/{slug}", response_class=HTMLResponse)
+def company_seo_page(slug: str):
+    conn = get_conn()
+    m = conn.execute("SELECT * FROM manufacturers WHERE slug = ? AND is_published = 1", (slug,)).fetchone()
+    if not m:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Company not found")
+    m = dict(m)
+    products = conn.execute("SELECT product_name, product_type FROM products WHERE manufacturer_id = ? LIMIT 20", (m["id"],)).fetchall()
+    distributors = conn.execute("""
+        SELECT d.name, d.country FROM company_distributors cd
+        JOIN distributors d ON d.id = cd.distributor_id WHERE cd.manufacturer_id = ?
+    """, (m["id"],)).fetchall()
+    conn.close()
+
+    description = f"{m['name']} -- {m['category']} manufacturer. {m.get('portfolio') or ''}"[:250]
+    body = f"""
+<h1>{html_lib.escape(m['name'])}</h1>
+<p class="sub">{html_lib.escape(m['category'] or '')} · {html_lib.escape(m.get('origin') or '')} · Headquarters: {html_lib.escape(m.get('headquarters') or 'Not listed')}</p>
+<div class="card">
+  <h2>Overview</h2>
+  <p>{html_lib.escape(m.get('portfolio') or 'Portfolio details not yet published.')}</p>
+  <div class="row"><span class="label">Saudi Arabia distribution status</span><span>{html_lib.escape(m.get('ksa_status') or 'Unclear')}</span></div>
+  <div class="row"><span class="label">Website</span><span>{html_lib.escape(m.get('website') or 'Not listed')}</span></div>
+</div>
+{"<div class='card'><h2>Products (" + str(len(products)) + ")</h2>" + "".join(f"<div class='row'><span>{html_lib.escape(p['product_name'])}</span><span class='label'>{html_lib.escape(p['product_type'] or '')}</span></div>" for p in products) + "</div>" if products else ""}
+{"<div class='card'><h2>Confirmed KSA distributors</h2>" + "".join(f"<div class='row'><span>{html_lib.escape(d['name'])}</span><span class='label'>{html_lib.escape(d['country'] or '')}</span></div>" for d in distributors) + "</div>" if distributors else ""}
+<a class="cta" href="/app">Explore the full platform →</a>
+"""
+    json_ld = {
+        "@context": "https://schema.org", "@type": "Organization",
+        "name": m["name"], "description": description,
+        "url": f"{SITE_URL}/company/{slug}",
+    }
+    return _seo_page_shell(m["name"], description, f"/company/{slug}", body, json_ld)
+
+@app.get("/lab-test/{slug}", response_class=HTMLResponse)
+def lab_test_seo_page(slug: str):
+    conn = get_conn()
+    t = conn.execute("SELECT * FROM lab_tests WHERE slug = ? AND is_published = 1", (slug,)).fetchone()
+    conn.close()
+    if not t:
+        raise HTTPException(status_code=404, detail="Lab test not found")
+    t = dict(t)
+    ranges = json.loads(t.get("reference_ranges_json") or "[]")
+    description = (t.get("purpose_en") or f"{t['name_en']} -- reference ranges, clinical significance, and interpretation.")[:250]
+    body = f"""
+<h1>{html_lib.escape(t['name_en'])}</h1>
+<p class="sub">{html_lib.escape(t['category'] or '')}</p>
+<div class="card">
+  <h2>Purpose</h2>
+  <p>{html_lib.escape(t.get('purpose_en') or '')}</p>
+</div>
+{"<div class='card'><h2>Reference ranges</h2>" + "".join(f"<div class='row'><span>{html_lib.escape(r.get('population',''))} {html_lib.escape(r.get('parameter',''))}</span><span class='label'>{html_lib.escape(str(r.get('range','')))}</span></div>" for r in ranges) + "</div>" if ranges else ""}
+{"<div class='card'><h2>Clinical significance</h2><p>" + html_lib.escape(t.get('clinical_significance_en') or '') + "</p></div>" if t.get('clinical_significance_en') else ""}
+<a class="cta" href="/lab-info">Browse the full Lab Info library →</a>
+"""
+    json_ld = {
+        "@context": "https://schema.org", "@type": "MedicalTest",
+        "name": t["name_en"], "description": description,
+        "url": f"{SITE_URL}/lab-test/{slug}",
+    }
+    return _seo_page_shell(t["name_en"], description, f"/lab-test/{slug}", body, json_ld)
+
+@app.get("/sitemap.xml")
+def sitemap_xml():
+    conn = get_conn()
+    companies = conn.execute("SELECT slug, created_at FROM manufacturers WHERE is_published = 1 AND slug IS NOT NULL").fetchall()
+    tests = conn.execute("SELECT slug, updated_at FROM lab_tests WHERE is_published = 1").fetchall()
+    conn.close()
+    urls = [f"<url><loc>{SITE_URL}/</loc><changefreq>daily</changefreq></url>",
+            f"<url><loc>{SITE_URL}/lab-info</loc><changefreq>weekly</changefreq></url>"]
+    for c in companies:
+        urls.append(f"<url><loc>{SITE_URL}/company/{c['slug']}</loc><changefreq>monthly</changefreq></url>")
+    for t in tests:
+        urls.append(f"<url><loc>{SITE_URL}/lab-test/{t['slug']}</loc><changefreq>monthly</changefreq></url>")
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(urls) + "\n</urlset>"
+    return Response(content=xml, media_type="application/xml")
+
+@app.get("/robots.txt")
+def robots_txt():
+    body = f"User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /app\nSitemap: {SITE_URL}/sitemap.xml\n"
+    return Response(content=body, media_type="text/plain")
 
 @app.get("/lab-tests")
 def lab_tests_page_legacy():
