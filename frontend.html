@@ -498,7 +498,7 @@
 
 <div class="cmdk-overlay" id="cmdk-overlay" style="display:none">
   <div class="cmdk-box">
-    <input type="text" id="cmdk-input" placeholder="Jump to a page, company, or product... (Esc to close)">
+    <input type="text" id="cmdk-input" placeholder="Search companies, products, technologies, distributors, lab tests... (Esc to close)">
     <div class="cmdk-results" id="cmdk-results"></div>
   </div>
 </div>
@@ -667,6 +667,8 @@ document.getElementById('menu-btn').onclick = () => document.getElementById('sid
 
   const staticPages = tabDefs.map(t => ({ label: t.label, type: 'Page', action: () => { activeTab = t.id; selectedCompanyId = null; render(); } }));
 
+  const TYPE_LABELS = { company: 'Company', product: 'Product', technology: 'Technology', distributor: 'Distributor', lab_test: 'Lab Test' };
+
   async function paint(query){
     const q = query.toLowerCase().trim();
     let items = [];
@@ -675,26 +677,20 @@ document.getElementById('menu-btn').onclick = () => document.getElementById('sid
     } else {
       items = staticPages.filter(p => p.label.toLowerCase().includes(q));
       try {
-        const companies = await apiGet(`/companies?q=${encodeURIComponent(q)}&limit=6`);
-        items = items.concat(companies.results.map(c => ({
-          label: c.name, type: 'Company', sub: c.category,
-          action: () => { activeTab = 'manufacturers'; openCompany(c.id); }
-        })));
-      } catch(e){}
-      try {
-        const products = await apiGet('/products');
-        const matched = products.filter(p => p.product_name.toLowerCase().includes(q) || p.manufacturer_name.toLowerCase().includes(q)).slice(0, 6);
-        items = items.concat(matched.map(p => ({
-          label: p.product_name, type: 'Product', sub: p.manufacturer_name,
+        const searchRes = await apiGet(`/search?q=${encodeURIComponent(q)}&limit_per_type=6`);
+        items = items.concat(searchRes.results.map(r => ({
+          label: r.title, type: TYPE_LABELS[r.type] || r.type, sub: r.subtitle,
           action: () => {
-            apiGet('/companies?q=' + encodeURIComponent(p.manufacturer_name.split(' (')[0])).then(r => {
-              if(r.results[0]){ activeTab='manufacturers'; openCompany(r.results[0].id); }
-            });
+            if(r.type === 'company'){ activeTab = 'manufacturers'; openCompany(r.id); }
+            else if(r.type === 'product'){ activeTab = 'directory'; render(); }
+            else if(r.type === 'distributor'){ activeTab = 'distributors'; render(); }
+            else if(r.type === 'lab_test'){ window.open(r.url, '_blank'); }
+            else { activeTab = 'manufacturers'; render(); }
           }
         })));
       } catch(e){}
     }
-    currentResults = items.slice(0, 12);
+    currentResults = items.slice(0, 14);
     activeIndex = 0;
     renderResults();
   }
@@ -724,7 +720,11 @@ document.getElementById('menu-btn').onclick = () => document.getElementById('sid
     }
   });
   overlay.addEventListener('click', e => { if(e.target === overlay) close(); });
-  input.addEventListener('input', () => paint(input.value));
+  let debounceTimer = null;
+  input.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => paint(input.value), 180);
+  });
 })();
 
 async function renderDashboard(){

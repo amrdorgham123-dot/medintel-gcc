@@ -223,6 +223,77 @@ def review_queue():
     conn.close()
     return [dict(r) for r in rows]
 
+@app.get("/search")
+def universal_search(q: str, limit_per_type: int = 5):
+    """Single search box across every real content type on the platform:
+    manufacturers, products, technologies, distributors, and lab tests.
+    Ranked within each type (exact match > starts-with > contains), and
+    returns a flat ranked list the frontend can render grouped or ungrouped.
+    Public endpoint -- doesn't require login, matching the rest of the
+    directory/lab-info browsing experience."""
+    q = (q or "").strip()
+    if len(q) < 2:
+        return {"query": q, "results": []}
+    like = f"%{q}%"
+    conn = get_conn()
+    results = []
+
+    def rank(name: str) -> int:
+        n = name.lower()
+        ql = q.lower()
+        if n == ql:
+            return 0
+        if n.startswith(ql):
+            return 1
+        return 2
+
+    mfrs = conn.execute(
+        "SELECT id, name, category FROM manufacturers WHERE is_published = 1 AND name LIKE ? LIMIT ?",
+        (like, limit_per_type)
+    ).fetchall()
+    for m in mfrs:
+        results.append({"type": "company", "id": m["id"], "title": m["name"], "subtitle": m["category"],
+                         "url": f"/app#company-{m['id']}", "rank": rank(m["name"])})
+
+    products = conn.execute(
+        """SELECT p.id, p.product_name, m.name as mfr_name FROM products p
+           LEFT JOIN manufacturers m ON p.manufacturer_id = m.id
+           WHERE p.product_name LIKE ? LIMIT ?""",
+        (like, limit_per_type)
+    ).fetchall()
+    for p in products:
+        results.append({"type": "product", "id": p["id"], "title": p["product_name"], "subtitle": p["mfr_name"],
+                         "url": f"/app#product-{p['id']}", "rank": rank(p["product_name"])})
+
+    techs = conn.execute(
+        "SELECT id, name, description FROM technologies WHERE name LIKE ? LIMIT ?",
+        (like, limit_per_type)
+    ).fetchall()
+    for t in techs:
+        subtitle = (t["description"] or "")[:80]
+        results.append({"type": "technology", "id": t["id"], "title": t["name"], "subtitle": subtitle,
+                         "url": f"/app#technology-{t['id']}", "rank": rank(t["name"])})
+
+    dists = conn.execute(
+        "SELECT id, name, country, represents FROM distributors WHERE name LIKE ? OR represents LIKE ? LIMIT ?",
+        (like, like, limit_per_type)
+    ).fetchall()
+    for d in dists:
+        results.append({"type": "distributor", "id": d["id"], "title": d["name"], "subtitle": d["country"],
+                         "url": f"/app#distributor-{d['id']}", "rank": rank(d["name"])})
+
+    tests = conn.execute(
+        "SELECT id, slug, name_en, category FROM lab_tests WHERE is_published = 1 AND (name_en LIKE ? OR aliases LIKE ?) LIMIT ?",
+        (like, like, limit_per_type)
+    ).fetchall()
+    for t in tests:
+        results.append({"type": "lab_test", "id": t["id"], "title": t["name_en"], "subtitle": t["category"],
+                         "url": f"/lab-tests-detail/{t['slug']}", "rank": rank(t["name_en"])})
+
+    conn.close()
+    results.sort(key=lambda r: (r["rank"], r["title"]))
+    return {"query": q, "results": results}
+
 @app.post("/companies/{company_id}/approve")
 def approve_company(company_id: int):
     conn = get_conn()
