@@ -853,7 +853,7 @@ if not JWT_SECRET:
     JWT_SECRET = "insecure-local-dev-secret-change-me"
     logger.warning("JWT_SECRET env var not set -- using an insecure local-dev default. Set a real secret before deploying anywhere reachable by others.")
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_HOURS = 24 * 7
+JWT_EXPIRE_HOURS = 24 * 365  # ~1 year -- effectively "stay logged in until you log out"
 
 def create_access_token(user_id: int, email: str) -> str:
     payload = {"sub": str(user_id), "email": email, "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRE_HOURS)}
