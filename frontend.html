@@ -1080,6 +1080,7 @@ async function submitAuth(){
     showToast(`Welcome, ${data.user.full_name || data.user.company_name}`);
     if(pendingUnlockRender) pendingUnlockRender();
     renderNav();
+    refreshNotificationDot();
   } catch(e){ renderOppLock(document.getElementById('main'), 'Could not reach the server.'); }
 }
 function logout(){
@@ -1087,6 +1088,7 @@ function logout(){
   localStorage.removeItem('medintel-user');
   activeTab = 'dashboard';
   render();
+  refreshNotificationDot();
 }
 
 async function renderBriefing(){
@@ -1419,9 +1421,27 @@ async function renderTenders(){
 
 async function renderUpdates(){
   const main = document.getElementById('main');
+  let notifHtml = '';
+  if(localStorage.getItem('medintel-token')){
+    try {
+      const notifs = await apiGetProtected('/notifications?include_read=false');
+      notifHtml = `
+        <div class="section" style="margin-bottom:22px">
+          <div class="section-title">Your notifications ${notifs.length ? `<span class="section-link" onclick="markAllNotificationsRead()">Mark all as read</span>` : ''}</div>
+          ${notifs.length ? notifs.map(n => `
+            <div class="update-row" style="cursor:pointer" onclick="markNotificationRead('${n.key}')">
+              <div class="update-dot" style="background:var(--ent-red)"></div>
+              <div>
+                <div class="update-detail">${n.title}</div>
+                <div class="update-meta">${n.detail || ''} · ${n.created_at}</div>
+              </div>
+            </div>`).join('') : `<div class="search-hint">No new notifications -- you're caught up.</div>`}
+        </div>`;
+    } catch(e){}
+  }
   try {
     const items = await apiGet('/audit-log');
-    main.innerHTML = `
+    main.innerHTML = notifHtml + `
       <p class="search-hint" style="margin-bottom:18px">Every database change, in order — this is the app's own real change history, not a curated feed.</p>
       <div class="kg-list">${items.slice().reverse().map(e => `
         <div class="update-row">
@@ -1432,7 +1452,22 @@ async function renderUpdates(){
           </div>
         </div>`).join('')}</div>
     `;
-  } catch(err){ main.innerHTML = `<div class="conn-error">${err.message}</div>`; }
+  } catch(err){ main.innerHTML = notifHtml + `<div class="conn-error">${err.message}</div>`; }
+}
+
+async function markNotificationRead(key){
+  try {
+    await apiAuthFetch('/notifications/read', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key})});
+    refreshNotificationDot();
+    renderUpdates();
+  } catch(e){}
+}
+async function markAllNotificationsRead(){
+  try {
+    await apiAuthFetch('/notifications/read-all', {method:'POST'});
+    refreshNotificationDot();
+    renderUpdates();
+  } catch(e){}
 }
 
 let directorySelectedId = null;
@@ -1956,7 +1991,20 @@ async function renderMarketEvents(){
     };
     trySetCategory(20);
   }
+  refreshNotificationDot();
+  setInterval(refreshNotificationDot, 60000);
 })();
+
+async function refreshNotificationDot(){
+  const dot = document.getElementById('updates-dot');
+  if(!dot) return;
+  if(!localStorage.getItem('medintel-token')){ dot.style.display = 'none'; return; }
+  try {
+    const r = await apiGetProtected('/notifications/unread-count');
+    dot.style.display = r.unread_count > 0 ? 'block' : 'none';
+  } catch(e){ dot.style.display = 'none'; }
+}
+
 </script>
 </body>
 </html>

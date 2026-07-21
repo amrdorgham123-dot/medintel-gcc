@@ -1153,6 +1153,127 @@ def daily_briefing(current_user: dict = Depends(get_current_user)):
         "note": "Every field above is computed live from real data -- nothing generated or invented.",
     }
 
+# ---------------- Notifications: computed fresh from real data, no cron job needed ----------------
+# A notification is never stored as its own row -- it's derived live from opportunities,
+# conferences, and company_distributors (each has created_at now), then cross-referenced
+# against notification_reads to know what THIS user has already seen. This avoids any
+# risk of stale/duplicated notification content drifting from the real underlying data.
+
+def _build_notification_candidates(conn):
+    candidates = []
+
+    new_opps = conn.execute("""
+        SELECT o.id, o.created_at, m.name as company_name, o.reason
+        FROM opportunities o JOIN manufacturers m ON m.id = o.manufacturer_id
+        WHERE o.created_at >= date('now', '-30 days')
+        ORDER BY o.created_at DESC
+    """).fetchall()
+    for r in new_opps:
+        candidates.append({
+            "key": f"opportunity:{r['id']}", "type": "opportunity", "created_at": r["created_at"],
+            "title": f"New opportunity: {r['company_name']}", "detail": r["reason"],
+            "url": "#opportunities",
+        })
+
+    upcoming_conf = conn.execute("""
+        SELECT id, name, event_date, place FROM conferences
+        WHERE event_date >= date('now') AND event_date <= date('now', '+30 days')
+        ORDER BY event_date ASC
+    """).fetchall()
+    for r in upcoming_conf:
+        candidates.append({
+            "key": f"conference-soon:{r['id']}", "type": "conference",
+            "created_at": r["event_date"],  # ranked by proximity, not insert date
+            "title": f"{r['name']} is coming up", "detail": f"{r['event_date']} -- {r['place']}",
+            "url": "#conferences",
+        })
+
+    new_conf = conn.execute("""
+        SELECT id, name, event_date, place FROM conferences
+        WHERE created_at >= date('now', '-30 days')
+        ORDER BY created_at DESC
+    """).fetchall()
+    for r in new_conf:
+        candidates.append({
+            "key": f"conference-new:{r['id']}", "type": "conference",
+            "created_at": r["created_at"],
+            "title": f"New conference added: {r['name']}", "detail": f"{r['event_date']} -- {r['place']}",
+            "url": "#conferences",
+        })
+
+    new_links = conn.execute("""
+        SELECT cd.id, cd.created_at, m.name as company_name, d.name as distributor_name
+        FROM company_distributors cd
+        JOIN manufacturers m ON m.id = cd.manufacturer_id
+        JOIN distributors d ON d.id = cd.distributor_id
+        WHERE cd.created_at >= date('now', '-30 days')
+        ORDER BY cd.created_at DESC
+    """).fetchall()
+    for r in new_links:
+        candidates.append({
+            "key": f"distributor-link:{r['id']}", "type": "distributor_change",
+            "created_at": r["created_at"],
+            "title": f"Distributor confirmed: {r['company_name']}",
+            "detail": f"Now linked to {r['distributor_name']}", "url": "#distributors",
+        })
+
+    candidates.sort(key=lambda c: c["created_at"], reverse=True)
+    return candidates
+
+@app.get("/notifications")
+def list_notifications(current_user: dict = Depends(get_current_user), include_read: bool = False, limit: int = 30):
+    conn = get_conn()
+    candidates = _build_notification_candidates(conn)
+    read_keys = {r["notification_key"] for r in conn.execute(
+        "SELECT notification_key FROM notification_reads WHERE user_id = ?", (current_user["id"],)
+    ).fetchall()}
+    conn.close()
+    for c in candidates:
+        c["is_read"] = c["key"] in read_keys
+    if not include_read:
+        candidates = [c for c in candidates if not c["is_read"]]
+    return candidates[:limit]
+
+@app.get("/notifications/unread-count")
+def notifications_unread_count(current_user: dict = Depends(get_current_user)):
+    conn = get_conn()
+    candidates = _build_notification_candidates(conn)
+    read_keys = {r["notification_key"] for r in conn.execute(
+        "SELECT notification_key FROM notification_reads WHERE user_id = ?", (current_user["id"],)
+    ).fetchall()}
+    conn.close()
+    unread = sum(1 for c in candidates if c["key"] not in read_keys)
+    return {"unread_count": unread}
+
+class NotificationReadRequest(BaseModel):
+    key: str
+
+@app.post("/notifications/read")
+def mark_notification_read(payload: NotificationReadRequest, current_user: dict = Depends(get_current_user)):
+    conn = get_conn()
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO notification_reads (user_id, notification_key) VALUES (?, ?)",
+            (current_user["id"], payload.key)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return {"key": payload.key, "is_read": True}
+
+@app.post("/notifications/read-all")
+def mark_all_notifications_read(current_user: dict = Depends(get_current_user)):
+    conn = get_conn()
+    candidates = _build_notification_candidates(conn)
+    for c in candidates:
+        conn.execute(
+            "INSERT OR IGNORE INTO notification_reads (user_id, notification_key) VALUES (?, ?)",
+            (current_user["id"], c["key"])
+        )
+    conn.commit()
+    conn.close()
+    return {"marked_read": len(candidates)}
+
 @app.get("/conferences")
 def list_conferences(upcoming_only: bool = False):
     conn = get_conn()
