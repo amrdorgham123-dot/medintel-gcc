@@ -1043,7 +1043,42 @@ async function renderOpportunities(){
 }
 let pendingUnlockRender = null;
 let authMode = 'login';
-function renderOppLock(main, errMsg){
+function renderOppLock(main, errMsg, infoMsg){
+  if(authMode === 'forgot'){
+    main.innerHTML = `
+      <div class="opp-lock-screen">
+        <div class="opp-lock-icon">🔑</div>
+        <h2>Reset your password</h2>
+        <p>Enter the email you registered with — we'll send a 6-digit verification code.</p>
+        ${errMsg ? `<div class="opp-lock-error">${errMsg}</div>` : ''}
+        ${infoMsg ? `<div class="opp-lock-error" style="color:var(--ent-cyan)">${infoMsg}</div>` : ''}
+        <form class="opp-lock-form" style="flex-direction:column;align-items:stretch" onsubmit="event.preventDefault(); submitForgotPassword();">
+          <input type="email" id="forgot-email" name="email" autocomplete="username" placeholder="Email">
+          <button type="submit" class="primary">Send verification code</button>
+          <button type="button" style="background:none;border:none;color:var(--ent-cyan);font-size:12px;cursor:pointer;padding:6px" onclick="authMode='login'; renderOppLock(document.getElementById('main'))">← Back to log in</button>
+        </form>
+      </div>`;
+    document.getElementById('forgot-email').focus();
+    return;
+  }
+  if(authMode === 'reset'){
+    main.innerHTML = `
+      <div class="opp-lock-screen">
+        <div class="opp-lock-icon">🔑</div>
+        <h2>Enter your code</h2>
+        <p>Enter the 6-digit code and choose a new password.</p>
+        ${errMsg ? `<div class="opp-lock-error">${errMsg}</div>` : ''}
+        <form class="opp-lock-form" style="flex-direction:column;align-items:stretch" onsubmit="event.preventDefault(); submitResetPassword();">
+          <input type="email" id="reset-email" name="email" autocomplete="username" placeholder="Email" value="${resetEmail || ''}">
+          <input type="text" id="reset-code" name="code" inputmode="numeric" maxlength="6" placeholder="6-digit code">
+          <input type="password" id="reset-new-password" name="new-password" autocomplete="new-password" placeholder="New password (8+ characters)">
+          <button type="submit" class="primary">Reset password</button>
+          <button type="button" style="background:none;border:none;color:var(--ent-cyan);font-size:12px;cursor:pointer;padding:6px" onclick="authMode='forgot'; renderOppLock(document.getElementById('main'))">← Request a new code</button>
+        </form>
+      </div>`;
+    document.getElementById('reset-code').focus();
+    return;
+  }
   main.innerHTML = `
     <div class="opp-lock-screen">
       <div class="opp-lock-icon">🔒</div>
@@ -1055,12 +1090,39 @@ function renderOppLock(main, errMsg){
         <input type="email" id="auth-email" name="email" autocomplete="username" placeholder="Email">
         <input type="password" id="auth-password" name="password" autocomplete="${authMode === 'login' ? 'current-password' : 'new-password'}" placeholder="Password">
         <button type="submit" class="primary">${authMode === 'login' ? 'Log in' : 'Create account'}</button>
+        ${authMode === 'login' ? `<button type="button" style="background:none;border:none;color:var(--ent-cyan);font-size:12px;cursor:pointer;padding:4px" onclick="authMode='forgot'; renderOppLock(document.getElementById('main'))">Forgot password?</button>` : ''}
         <button type="button" style="background:none;border:none;color:var(--ent-cyan);font-size:12px;cursor:pointer;padding:6px" onclick="authMode = authMode==='login'?'register':'login'; renderOppLock(document.getElementById('main'))">
           ${authMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Log in'}
         </button>
       </form>
     </div>`;
   document.getElementById('auth-email').focus();
+}
+let resetEmail = null;
+async function submitForgotPassword(){
+  const email = document.getElementById('forgot-email').value.trim();
+  if(!email){ renderOppLock(document.getElementById('main'), 'Enter your email.'); return; }
+  try{
+    await fetch(API + '/auth/forgot-password', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email})});
+    resetEmail = email;
+    authMode = 'reset';
+    renderOppLock(document.getElementById('main'), null, 'If that email is registered, a code has been sent — check your inbox.');
+  }catch(e){ renderOppLock(document.getElementById('main'), 'Could not reach the server.'); }
+}
+async function submitResetPassword(){
+  const email = document.getElementById('reset-email').value.trim();
+  const code = document.getElementById('reset-code').value.trim();
+  const new_password = document.getElementById('reset-new-password').value;
+  if(!email || !code || !new_password){ renderOppLock(document.getElementById('main'), 'Fill in all fields.'); return; }
+  try{
+    const res = await fetch(API + '/auth/reset-password', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, code, new_password})});
+    const data = await res.json();
+    if(!res.ok){ renderOppLock(document.getElementById('main'), data.detail || 'Something went wrong.'); return; }
+    resetEmail = null;
+    authMode = 'login';
+    showToast('Password updated — log in with your new password.');
+    renderOppLock(document.getElementById('main'));
+  }catch(e){ renderOppLock(document.getElementById('main'), 'Could not reach the server.'); }
 }
 async function submitAuth(){
   const email = document.getElementById('auth-email').value;

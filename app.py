@@ -20,6 +20,8 @@ import csv
 import io
 import secrets
 import hashlib
+import smtplib
+from email.mime.text import MIMEText
 from datetime import datetime, timedelta
 
 logging.basicConfig(
@@ -1156,6 +1158,103 @@ def login(creds: LoginRequest):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     token = create_access_token(user["id"], user["email"])
     return {"access_token": token, "token_type": "bearer", "user": public_user_fields(dict(user))}
+
+def send_password_reset_email(to_email: str, code: str) -> bool:
+    """Sends the reset code via SMTP if credentials are configured (same
+    pattern as Stripe/Twilio: code is ready, just needs env vars). Returns
+    True if an email was actually sent, False if SMTP isn't configured yet
+    (caller falls back to logging the code server-side)."""
+    smtp_host = os.environ.get("SMTP_HOST")
+    smtp_user = os.environ.get("SMTP_USER")
+    smtp_password = os.environ.get("SMTP_PASSWORD")
+    smtp_from = os.environ.get("SMTP_FROM", smtp_user or "no-reply@medforsagcc.com")
+    if not (smtp_host and smtp_user and smtp_password):
+        return False
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    msg = MIMEText(
+        f"Your MedForsa GCC password reset code is: {code}\n\n"
+        f"This code expires in 15 minutes. If you didn't request this, you can ignore this email."
+    )
+    msg["Subject"] = "MedForsa GCC -- password reset code"
+    msg["From"] = smtp_from
+    msg["To"] = to_email
+    with smtplib.SMTP(smtp_host, smtp_port) as server:
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.sendmail(smtp_from, [to_email], msg.as_string())
+    return True
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+@app.post("/auth/forgot-password")
+def forgot_password(payload: ForgotPasswordRequest):
+    """Enter the email you registered with -- if it matches an account, a
+    6-digit verification code is generated (emailed if SMTP is configured,
+    otherwise logged server-side so the account owner/admin can retrieve it
+    until email sending is set up). Always returns the same generic message
+    regardless of whether the email exists, so this can't be used to probe
+    which emails are registered."""
+    conn = get_conn()
+    user = conn.execute("SELECT id, email FROM users WHERE email = ? AND is_active = 1", (payload.email,)).fetchone()
+    if user:
+        code = f"{secrets.randbelow(1000000):06d}"
+        expires_at = (datetime.now() + timedelta(minutes=15)).isoformat()
+        conn.execute(
+            "INSERT INTO password_resets (user_id, code, expires_at) VALUES (?, ?, ?)",
+            (user["id"], code, expires_at)
+        )
+        conn.commit()
+        emailed = send_password_reset_email(user["email"], code)
+        if not emailed:
+            logger.info(f"PASSWORD RESET CODE (SMTP not configured, logging instead) for {user['email']}: {code} (expires in 15 min)")
+    conn.close()
+    return {"message": "If that email is registered, a verification code has been sent."}
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(..., min_length=6, max_length=6)
+    new_password: str = Field(..., min_length=8)
+
+@app.post("/auth/reset-password")
+def reset_password(payload: ResetPasswordRequest):
+    conn = get_conn()
+    user = conn.execute("SELECT id FROM users WHERE email = ? AND is_active = 1", (payload.email,)).fetchone()
+    if not user:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Invalid code or email")
+    reset_row = conn.execute(
+        "SELECT id, expires_at FROM password_resets WHERE user_id = ? AND code = ? AND used = 0 ORDER BY id DESC LIMIT 1",
+        (user["id"], payload.code)
+    ).fetchone()
+    if not reset_row:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Invalid code or email")
+    if datetime.fromisoformat(reset_row["expires_at"]) < datetime.now():
+        conn.close()
+        raise HTTPException(status_code=400, detail="This code has expired -- request a new one")
+    new_hash = bcrypt.hashpw(payload.new_password.encode(), bcrypt.gensalt()).decode()
+    conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, user["id"]))
+    conn.execute("UPDATE password_resets SET used = 1 WHERE id = ?", (reset_row["id"],))
+    conn.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('users', ?, 'update', ?)",
+                 (user["id"], "Password reset via forgot-password flow"))
+    conn.commit()
+    conn.close()
+    return {"message": "Password updated -- you can now log in with your new password."}
+
+@app.get("/admin/password-resets/pending")
+def admin_pending_password_resets(current_user: dict = Depends(require_admin)):
+    """Until SMTP is configured, this lets an admin see recently-generated
+    reset codes (e.g. their own) instead of digging through server logs."""
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT pr.id, u.email, pr.code, pr.expires_at, pr.used, pr.created_at
+        FROM password_resets pr JOIN users u ON u.id = pr.user_id
+        WHERE pr.created_at >= datetime('now', '-1 day')
+        ORDER BY pr.id DESC
+    """).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 @app.get("/auth/me")
 def read_me(current_user: dict = Depends(get_current_user)):
