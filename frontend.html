@@ -1050,15 +1050,15 @@ function renderOppLock(main, errMsg){
       <h2>${authMode === 'login' ? 'Log in' : 'Create an account'}</h2>
       <p>This section holds your private sales data — leads, watchlist, and opportunities. Each account only ever sees its own data.</p>
       ${errMsg ? `<div class="opp-lock-error">${errMsg}</div>` : ''}
-      <div class="opp-lock-form" style="flex-direction:column;align-items:stretch">
-        ${authMode === 'register' ? '<input type="text" id="auth-company" placeholder="Company name">' : ''}
-        <input type="email" id="auth-email" placeholder="Email">
-        <input type="password" id="auth-password" placeholder="Password" onkeydown="if(event.key==='Enter')submitAuth()">
-        <button class="primary" onclick="submitAuth()">${authMode === 'login' ? 'Log in' : 'Create account'}</button>
-        <button style="background:none;border:none;color:var(--ent-cyan);font-size:12px;cursor:pointer;padding:6px" onclick="authMode = authMode==='login'?'register':'login'; renderOppLock(document.getElementById('main'))">
+      <form class="opp-lock-form" style="flex-direction:column;align-items:stretch" autocomplete="on" onsubmit="event.preventDefault(); submitAuth();">
+        ${authMode === 'register' ? '<input type="text" id="auth-company" name="organization" autocomplete="organization" placeholder="Company name">' : ''}
+        <input type="email" id="auth-email" name="email" autocomplete="username" placeholder="Email">
+        <input type="password" id="auth-password" name="password" autocomplete="${authMode === 'login' ? 'current-password' : 'new-password'}" placeholder="Password">
+        <button type="submit" class="primary">${authMode === 'login' ? 'Log in' : 'Create account'}</button>
+        <button type="button" style="background:none;border:none;color:var(--ent-cyan);font-size:12px;cursor:pointer;padding:6px" onclick="authMode = authMode==='login'?'register':'login'; renderOppLock(document.getElementById('main'))">
           ${authMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Log in'}
         </button>
-      </div>
+      </form>
     </div>`;
   document.getElementById('auth-email').focus();
 }

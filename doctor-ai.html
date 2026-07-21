@@ -326,18 +326,18 @@
     <div id="loginForm">
       <h3 data-ar="أهلاً بيك تاني" data-en="Welcome back">Welcome back</h3>
       <p class="sub" data-ar="سجّل دخولك عشان تفاصيلك تتحفظ." data-en="Sign in to keep your records synced.">Sign in to keep your records synced.</p>
-      <div class="form-field"><label data-ar="البريد الإلكتروني" data-en="Email">Email</label><input type="email" id="loginEmail"></div>
-      <div class="form-field"><label data-ar="كلمة السر" data-en="Password">Password</label><input type="password" id="loginPassword"></div>
+      <div class="form-field"><label data-ar="البريد الإلكتروني" data-en="Email">Email</label><input type="email" id="loginEmail" name="login-email" autocomplete="username"></div>
+      <div class="form-field"><label data-ar="كلمة السر" data-en="Password">Password</label><input type="password" id="loginPassword" name="login-password" autocomplete="current-password"></div>
       <button class="modal-submit" id="loginSubmit" data-ar="تسجيل الدخول" data-en="Log in">Log in</button>
       <div class="modal-error" id="loginError"></div>
     </div>
     <div id="registerForm" style="display:none;">
       <h3 data-ar="إنشاء حسابك" data-en="Create your account">Create your account</h3>
       <p class="sub" data-ar="مجاني، وتقدر تبدأ على طول." data-en="Free, and you can start right away.">Free, and you can start right away.</p>
-      <div class="form-field"><label data-ar="الاسم بالكامل" data-en="Full name">Full name</label><input type="text" id="regName"></div>
-      <div class="form-field"><label data-ar="اسم الشركة / المعمل" data-en="Company / lab name">Company / lab name</label><input type="text" id="regCompany"></div>
-      <div class="form-field"><label data-ar="البريد الإلكتروني" data-en="Email">Email</label><input type="email" id="regEmail"></div>
-      <div class="form-field"><label data-ar="كلمة السر (8 أحرف فأكتر)" data-en="Password (8+ characters)">Password (8+ characters)</label><input type="password" id="regPassword"></div>
+      <div class="form-field"><label data-ar="الاسم بالكامل" data-en="Full name">Full name</label><input type="text" id="regName" name="reg-fullname" autocomplete="name"></div>
+      <div class="form-field"><label data-ar="اسم الشركة / المعمل" data-en="Company / lab name">Company / lab name</label><input type="text" id="regCompany" name="reg-organization" autocomplete="organization"></div>
+      <div class="form-field"><label data-ar="البريد الإلكتروني" data-en="Email">Email</label><input type="email" id="regEmail" name="reg-email" autocomplete="username"></div>
+      <div class="form-field"><label data-ar="كلمة السر (8 أحرف فأكتر)" data-en="Password (8+ characters)">Password (8+ characters)</label><input type="password" id="regPassword" name="reg-password" autocomplete="new-password"></div>
       <button class="modal-submit" id="registerSubmit" data-ar="إنشاء حساب" data-en="Create account">Create account</button>
       <div class="modal-error" id="registerError"></div>
     </div>
