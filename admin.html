@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — MedForsa GCC</title>
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Tajawal:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A0E1C; --surface:#121A33; --surface-2:#1B2547; --line: rgba(237,239,247,0.10);
+    --assay:#1FE0CE; --assay-dim: rgba(31,224,206,0.14);
+    --gold:#FFB443; --gold-dim: rgba(255,180,67,0.14);
+    --plasma:#FF3B5C; --plasma-dim: rgba(255,59,92,0.14);
+    --paper:#EDEFF7; --muted:#8D95B3;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--ink); color:var(--paper); font-family:'Tajawal', sans-serif; min-height:100vh;}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  header{display:flex; align-items:center; gap:16px; padding:18px 28px; border-bottom:1px solid var(--line); background:var(--surface);}
+  .brand-name{font-family:'Almarai'; font-weight:800; font-size:16px;}
+  .brand-sub{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--assay); letter-spacing:1px;}
+  .back-link{color:var(--muted); text-decoration:none; font-size:13px; margin-inline-start:auto;}
+  .back-link:hover{color:var(--paper);}
+  main{max-width:1100px; margin:0 auto; padding:32px 24px 80px;}
+  h1{font-family:'Almarai'; font-size:22px; margin-bottom:4px;}
+  .sub{color:var(--muted); font-size:13.5px; margin-bottom:28px;}
+  .stats-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:32px;}
+  .stat-card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px;}
+  .stat-card .num{font-family:'IBM Plex Mono'; font-size:26px; font-weight:600; color:var(--assay);}
+  .stat-card .label{font-size:12px; color:var(--muted); margin-top:4px;}
+  .panel{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:22px; margin-bottom:24px;}
+  .panel h2{font-size:15px; margin-bottom:16px;}
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  th{text-align:left; color:var(--muted); font-weight:500; font-size:11.5px; text-transform:uppercase; letter-spacing:0.5px; padding:8px 10px; border-bottom:1px solid var(--line);}
+  td{padding:10px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  .badge{display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-family:'IBM Plex Mono'; font-weight:500;}
+  .badge.admin{background:var(--gold-dim); color:var(--gold);}
+  .badge.user{background:var(--surface-2); color:var(--muted);}
+  .badge.active{background:var(--assay-dim); color:var(--assay);}
+  .badge.trialing{background:var(--gold-dim); color:var(--gold);}
+  .badge.none, .badge.canceled{background:var(--plasma-dim); color:var(--plasma);}
+  .badge.disabled{background:var(--plasma-dim); color:var(--plasma);}
+  .row-actions{display:flex; gap:6px; flex-wrap:wrap;}
+  .btn-mini{
+    font-family:'IBM Plex Mono'; font-size:11px; padding:5px 10px; border-radius:8px;
+    background:var(--surface-2); border:1px solid var(--line); color:var(--paper); cursor:pointer;
+  }
+  .btn-mini:hover{border-color:var(--assay); color:var(--assay);}
+  .btn-mini.danger:hover{border-color:var(--plasma); color:var(--plasma);}
+  select, input{
+    font-family:inherit; font-size:12.5px; padding:6px 8px; border-radius:8px;
+    background:var(--surface-2); border:1px solid var(--line); color:var(--paper);
+  }
+  .grant-form{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  #loginGate{display:flex; align-items:center; justify-content:center; min-height:70vh; text-align:center; padding:24px;}
+  #loginGate .box{max-width:380px;}
+  #loginGate h2{font-family:'Almarai'; margin-bottom:10px;}
+  #loginGate p{color:var(--muted); font-size:13.5px; margin-bottom:18px;}
+  #loginGate input{width:100%; margin-bottom:10px; padding:10px 12px;}
+  #loginGate button{
+    width:100%; padding:10px; border-radius:10px; background:var(--assay); color:var(--ink);
+    border:none; font-weight:600; cursor:pointer; font-family:inherit;
+  }
+  #loginErr{color:var(--plasma); font-size:12.5px; margin-top:8px; min-height:16px;}
+  .hidden{display:none;}
+  .empty{color:var(--muted); font-size:13px; padding:20px; text-align:center;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="brand-name">MedForsa GCC</div>
+    <div class="brand-sub">ADMIN PANEL</div>
+  </div>
+  <a class="back-link" href="/app">← Back to platform</a>
+</header>
+
+<div id="loginGate">
+  <div class="box">
+    <h2>Admin sign-in</h2>
+    <p>This panel is restricted to platform admin accounts.</p>
+    <input type="email" id="adminEmail" placeholder="Email">
+    <input type="password" id="adminPassword" placeholder="Password">
+    <button id="adminLoginBtn">Log in</button>
+    <div id="loginErr"></div>
+  </div>
+</div>
+
+<main id="adminMain" class="hidden">
+  <h1>Admin</h1>
+  <div class="sub">Users, roles, and subscriptions — <span id="whoami" class="mono"></span></div>
+
+  <div class="stats-row" id="statsRow"></div>
+
+  <div class="panel">
+    <h2>Grant a subscription manually</h2>
+    <p class="sub" style="margin-bottom:14px;">The main path for KSA/GCC B2B deals closed offline (bank transfer, PO, invoice) rather than card checkout.</p>
+    <div class="grant-form">
+      <select id="grantUserSelect"></select>
+      <select id="grantPlan">
+        <option value="trial">Trial</option>
+        <option value="pro" selected>Pro</option>
+        <option value="enterprise">Enterprise</option>
+      </select>
+      <input type="number" id="grantDays" value="365" min="1" style="width:80px;">
+      <span class="mono" style="color:var(--muted); font-size:12px;">days</span>
+      <input type="text" id="grantNote" placeholder="Note (optional, e.g. invoice #)" style="flex:1; min-width:180px;">
+      <button class="btn-mini" id="grantBtn" style="border-color:var(--assay); color:var(--assay);">Grant</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>All users</h2>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr><th>Email</th><th>Company</th><th>Role</th><th>Account</th><th>Subscription</th><th>Joined</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="usersBody"></tbody>
+      </table>
+      <div class="empty hidden" id="usersEmpty">No users yet.</div>
+    </div>
+  </div>
+</main>
+
+<script>
+  const TOKEN_KEY = 'medintel_token';
+  let currentUser = null;
+
+  function authHeaders(){
+    const t = localStorage.getItem(TOKEN_KEY);
+    return t ? {'Authorization': 'Bearer ' + t} : {};
+  }
+
+  function fmtDate(s){
+    if(!s) return '—';
+    return s.split(' ')[0].split('T')[0];
+  }
+
+  async function tryAutoLogin(){
+    const t = localStorage.getItem(TOKEN_KEY);
+    if(!t) return;
+    const r = await fetch('/auth/me', {headers: authHeaders()});
+    if(r.ok){
+      const user = await r.json();
+      if(user.role === 'admin'){
+        currentUser = user;
+        showAdmin();
+      } else {
+        document.getElementById('loginErr').textContent = 'This account is not an admin.';
+      }
+    }
+  }
+
+  document.getElementById('adminLoginBtn').addEventListener('click', async function(){
+    const email = document.getElementById('adminEmail').value.trim();
+    const password = document.getElementById('adminPassword').value;
+    const errEl = document.getElementById('loginErr');
+    errEl.textContent = '';
+    if(!email || !password){ errEl.textContent = 'Enter email and password.'; return; }
+    try{
+      const r = await fetch('/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password})});
+      if(!r.ok){ errEl.textContent = 'Invalid email or password.'; return; }
+      const data = await r.json();
+      if(data.user.role !== 'admin'){ errEl.textContent = 'This account is not an admin.'; return; }
+      localStorage.setItem(TOKEN_KEY, data.access_token);
+      currentUser = data.user;
+      showAdmin();
+    }catch(e){
+      errEl.textContent = 'Could not reach the server.';
+    }
+  });
+
+  function showAdmin(){
+    document.getElementById('loginGate').classList.add('hidden');
+    document.getElementById('adminMain').classList.remove('hidden');
+    document.getElementById('whoami').textContent = currentUser.email;
+    loadStats();
+    loadUsers();
+  }
+
+  async function loadStats(){
+    const r = await fetch('/admin/stats', {headers: authHeaders()});
+    if(!r.ok) return;
+    const s = await r.json();
+    document.getElementById('statsRow').innerHTML = `
+      <div class="stat-card"><div class="num">${s.total_users}</div><div class="label">Total users</div></div>
+      <div class="stat-card"><div class="num">${s.active_subscriptions}</div><div class="label">Active subscriptions</div></div>
+      <div class="stat-card"><div class="num">${s.total_leads}</div><div class="label">Total leads logged</div></div>
+    `;
+  }
+
+  let usersCache = [];
+
+  async function loadUsers(){
+    const r = await fetch('/admin/users', {headers: authHeaders()});
+    if(!r.ok) return;
+    usersCache = await r.json();
+    renderUsers();
+    renderGrantSelect();
+  }
+
+  function renderGrantSelect(){
+    const sel = document.getElementById('grantUserSelect');
+    sel.innerHTML = usersCache.map(u => `<option value="${u.id}">${u.email} (${u.company_name})</option>`).join('');
+  }
+
+  function renderUsers(){
+    const body = document.getElementById('usersBody');
+    const empty = document.getElementById('usersEmpty');
+    if(!usersCache.length){ body.innerHTML=''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    body.innerHTML = usersCache.map(function(u){
+      const sub = u.subscription;
+      const subBadge = !sub ? '<span class="badge none">none</span>'
+        : sub.is_active ? `<span class="badge ${sub.status}">${sub.plan} · ${fmtDate(sub.current_period_end)}</span>`
+        : `<span class="badge canceled">${sub.plan} · expired</span>`;
+      return `
+        <tr>
+          <td class="mono">${u.email}</td>
+          <td>${u.company_name || '—'}</td>
+          <td><span class="badge ${u.role}">${u.role}</span></td>
+          <td>${u.is_active ? '<span class="badge active">active</span>' : '<span class="badge disabled">disabled</span>'}</td>
+          <td>${subBadge}</td>
+          <td class="mono" style="color:var(--muted); font-size:12px;">${fmtDate(u.created_at)}</td>
+          <td>
+            <div class="row-actions">
+              <button class="btn-mini" onclick="toggleRole(${u.id}, '${u.role}')">${u.role === 'admin' ? 'Demote' : 'Make admin'}</button>
+              <button class="btn-mini ${u.is_active ? 'danger' : ''}" onclick="toggleActive(${u.id}, ${u.is_active})">${u.is_active ? 'Disable' : 'Enable'}</button>
+              ${sub && sub.is_active ? `<button class="btn-mini danger" onclick="revokeSub(${u.id})">Revoke sub</button>` : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  window.toggleRole = async function(id, currentRole){
+    const newRole = currentRole === 'admin' ? 'user' : 'admin';
+    if(!confirm(`Set this user's role to "${newRole}"?`)) return;
+    await fetch(`/admin/users/${id}/role`, {method:'POST', headers:{...authHeaders(), 'Content-Type':'application/json'}, body: JSON.stringify({role:newRole})});
+    loadUsers();
+  };
+
+  window.toggleActive = async function(id, isActive){
+    await fetch(`/admin/users/${id}/active`, {method:'POST', headers:{...authHeaders(), 'Content-Type':'application/json'}, body: JSON.stringify({is_active: !isActive})});
+    loadUsers();
+  };
+
+  window.revokeSub = async function(id){
+    if(!confirm('Revoke this subscription?')) return;
+    await fetch(`/admin/subscriptions/${id}/revoke`, {method:'POST', headers: authHeaders()});
+    loadUsers();
+    loadStats();
+  };
+
+  document.getElementById('grantBtn').addEventListener('click', async function(){
+    const userId = document.getElementById('grantUserSelect').value;
+    const plan = document.getElementById('grantPlan').value;
+    const days = parseInt(document.getElementById('grantDays').value, 10) || 365;
+    const note = document.getElementById('grantNote').value.trim();
+    if(!userId) return;
+    const r = await fetch(`/admin/subscriptions/${userId}/grant`, {
+      method:'POST', headers:{...authHeaders(), 'Content-Type':'application/json'},
+      body: JSON.stringify({plan, days, note: note || null})
+    });
+    if(r.ok){
+      document.getElementById('grantNote').value = '';
+      loadUsers();
+      loadStats();
+    } else {
+      alert('Could not grant subscription.');
+    }
+  });
+
+  tryAutoLogin();
+</script>
+</body>
+</html>

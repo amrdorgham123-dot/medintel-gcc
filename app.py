@@ -80,6 +80,10 @@ def snibe_biochem_ad():
 def doctor_ai_page():
     return FileResponse(os.path.join(os.path.dirname(__file__), "doctor-ai.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
 
+@app.get("/admin")
+def admin_page():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "admin.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
+
 @app.get("/lab-info")
 def lab_info_page():
     return FileResponse(os.path.join(os.path.dirname(__file__), "lab-info.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
@@ -596,6 +600,52 @@ def get_current_user(authorization: str | None = Header(default=None)) -> dict:
 def public_user_fields(user: dict) -> dict:
     return {k: user[k] for k in ("id", "email", "company_name", "full_name", "role")}
 
+def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
+    """Gate for platform-owner/admin-only endpoints (user management, manual
+    subscription grants). Admins are flagged via users.role = 'admin'."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+def get_subscription_row(conn, user_id: int) -> dict | None:
+    row = conn.execute(
+        "SELECT * FROM subscriptions WHERE user_id = ? ORDER BY id DESC LIMIT 1",
+        (user_id,)
+    ).fetchone()
+    return dict(row) if row else None
+
+def subscription_is_active(sub: dict | None) -> bool:
+    if not sub:
+        return False
+    if sub["status"] not in ("trialing", "active"):
+        return False
+    if sub["current_period_end"]:
+        try:
+            if datetime.strptime(sub["current_period_end"], "%Y-%m-%d") < datetime.now():
+                return False
+        except ValueError:
+            pass
+    return True
+
+def require_subscription(current_user: dict = Depends(get_current_user)) -> dict:
+    """Gate for paid market-intelligence endpoints (currently: /opportunities).
+    Admin accounts always pass -- they don't need a subscription to manage the
+    platform they own. Everyone else needs an active trial/paid subscription,
+    granted either manually by an admin (POST /admin/subscriptions/{id}/grant)
+    or, once configured, via Stripe checkout (POST /subscription/checkout)."""
+    if current_user.get("role") == "admin":
+        return current_user
+    conn = get_conn()
+    sub = get_subscription_row(conn, current_user["id"])
+    conn.close()
+    if not subscription_is_active(sub):
+        raise HTTPException(
+            status_code=402,
+            detail="An active subscription is required to view this section. "
+                   "See /subscription/plans, or contact us to get started."
+        )
+    return current_user
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
@@ -620,6 +670,11 @@ def register(reg: RegisterRequest):
     )
     conn.commit()
     user_id = cur.lastrowid
+    conn.execute(
+        "INSERT INTO subscriptions (user_id, plan, status, current_period_end, granted_by, grant_note) VALUES (?,?,?,?,?,?)",
+        (user_id, "trial", "trialing", (datetime.now() + timedelta(days=14)).strftime("%Y-%m-%d"),
+         "system", "Automatic 14-day trial on signup")
+    )
     conn.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('users', ?, 'insert', ?)",
                  (user_id, f"New account registered: {reg.email} ({reg.company_name})"))
     conn.commit()
@@ -642,12 +697,204 @@ def login(creds: LoginRequest):
 def read_me(current_user: dict = Depends(get_current_user)):
     return public_user_fields(current_user)
 
+# ---------------- Subscription plans, status, and Stripe checkout ----------------
+
+SUBSCRIPTION_PLANS = {
+    "trial": {"name": "Trial", "price_sar": 0, "billing": "14 days, one-time",
+               "features": ["Full platform access for 14 days", "No card required"]},
+    "pro": {"name": "Pro", "price_sar": 1500, "billing": "per month",
+             "features": ["Opportunities & market intelligence", "Distributor & regulatory data",
+                          "Doctor AI", "Unlimited leads & watchlist"]},
+    "enterprise": {"name": "Enterprise", "price_sar": None, "billing": "annual, contact us",
+                    "features": ["Everything in Pro", "Multi-user team accounts",
+                                 "API access", "Priority data requests"]},
+}
+
+@app.get("/subscription/plans")
+def subscription_plans():
+    return SUBSCRIPTION_PLANS
+
+@app.get("/subscription/status")
+def subscription_status(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") == "admin":
+        return {"plan": "admin", "status": "active", "is_active": True, "current_period_end": None}
+    conn = get_conn()
+    sub = get_subscription_row(conn, current_user["id"])
+    conn.close()
+    if not sub:
+        return {"plan": None, "status": "none", "is_active": False, "current_period_end": None}
+    return {"plan": sub["plan"], "status": sub["status"], "is_active": subscription_is_active(sub),
+            "current_period_end": sub["current_period_end"]}
+
+class CheckoutRequest(BaseModel):
+    plan: Literal["pro", "enterprise"]
+
+@app.post("/subscription/checkout")
+def subscription_checkout(payload: CheckoutRequest, current_user: dict = Depends(get_current_user)):
+    """Creates a Stripe Checkout session for self-serve payment. Requires
+    STRIPE_SECRET_KEY and a STRIPE_PRICE_ID_<PLAN> env var to be set on the
+    server (same pattern as the WhatsApp/Twilio integration: backend is
+    ready, just needs real credentials filled in before it can process a
+    real payment). Until then, this returns a clear 501 rather than pretending
+    to charge a card."""
+    stripe_key = os.environ.get("STRIPE_SECRET_KEY")
+    price_id = os.environ.get(f"STRIPE_PRICE_ID_{payload.plan.upper()}")
+    if not stripe_key or not price_id:
+        raise HTTPException(
+            status_code=501,
+            detail="Online payment isn't configured yet. Please contact us directly to "
+                   "activate a subscription, or ask an admin to grant one."
+        )
+    import stripe
+    stripe.api_key = stripe_key
+    site_url = os.environ.get("SITE_URL", "https://medintel-gcc.onrender.com")
+    session = stripe.checkout.Session.create(
+        mode="subscription",
+        customer_email=current_user["email"],
+        line_items=[{"price": price_id, "quantity": 1}],
+        success_url=f"{site_url}/app?subscription=success",
+        cancel_url=f"{site_url}/app?subscription=cancelled",
+        metadata={"user_id": str(current_user["id"]), "plan": payload.plan},
+    )
+    return {"checkout_url": session.url}
+
+@app.post("/subscription/webhook")
+async def subscription_webhook(request: Request):
+    """Stripe webhook: activates a subscription in our DB once Stripe confirms
+    payment. Requires STRIPE_WEBHOOK_SECRET to be set for signature verification."""
+    webhook_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
+    if not webhook_secret:
+        raise HTTPException(status_code=501, detail="Stripe webhook not configured")
+    import stripe
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+    except (ValueError, Exception):
+        raise HTTPException(status_code=400, detail="Invalid webhook signature")
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        user_id = int(session["metadata"]["user_id"])
+        plan = session["metadata"]["plan"]
+        conn = get_conn()
+        conn.execute(
+            "INSERT INTO subscriptions (user_id, plan, status, current_period_end, stripe_customer_id, stripe_subscription_id) "
+            "VALUES (?,?,?,?,?,?)",
+            (user_id, plan, "active", (datetime.now() + timedelta(days=365)).strftime("%Y-%m-%d"),
+             session.get("customer"), session.get("subscription"))
+        )
+        conn.commit()
+        conn.close()
+    return {"received": True}
+
+# ---------------- Admin: user & subscription management ----------------
+
+@app.get("/admin/users")
+def admin_list_users(current_user: dict = Depends(require_admin)):
+    conn = get_conn()
+    users = conn.execute("SELECT id, email, company_name, full_name, role, is_active, created_at FROM users ORDER BY id").fetchall()
+    result = []
+    for u in users:
+        u = dict(u)
+        sub = get_subscription_row(conn, u["id"])
+        u["subscription"] = {"plan": sub["plan"], "status": sub["status"], "is_active": subscription_is_active(sub),
+                              "current_period_end": sub["current_period_end"]} if sub else None
+        result.append(u)
+    conn.close()
+    return result
+
+@app.get("/admin/stats")
+def admin_stats(current_user: dict = Depends(require_admin)):
+    conn = get_conn()
+    total_users = conn.execute("SELECT COUNT(*) c FROM users").fetchone()["c"]
+    active_subs = conn.execute(
+        "SELECT COUNT(DISTINCT user_id) c FROM subscriptions WHERE status IN ('trialing','active')"
+    ).fetchone()["c"]
+    total_leads = conn.execute("SELECT COUNT(*) c FROM leads").fetchone()["c"]
+    conn.close()
+    return {"total_users": total_users, "active_subscriptions": active_subs, "total_leads": total_leads}
+
+class RoleUpdate(BaseModel):
+    role: Literal["user", "admin"]
+
+@app.post("/admin/users/{user_id}/role")
+def admin_set_role(user_id: int, payload: RoleUpdate, current_user: dict = Depends(require_admin)):
+    conn = get_conn()
+    existing = conn.execute("SELECT id, email FROM users WHERE id = ?", (user_id,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    conn.execute("UPDATE users SET role = ? WHERE id = ?", (payload.role, user_id))
+    conn.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('users', ?, 'update', ?)",
+                 (user_id, f"Role changed to '{payload.role}' by admin {current_user['email']}"))
+    conn.commit()
+    conn.close()
+    return {"id": user_id, "role": payload.role}
+
+class ActiveUpdate(BaseModel):
+    is_active: bool
+
+@app.post("/admin/users/{user_id}/active")
+def admin_set_active(user_id: int, payload: ActiveUpdate, current_user: dict = Depends(require_admin)):
+    conn = get_conn()
+    existing = conn.execute("SELECT id, email FROM users WHERE id = ?", (user_id,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    conn.execute("UPDATE users SET is_active = ? WHERE id = ?", (int(payload.is_active), user_id))
+    conn.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('users', ?, 'update', ?)",
+                 (user_id, f"Account {'enabled' if payload.is_active else 'disabled'} by admin {current_user['email']}"))
+    conn.commit()
+    conn.close()
+    return {"id": user_id, "is_active": payload.is_active}
+
+class SubscriptionGrant(BaseModel):
+    plan: Literal["trial", "pro", "enterprise"]
+    days: int = Field(365, ge=1, le=3650)
+    note: str | None = None
+
+@app.post("/admin/subscriptions/{user_id}/grant")
+def admin_grant_subscription(user_id: int, payload: SubscriptionGrant, current_user: dict = Depends(require_admin)):
+    """Manually activate/extend a subscription -- the primary path for KSA/GCC
+    B2B deals closed offline (bank transfer, PO, invoice) rather than through
+    self-serve card checkout."""
+    conn = get_conn()
+    existing = conn.execute("SELECT id, email FROM users WHERE id = ?", (user_id,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    period_end = (datetime.now() + timedelta(days=payload.days)).strftime("%Y-%m-%d")
+    conn.execute(
+        "INSERT INTO subscriptions (user_id, plan, status, current_period_end, granted_by, grant_note) VALUES (?,?,?,?,?,?)",
+        (user_id, payload.plan, "active", period_end, current_user["email"], payload.note)
+    )
+    conn.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('users', ?, 'update', ?)",
+                 (user_id, f"Subscription '{payload.plan}' granted through {period_end} by admin {current_user['email']}"))
+    conn.commit()
+    conn.close()
+    return {"id": user_id, "plan": payload.plan, "status": "active", "current_period_end": period_end}
+
+@app.post("/admin/subscriptions/{user_id}/revoke")
+def admin_revoke_subscription(user_id: int, current_user: dict = Depends(require_admin)):
+    conn = get_conn()
+    sub = get_subscription_row(conn, user_id)
+    if not sub:
+        conn.close()
+        raise HTTPException(status_code=404, detail="No subscription found for this user")
+    conn.execute("UPDATE subscriptions SET status = 'canceled', updated_at = CURRENT_TIMESTAMP WHERE id = ?", (sub["id"],))
+    conn.execute("INSERT INTO audit_log (table_name, record_id, action, detail) VALUES ('users', ?, 'update', ?)",
+                 (user_id, f"Subscription canceled by admin {current_user['email']}"))
+    conn.commit()
+    conn.close()
+    return {"id": user_id, "status": "canceled"}
+
 @app.get("/opportunities")
-def list_opportunities(current_user: dict = Depends(get_current_user)):
-    """Opportunities requires a real login -- it reveals which manufacturers
-    have no confirmed KSA distributor, sensitive competitive strategy info.
-    Any logged-in account can see this shared market view (it's not
-    tenant-specific data itself, unlike leads/watchlist below)."""
+def list_opportunities(current_user: dict = Depends(require_subscription)):
+    """Opportunities requires an active subscription (admins always pass) --
+    it reveals which manufacturers have no confirmed KSA distributor,
+    sensitive competitive strategy info. Any subscribed account can see this
+    shared market view (it's not tenant-specific data itself, unlike
+    leads/watchlist below)."""
     conn = get_conn()
     rows = conn.execute(
         """SELECT o.*, m.name as company_name FROM opportunities o
