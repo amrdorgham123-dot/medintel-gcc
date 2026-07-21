@@ -16,6 +16,10 @@ import logging
 import bcrypt
 import jwt
 import html as html_lib
+import csv
+import io
+import secrets
+import hashlib
 from datetime import datetime, timedelta
 
 logging.basicConfig(
@@ -852,6 +856,166 @@ def require_subscription(current_user: dict = Depends(get_current_user)) -> dict
                    "See /subscription/plans, or contact us to get started."
         )
     return current_user
+
+# ---------------- API keys: programmatic access for Enterprise/Pro customers ----------------
+
+def generate_api_key() -> tuple[str, str, str]:
+    """Returns (raw_key_to_show_once, key_hash_to_store, key_prefix_for_display)."""
+    raw = "mfgcc_" + secrets.token_urlsafe(32)
+    key_hash = hashlib.sha256(raw.encode()).hexdigest()
+    prefix = raw[:12] + "..."
+    return raw, key_hash, prefix
+
+def get_user_by_api_key(conn, raw_key: str) -> dict | None:
+    key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+    row = conn.execute(
+        "SELECT * FROM api_keys WHERE key_hash = ? AND is_active = 1", (key_hash,)
+    ).fetchone()
+    if not row:
+        return None
+    conn.execute("UPDATE api_keys SET last_used_at = CURRENT_TIMESTAMP WHERE id = ?", (row["id"],))
+    conn.commit()
+    user = conn.execute("SELECT * FROM users WHERE id = ? AND is_active = 1", (row["user_id"],)).fetchone()
+    return dict(user) if user else None
+
+def require_subscription_flexible(
+    authorization: str | None = Header(default=None),
+    x_api_key: str | None = Header(default=None),
+) -> dict:
+    """Same gating as require_subscription, but accepts either a JWT session
+    (Authorization: Bearer ...) or an API key (X-API-Key: ...) -- the latter
+    is how Enterprise customers hit export/data endpoints programmatically
+    without a browser session."""
+    conn = get_conn()
+    current_user = None
+    if x_api_key:
+        current_user = get_user_by_api_key(conn, x_api_key)
+        if not current_user:
+            conn.close()
+            raise HTTPException(status_code=401, detail="Invalid or revoked API key")
+    elif authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ", 1)[1]
+        try:
+            payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        except jwt.ExpiredSignatureError:
+            conn.close()
+            raise HTTPException(status_code=401, detail="Session expired, please log in again")
+        except jwt.InvalidTokenError:
+            conn.close()
+            raise HTTPException(status_code=401, detail="Invalid session token")
+        user = conn.execute("SELECT * FROM users WHERE id = ? AND is_active = 1", (payload["sub"],)).fetchone()
+        current_user = dict(user) if user else None
+    if not current_user:
+        conn.close()
+        raise HTTPException(status_code=401, detail="Missing Authorization header or X-API-Key")
+    if current_user.get("role") == "admin":
+        conn.close()
+        return current_user
+    sub = get_subscription_row(conn, current_user["id"])
+    conn.close()
+    if not subscription_is_active(sub):
+        raise HTTPException(
+            status_code=402,
+            detail="An active subscription is required to use this endpoint. "
+                   "See /subscription/plans, or contact us to get started."
+        )
+    return current_user
+
+class ApiKeyCreate(BaseModel):
+    label: str = Field(..., min_length=1, max_length=100)
+
+@app.post("/api-keys")
+def create_api_key(payload: ApiKeyCreate, current_user: dict = Depends(require_subscription)):
+    """Generates a new API key for the logged-in (subscribed) user. The raw
+    key is returned exactly once -- only its hash is stored, matching how
+    passwords are handled."""
+    raw_key, key_hash, prefix = generate_api_key()
+    conn = get_conn()
+    cur = conn.execute(
+        "INSERT INTO api_keys (user_id, key_hash, key_prefix, label) VALUES (?,?,?,?)",
+        (current_user["id"], key_hash, prefix, payload.label)
+    )
+    conn.commit()
+    key_id = cur.lastrowid
+    conn.close()
+    return {"id": key_id, "label": payload.label, "api_key": raw_key,
+            "warning": "Save this key now -- it will not be shown again."}
+
+@app.get("/api-keys")
+def list_api_keys(current_user: dict = Depends(get_current_user)):
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT id, key_prefix, label, created_at, last_used_at, is_active FROM api_keys WHERE user_id = ? ORDER BY id DESC",
+        (current_user["id"],)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+@app.delete("/api-keys/{key_id}")
+def revoke_api_key(key_id: int, current_user: dict = Depends(get_current_user)):
+    conn = get_conn()
+    row = conn.execute("SELECT id FROM api_keys WHERE id = ? AND user_id = ?", (key_id, current_user["id"])).fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="API key not found")
+    conn.execute("UPDATE api_keys SET is_active = 0 WHERE id = ?", (key_id,))
+    conn.commit()
+    conn.close()
+    return {"id": key_id, "is_active": False}
+
+# ---------------- Data export (CSV): Pro/Enterprise only, JWT or API key ----------------
+
+def _csv_response(rows: list[dict], filename: str) -> Response:
+    if not rows:
+        return Response(content="", media_type="text/csv", headers={"Content-Disposition": f"attachment; filename={filename}"})
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=list(rows[0].keys()))
+    writer.writeheader()
+    writer.writerows(rows)
+    return Response(content=buf.getvalue(), media_type="text/csv",
+                     headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+@app.get("/export/companies.csv")
+def export_companies_csv(current_user: dict = Depends(require_subscription_flexible)):
+    conn = get_conn()
+    rows = conn.execute("SELECT name, category, origin, headquarters, website, ksa_status, status_tag FROM manufacturers WHERE is_published = 1 ORDER BY name").fetchall()
+    conn.close()
+    return _csv_response([dict(r) for r in rows], "medforsa-companies.csv")
+
+@app.get("/export/products.csv")
+def export_products_csv(current_user: dict = Depends(require_subscription_flexible)):
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT p.product_name, p.product_type, m.name as manufacturer, p.department, p.throughput
+        FROM products p LEFT JOIN manufacturers m ON p.manufacturer_id = m.id ORDER BY m.name, p.product_name
+    """).fetchall()
+    conn.close()
+    return _csv_response([dict(r) for r in rows], "medforsa-products.csv")
+
+@app.get("/export/distributors.csv")
+def export_distributors_csv(current_user: dict = Depends(require_subscription_flexible)):
+    conn = get_conn()
+    rows = conn.execute("SELECT name, country, represents, market_strength_tier FROM distributors ORDER BY name").fetchall()
+    conn.close()
+    return _csv_response([dict(r) for r in rows], "medforsa-distributors.csv")
+
+@app.get("/export/opportunities.csv")
+def export_opportunities_csv(current_user: dict = Depends(require_subscription_flexible)):
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT m.name as company_name, o.reason, o.action,
+               (o.score_no_distributor + o.score_confidence + o.score_brand) as total_score
+        FROM opportunities o JOIN manufacturers m ON m.id = o.manufacturer_id ORDER BY total_score DESC
+    """).fetchall()
+    conn.close()
+    return _csv_response([dict(r) for r in rows], "medforsa-opportunities.csv")
+
+@app.get("/export/lab-tests.csv")
+def export_lab_tests_csv(current_user: dict = Depends(require_subscription_flexible)):
+    conn = get_conn()
+    rows = conn.execute("SELECT name_en, category, specimen_type, purpose_en FROM lab_tests WHERE is_published = 1 ORDER BY category, name_en").fetchall()
+    conn.close()
+    return _csv_response([dict(r) for r in rows], "medforsa-lab-tests.csv")
 
 class RegisterRequest(BaseModel):
     email: EmailStr
