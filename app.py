@@ -228,6 +228,77 @@ def robots_txt():
     body = f"User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /app\nSitemap: {SITE_URL}/sitemap.xml\n"
     return Response(content=body, media_type="text/plain")
 
+# ---------------- Phase F: growth infrastructure (demo requests, public pricing page) ----------------
+
+class DemoRequest(BaseModel):
+    full_name: str = Field(..., min_length=1, max_length=150)
+    company_name: str = Field(..., min_length=1, max_length=150)
+    email: EmailStr
+    phone: str | None = None
+    message: str | None = None
+    plan_interest: Literal["trial", "pro", "enterprise"] | None = None
+
+@app.post("/demo-requests")
+def submit_demo_request(payload: DemoRequest):
+    """Public lead-capture endpoint -- this is what actually generates business
+    before Stripe/Moyasar credentials exist. No login required: this is the
+    landing page's 'Request a Demo' form."""
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO demo_requests (full_name, company_name, email, phone, message, plan_interest) VALUES (?,?,?,?,?,?)",
+        (payload.full_name, payload.company_name, payload.email, payload.phone, payload.message, payload.plan_interest)
+    )
+    conn.commit()
+    conn.close()
+    logger.info(f"New demo request: {payload.full_name} ({payload.company_name}) -- {payload.email}")
+    return {"status": "received", "message": "Thanks -- we'll be in touch shortly."}
+
+@app.get("/pricing", response_class=HTMLResponse)
+def pricing_page():
+    """Public, server-rendered pricing page (SEO-indexable, matches Phase D's
+    page shell) -- shows the real plan data from /subscription/plans rather
+    than a separately-maintained copy."""
+    plans_html = ""
+    for key, plan in SUBSCRIPTION_PLANS.items():
+        price = f"{plan['price_sar']} SAR" if plan["price_sar"] else "Contact us"
+        features = "".join(f"<div class='row'><span>{html_lib.escape(f)}</span></div>" for f in plan["features"])
+        plans_html += f"""
+        <div class="card">
+          <h2>{html_lib.escape(plan['name'])}</h2>
+          <p style="font-size:22px;font-weight:600;color:var(--paper);margin:0 0 4px">{price}</p>
+          <p style="color:var(--muted);font-size:12.5px;margin:0 0 14px">{html_lib.escape(plan['billing'])}</p>
+          {features}
+        </div>"""
+    body = f"""
+<h1>Plans and pricing</h1>
+<p class="sub">Full platform access, transparent pricing. Online self-serve checkout is coming soon -- for now, request a demo below and we'll set up your account directly.</p>
+{plans_html}
+<div class="card" id="demo-form">
+  <h2>Request a demo</h2>
+  <form onsubmit="event.preventDefault(); submitDemoRequest(this);" style="display:flex;flex-direction:column;gap:10px;">
+    <input name="full_name" required placeholder="Full name" style="padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--paper)">
+    <input name="company_name" required placeholder="Company name" style="padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--paper)">
+    <input name="email" type="email" required placeholder="Email" style="padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--paper)">
+    <input name="phone" placeholder="Phone (optional)" style="padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--paper)">
+    <button type="submit" class="cta" style="border:none;cursor:pointer">Request a demo</button>
+    <p id="demo-form-msg" style="font-size:13px;color:var(--assay);"></p>
+  </form>
+</div>
+<script>
+async function submitDemoRequest(form){{
+  const data = Object.fromEntries(new FormData(form));
+  const msgEl = document.getElementById('demo-form-msg');
+  try {{
+    const res = await fetch('/demo-requests', {{method:'POST', headers:{{'Content-Type':'application/json'}}, body: JSON.stringify(data)}});
+    if(res.ok){{ msgEl.textContent = "Thanks -- we'll be in touch shortly."; form.reset(); }}
+    else {{ msgEl.textContent = 'Something went wrong -- please try again.'; }}
+  }} catch(e){{ msgEl.textContent = 'Could not reach the server.'; }}
+}}
+</script>
+"""
+    json_ld = {"@context": "https://schema.org", "@type": "PriceSpecification", "name": "MedForsa GCC Plans"}
+    return _seo_page_shell("Plans and pricing", "MedForsa GCC subscription plans -- Trial, Pro, and Enterprise access to IVD and blood bank market intelligence across Saudi Arabia and the GCC.", "/pricing", body, json_ld)
+
 @app.get("/lab-tests")
 def lab_tests_page_legacy():
     # Legacy URL kept working -- the page and feature are now branded "Lab Info".
@@ -817,6 +888,28 @@ def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
+
+@app.get("/admin/demo-requests")
+def admin_list_demo_requests(current_user: dict = Depends(require_admin)):
+    conn = get_conn()
+    rows = conn.execute("SELECT * FROM demo_requests ORDER BY id DESC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+class DemoRequestStatusUpdate(BaseModel):
+    status: Literal["new", "contacted", "converted", "declined"]
+
+@app.post("/admin/demo-requests/{request_id}/status")
+def admin_update_demo_request_status(request_id: int, payload: DemoRequestStatusUpdate, current_user: dict = Depends(require_admin)):
+    conn = get_conn()
+    existing = conn.execute("SELECT id FROM demo_requests WHERE id = ?", (request_id,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Demo request not found")
+    conn.execute("UPDATE demo_requests SET status = ? WHERE id = ?", (payload.status, request_id))
+    conn.commit()
+    conn.close()
+    return {"id": request_id, "status": payload.status}
 
 def get_subscription_row(conn, user_id: int) -> dict | None:
     row = conn.execute(
