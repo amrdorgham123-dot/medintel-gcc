@@ -860,7 +860,7 @@ async function renderCompanyDetail(){
     main.innerHTML = `
       <button class="detail-back" onclick="selectedCompanyId=null;render()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        Back to manufacturers
+        Back to ${activeTab === 'opportunities' ? 'opportunities' : 'manufacturers'}
       </button>
       <div class="detail-head">
         <div><h2>${m.name}</h2><div class="meta">${m.headquarters} · ${m.website}</div></div>
@@ -1031,7 +1031,7 @@ async function renderOpportunities(){
     main.innerHTML = `
       <div class="opp-unlocked-bar">👤 Logged in as ${JSON.parse(localStorage.getItem('medintel-user')||'{}').company_name || 'you'} <button class="opp-lock-btn" onclick="logout()">Log out</button></div>
       <div class="grid">${items.map(o => `
-      <div class="card">
+      <div class="card" style="cursor:pointer" onclick="openCompany(${o.manufacturer_id})" title="Click for contact details and products">
         <div class="card-top"><div><h3>${o.company_name}</h3><div class="meta">${o.reason}</div></div><div class="score-num">${o.total_score}/10</div></div>
         <div class="score-bar-track"><div class="score-bar-fill" style="width:${o.total_score/10*100}%"></div></div>
         <div class="row" style="margin-top:8px"><span class="label">Action</span><span class="val">${o.action}</span></div>
