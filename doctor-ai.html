@@ -562,7 +562,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const isAr = MedForsaLang.getCurrentLang() === 'ar';
     voiceStatusText.textContent = mode === 'listening'
       ? (isAr ? 'بيسمع...' : 'Listening...')
-      : (isAr ? 'بيرد...' : 'Speaking...');
+      : (isAr ? 'بيرد... (دوس المايك تقاطعه)' : 'Speaking... (tap mic to interrupt)');
   }
 
   if(!speechSupported){
@@ -615,6 +615,9 @@ document.addEventListener('DOMContentLoaded', function(){
         voiceModeOn = false;
         voiceModeBtn.classList.remove('on');
       }
+      // 'no-speech' / 'aborted' are expected pauses, not real failures --
+      // recognition.onend fires right after this and handles restarting
+      // the loop in voice mode, so no alert needed here.
     };
 
     recognition.onend = function(){
@@ -623,6 +626,12 @@ document.addEventListener('DOMContentLoaded', function(){
       showVoiceStatus(null);
       if(finalTranscript.trim()){
         sendMessage();
+      } else if(voiceModeOn){
+        // Nothing was said this round (silence/timeout) -- without this,
+        // continuous voice mode would silently stall and the user would
+        // have to manually tap the mic again, defeating the point of
+        // hands-free conversation. Restart after a short pause instead.
+        setTimeout(function(){ if(voiceModeOn && !isListening) startListening(); }, 700);
       }
     };
 
@@ -631,6 +640,13 @@ document.addEventListener('DOMContentLoaded', function(){
 
   micBtn.addEventListener('click', function(){
     if(!speechSupported) return;
+    if(synth && synth.speaking){
+      // Barge-in: tapping the mic while the assistant is talking interrupts
+      // it and starts listening right away, instead of waiting for it to
+      // finish -- closer to how a real conversation works.
+      synth.cancel();
+      showVoiceStatus(null);
+    }
     if(isListening){ stopListening(); }
     else{ ttsEnabledForThisTurn = voiceModeOn; startListening(); }
   });
