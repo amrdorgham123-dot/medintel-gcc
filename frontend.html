@@ -826,7 +826,7 @@ async function loadManufacturerGrid(){
           <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
             <button class="star-btn ${watchedIds.has(m.id)?'starred':''}" onclick="event.stopPropagation();toggleWatch(${m.id}, this)" title="Add to watchlist">${watchedIds.has(m.id)?'★':'☆'}</button>
             ${badge(m.status_tag, m.status_tag==='open'?'Open opportunity':m.status_tag==='unclear'?'Needs outreach':'Covered')}
-            ${badge(m.confidence_tier, m.confidence_tier.toUpperCase())}
+            ${badge(m.confidence_tier, (m.confidence_tier||"unrated").toUpperCase())}
           </div>
         </div>
         ${manufacturerContactRow(m)}
@@ -864,7 +864,7 @@ async function renderCompanyDetail(){
       </button>
       <div class="detail-head">
         <div><h2>${m.name}</h2><div class="meta">${m.headquarters} · ${m.website}</div></div>
-        ${badge(m.confidence_tier, m.confidence_tier.toUpperCase())}
+        ${badge(m.confidence_tier, (m.confidence_tier||"unrated").toUpperCase())}
       </div>
       <div class="insight-box"><b>Summary</b> — ${insightData.generation_method}:<br>${insightData.insight}</div>
       <div class="detail-tabs">${subtabs.map(s => `<button class="${s===detailSubTab?'active':''}" onclick="detailSubTab='${s}';render()">${s.charAt(0).toUpperCase()+s.slice(1)}</button>`).join('')}</div>
@@ -1021,13 +1021,8 @@ async function rejectPending(id){
 async function renderOpportunities(){
   const main = document.getElementById('main');
   pendingUnlockRender = renderOpportunities;
-  const savedKey = localStorage.getItem('medintel-token');
-  if(!savedKey){
-    renderOppLock(main);
-    return;
-  }
   try {
-    const items = await apiGetProtected('/opportunities');
+    const items = await apiGet('/opportunities');
     main.innerHTML = `
       <div class="opp-unlocked-bar">👤 Logged in as ${JSON.parse(localStorage.getItem('medintel-user')||'{}').company_name || 'you'} <button class="opp-lock-btn" onclick="logout()">Log out</button></div>
       <div class="grid">${items.map(o => `

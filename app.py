@@ -1452,12 +1452,14 @@ def admin_revoke_subscription(user_id: int, current_user: dict = Depends(require
     return {"id": user_id, "status": "canceled"}
 
 @app.get("/opportunities")
-def list_opportunities(current_user: dict = Depends(require_subscription)):
-    """Opportunities requires an active subscription (admins always pass) --
-    it reveals which manufacturers have no confirmed KSA distributor,
-    sensitive competitive strategy info. Any subscribed account can see this
-    shared market view (it's not tenant-specific data itself, unlike
-    leads/watchlist below)."""
+def list_opportunities():
+    """TEMPORARY: opened without login/subscription while the platform is
+    still being actively built out, per explicit request (2026-07-21).
+    Before real launch, restore `current_user: dict = Depends(require_subscription)`
+    here to re-gate this behind login + an active subscription -- it reveals
+    which manufacturers have no confirmed KSA distributor, sensitive
+    competitive strategy info that shouldn't stay open to anonymous visitors
+    once this becomes a real commercial product."""
     conn = get_conn()
     rows = conn.execute(
         """SELECT o.*, m.name as company_name FROM opportunities o
