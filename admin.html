@@ -114,6 +114,13 @@
   </div>
 
   <div class="panel">
+    <h2>Update digest emails</h2>
+    <p class="sub" style="margin-bottom:14px;">Sends every subscribed user their unread notifications by email. No scheduler runs this automatically yet -- trigger it manually, or point an external cron ping at <span class="mono">POST /admin/send-digest-emails</span> on a schedule.</p>
+    <button class="btn-mini" id="sendDigestBtn" style="border-color:var(--assay); color:var(--assay);">Send digest now</button>
+    <span id="digestResult" class="mono" style="font-size:12px; color:var(--muted); margin-inline-start:10px;"></span>
+  </div>
+
+  <div class="panel">
     <h2>All users</h2>
     <div style="overflow-x:auto;">
       <table>
@@ -274,6 +281,18 @@
       loadStats();
     } else {
       alert('Could not grant subscription.');
+    }
+  });
+
+  document.getElementById('sendDigestBtn').addEventListener('click', async function(){
+    const resultEl = document.getElementById('digestResult');
+    resultEl.textContent = 'Sending...';
+    try {
+      const r = await fetch('/admin/send-digest-emails', {method:'POST', headers: authHeaders()});
+      const data = await r.json();
+      resultEl.textContent = data.message;
+    } catch(e){
+      resultEl.textContent = 'Could not reach the server.';
     }
   });
 

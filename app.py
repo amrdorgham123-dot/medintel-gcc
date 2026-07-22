@@ -20,6 +20,7 @@ import csv
 import io
 import secrets
 import hashlib
+import hmac
 import smtplib
 from email.mime.text import MIMEText
 from datetime import datetime, timedelta
@@ -1159,11 +1160,10 @@ def login(creds: LoginRequest):
     token = create_access_token(user["id"], user["email"])
     return {"access_token": token, "token_type": "bearer", "user": public_user_fields(dict(user))}
 
-def send_password_reset_email(to_email: str, code: str) -> bool:
-    """Sends the reset code via SMTP if credentials are configured (same
-    pattern as Stripe/Twilio: code is ready, just needs env vars). Returns
-    True if an email was actually sent, False if SMTP isn't configured yet
-    (caller falls back to logging the code server-side)."""
+def send_email(to_email: str, subject: str, body: str) -> bool:
+    """Generic SMTP sender -- returns True if actually sent, False if SMTP
+    isn't configured yet (SMTP_HOST/USER/PASSWORD env vars, same ready-but-
+    needs-credentials pattern as Stripe/Twilio)."""
     smtp_host = os.environ.get("SMTP_HOST")
     smtp_user = os.environ.get("SMTP_USER")
     smtp_password = os.environ.get("SMTP_PASSWORD")
@@ -1171,11 +1171,8 @@ def send_password_reset_email(to_email: str, code: str) -> bool:
     if not (smtp_host and smtp_user and smtp_password):
         return False
     smtp_port = int(os.environ.get("SMTP_PORT", "587"))
-    msg = MIMEText(
-        f"Your MedForsa GCC password reset code is: {code}\n\n"
-        f"This code expires in 15 minutes. If you didn't request this, you can ignore this email."
-    )
-    msg["Subject"] = "MedForsa GCC -- password reset code"
+    msg = MIMEText(body)
+    msg["Subject"] = subject
     msg["From"] = smtp_from
     msg["To"] = to_email
     with smtplib.SMTP(smtp_host, smtp_port) as server:
@@ -1183,6 +1180,18 @@ def send_password_reset_email(to_email: str, code: str) -> bool:
         server.login(smtp_user, smtp_password)
         server.sendmail(smtp_from, [to_email], msg.as_string())
     return True
+
+def send_password_reset_email(to_email: str, code: str) -> bool:
+    """Sends the reset code via SMTP if credentials are configured (same
+    pattern as Stripe/Twilio: code is ready, just needs env vars). Returns
+    True if an email was actually sent, False if SMTP isn't configured yet
+    (caller falls back to logging the code server-side)."""
+    return send_email(
+        to_email,
+        "MedForsa GCC -- password reset code",
+        f"Your MedForsa GCC password reset code is: {code}\n\n"
+        f"This code expires in 15 minutes. If you didn't request this, you can ignore this email."
+    )
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
@@ -1713,6 +1722,51 @@ def _build_notification_candidates(conn):
 
     candidates.sort(key=lambda c: c["created_at"], reverse=True)
     return candidates
+
+def _compose_digest_email(user_email: str, candidates: list) -> str:
+    lines = [
+        f"Your MedForsa GCC update digest ({len(candidates)} new item{'s' if len(candidates) != 1 else ''}):",
+        "",
+    ]
+    for c in candidates:
+        lines.append(f"- {c['title']}")
+        if c.get("detail"):
+            lines.append(f"  {c['detail']}")
+    lines.append("")
+    lines.append(f"View them at {SITE_URL}/app")
+    return "\n".join(lines)
+
+@app.post("/admin/send-digest-emails")
+def admin_send_digest_emails(current_user: dict = Depends(require_admin)):
+    """Manually triggers a digest email to every subscribed user with unread
+    notifications. No cron scheduler exists in this environment, so this is
+    admin-triggered for now -- to automate it, point an external scheduler
+    (e.g. a free cron-job.org ping, or a Render Cron Job on a paid plan) at
+    this endpoint with the admin's API key on a daily/weekly schedule."""
+    conn = get_conn()
+    candidates = _build_notification_candidates(conn)
+    if not candidates:
+        conn.close()
+        return {"sent": 0, "message": "No new items to send -- nothing is out of date."}
+    users = conn.execute("SELECT id, email FROM users WHERE is_active = 1").fetchall()
+    sent, skipped_no_smtp = 0, 0
+    for u in users:
+        read_keys = {r["notification_key"] for r in conn.execute(
+            "SELECT notification_key FROM notification_reads WHERE user_id = ?", (u["id"],)
+        ).fetchall()}
+        unread = [c for c in candidates if c["key"] not in read_keys]
+        if not unread:
+            continue
+        body = _compose_digest_email(u["email"], unread)
+        emailed = send_email(u["email"], f"MedForsa GCC -- {len(unread)} new update(s)", body)
+        if emailed:
+            sent += 1
+        else:
+            skipped_no_smtp += 1
+    conn.close()
+    if skipped_no_smtp and not sent:
+        return {"sent": 0, "message": f"SMTP not configured -- would have sent to {skipped_no_smtp} user(s). Set SMTP_HOST/SMTP_USER/SMTP_PASSWORD to enable."}
+    return {"sent": sent, "message": f"Digest sent to {sent} user(s)."}
 
 @app.get("/notifications")
 def list_notifications(current_user: dict = Depends(get_current_user), include_read: bool = False, limit: int = 30):
@@ -2503,11 +2557,32 @@ def _twiml_response(message_text: str) -> Response:
     xml = f'<?xml version="1.0" encoding="UTF-8"?><Response><Message>{escaped}</Message></Response>'
     return Response(content=xml, media_type="application/xml")
 
+def _validate_twilio_signature(request: Request, form_params: dict) -> bool:
+    """Verifies the X-Twilio-Signature header per Twilio's documented HMAC-SHA1
+    scheme, so this endpoint can't be spoofed/abused by arbitrary POSTs once
+    it's live (each request otherwise costs a real Anthropic API call).
+    Returns True (allow) if TWILIO_AUTH_TOKEN isn't set yet -- same ready-but-
+    needs-credentials pattern as the rest of the Twilio integration; once the
+    token is configured this becomes a hard requirement."""
+    auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+    if not auth_token:
+        return True
+    signature = request.headers.get("X-Twilio-Signature", "")
+    url = str(request.url)
+    data = url + "".join(f"{k}{v}" for k, v in sorted(form_params.items()))
+    expected = base64.b64encode(
+        hmac.new(auth_token.encode(), data.encode(), hashlib.sha1).digest()
+    ).decode()
+    return hmac.compare_digest(expected, signature)
+
 @app.post("/whatsapp-webhook")
 async def whatsapp_webhook(request: Request):
     """Twilio WhatsApp inbound webhook. Twilio POSTs form-encoded fields
     (Body, From, WaId, ...) for every inbound message; we reply with TwiML."""
     form = await request.form()
+    if not _validate_twilio_signature(request, dict(form)):
+        logger.warning("WhatsApp webhook: rejected request with invalid Twilio signature")
+        raise HTTPException(status_code=403, detail="Invalid signature")
     body_text = (form.get("Body") or "").strip()
     from_number = form.get("From") or form.get("WaId") or "unknown"
 
