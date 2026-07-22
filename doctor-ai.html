@@ -221,15 +221,15 @@
       <button class="add-patient-btn" id="addPatientBtn" data-ar="+ إضافة مريض" data-en="+ Add Patient">+ Add Patient</button>
     </div>
     <div class="filters">
-      <input type="text" id="fCode" data-ar-placeholder="رقم المريض" data-en-placeholder="Patient ID" placeholder="Patient ID">
-      <input type="text" id="fName" data-ar-placeholder="اسم المريض" data-en-placeholder="Patient Name" placeholder="Patient Name">
+      <input type="text" id="fCode" name="patient-search-id" autocomplete="off" data-ar-placeholder="رقم المريض" data-en-placeholder="Patient ID" placeholder="Patient ID">
+      <input type="text" id="fName" name="patient-search-name" autocomplete="off" data-ar-placeholder="اسم المريض" data-en-placeholder="Patient Name" placeholder="Patient Name">
       <select id="fVisitType">
         <option value="" data-ar="كل أنواع الزيارة" data-en="All visit types">All visit types</option>
         <option value="Outpatient" data-ar="عيادة خارجية" data-en="Outpatient">Outpatient</option>
         <option value="Inpatient" data-ar="نزيل" data-en="Inpatient">Inpatient</option>
         <option value="Emergency" data-ar="طوارئ" data-en="Emergency">Emergency</option>
       </select>
-      <input type="text" id="fDept" data-ar-placeholder="القسم" data-en-placeholder="Department" placeholder="Department">
+      <input type="text" id="fDept" name="patient-search-dept" autocomplete="off" data-ar-placeholder="القسم" data-en-placeholder="Department" placeholder="Department">
       <div class="filters-actions">
         <button class="btn-mini primary" id="searchBtn" data-ar="بحث" data-en="Search">Search</button>
         <button class="btn-mini" id="resetBtn" data-ar="إعادة تعيين" data-en="Reset">Reset</button>
@@ -302,7 +302,7 @@
     <button class="modal-close" id="addPatientClose">✕</button>
     <h3 data-ar="إضافة مريض" data-en="Add Patient">Add Patient</h3>
     <p class="sub" data-ar="بيانات أساسية عشان نبدأ الملف." data-en="Basic info to start a record.">Basic info to start a record.</p>
-    <div class="form-field"><label data-ar="الاسم بالكامل" data-en="Full name">Full name</label><input type="text" id="npName"></div>
+    <div class="form-field"><label data-ar="الاسم بالكامل" data-en="Full name">Full name</label><input type="text" id="npName" name="new-patient-name" autocomplete="off"></div>
     <div class="form-field"><label data-ar="النوع" data-en="Gender">Gender</label>
       <select id="npGender"><option value="">—</option><option data-ar="ذكر" data-en="Male">Male</option><option data-ar="أنثى" data-en="Female">Female</option></select>
     </div>
