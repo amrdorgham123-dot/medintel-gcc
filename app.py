@@ -39,10 +39,142 @@ LANG_JS_PATH = os.path.join(os.path.dirname(__file__), "lang.js")
 app = FastAPI(title="MedForsa GCC API", version="0.6")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-def get_conn():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+# ---------------- Postgres compatibility shim ----------------
+# The entire codebase (188 call sites) was written against sqlite3's
+# interface: `?` placeholders, conn.execute(sql, params) returning a cursor
+# with .fetchone()/.fetchall(), rows addressable by both index and column
+# name (sqlite3.Row), and cursor.lastrowid after an INSERT. Rather than
+# rewriting every one of those call sites for a different driver's dialect
+# (high risk, easy to miss one), this shim makes a real psycopg2/Postgres
+# connection expose that exact same interface, so every existing query
+# works unchanged. Only genuinely SQLite-specific SQL (date('now', ...),
+# INSERT OR IGNORE) needed fixing directly in the queries themselves --
+# those have already been converted to Postgres syntax.
+if DATABASE_URL:
+    import psycopg2
+    import psycopg2.extras
+
+    class _PGRow:
+        """Mimics sqlite3.Row: supports row['col'], row[0], and dict(row)."""
+        __slots__ = ("_cols", "_vals")
+        def __init__(self, cols, vals):
+            self._cols = cols
+            self._vals = vals
+        def __getitem__(self, key):
+            if isinstance(key, str):
+                return self._vals[self._cols.index(key)]
+            return self._vals[key]
+        def keys(self):
+            return list(self._cols)
+        def __iter__(self):
+            return iter(self._vals)
+        def __len__(self):
+            return len(self._vals)
+        def __repr__(self):
+            return repr(dict(zip(self._cols, self._vals)))
+
+    def _pg_translate(sql: str) -> str:
+        # SQLite uses positional `?` placeholders; psycopg2 uses `%s`.
+        # None of our queries contain a literal '?' inside a string value,
+        # so a plain replace is safe.
+        return sql.replace("?", "%s")
+
+    class _PGCursor:
+        def __init__(self, raw_cursor):
+            self._cur = raw_cursor
+            self.lastrowid = None
+
+        def execute(self, sql, params=None):
+            sql_stripped = sql.strip()
+            is_insert = sql_stripped.upper().startswith("INSERT")
+            translated = _pg_translate(sql)
+            needs_returning_id = is_insert and "RETURNING" not in sql.upper()
+            if needs_returning_id:
+                translated = translated.rstrip().rstrip(";") + " RETURNING id"
+            self._cur.execute(translated, params or ())
+            if needs_returning_id:
+                try:
+                    row = self._cur.fetchone()
+                    self.lastrowid = row[0] if row else None
+                except psycopg2.ProgrammingError:
+                    # Table has no `id` column (none currently do, but stay safe)
+                    self.lastrowid = None
+            return self
+
+        def fetchone(self):
+            row = self._cur.fetchone()
+            if row is None:
+                return None
+            cols = [d[0] for d in self._cur.description]
+            return _PGRow(cols, row)
+
+        def fetchall(self):
+            rows = self._cur.fetchall()
+            if not rows:
+                return []
+            cols = [d[0] for d in self._cur.description]
+            return [_PGRow(cols, r) for r in rows]
+
+    class _PGConnection:
+        def __init__(self, raw_conn):
+            self._conn = raw_conn
+
+        def execute(self, sql, params=None):
+            cur = _PGCursor(self._conn.cursor())
+            cur.execute(sql, params)
+            return cur
+
+        def commit(self):
+            self._conn.commit()
+
+        def close(self):
+            self._conn.close()
+
+    def get_conn():
+        raw = psycopg2.connect(DATABASE_URL)
+        return _PGConnection(raw)
+
+    def _migrate_sqlite_to_postgres_if_needed():
+        """Runs once, automatically, the first time the app boots against a
+        fresh Postgres database (checked via information_schema, so this is
+        safe to run on every startup -- it's a no-op once the schema exists).
+        Only Render's own deployed instance can actually reach this database
+        (it's not reachable from outside Render's network), so this is the
+        only place the real migration can execute -- it can't be run by hand
+        from a local/dev machine against the production DATABASE_URL."""
+        raw = psycopg2.connect(DATABASE_URL)
+        cur = raw.cursor()
+        cur.execute("SELECT to_regclass('public.manufacturers')")
+        exists = cur.fetchone()[0] is not None
+        if exists:
+            cur.close()
+            raw.close()
+            logger.info("Postgres schema already present -- skipping auto-migration.")
+            return
+        logger.info("Postgres database is empty -- running one-time schema + data migration from the bundled SQLite snapshot.")
+        schema_path = os.path.join(os.path.dirname(__file__), "postgres_schema.sql")
+        data_path = os.path.join(os.path.dirname(__file__), "postgres_seed_data.sql")
+        with open(schema_path, "r", encoding="utf-8") as f:
+            cur.execute(f.read())
+        raw.commit()
+        with open(data_path, "r", encoding="utf-8") as f:
+            cur.execute(f.read())
+        raw.commit()
+        cur.close()
+        raw.close()
+        logger.info("Postgres auto-migration complete.")
+
+    try:
+        _migrate_sqlite_to_postgres_if_needed()
+    except Exception as e:
+        logger.error(f"Postgres auto-migration failed: {e}")
+else:
+    def get_conn():
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        return conn
 
 def log_action(conn, table, record_id, action, detail):
     conn.execute(
@@ -1259,7 +1391,7 @@ def admin_pending_password_resets(current_user: dict = Depends(require_admin)):
     rows = conn.execute("""
         SELECT pr.id, u.email, pr.code, pr.expires_at, pr.used, pr.created_at
         FROM password_resets pr JOIN users u ON u.id = pr.user_id
-        WHERE pr.created_at >= datetime('now', '-1 day')
+        WHERE pr.created_at >= (NOW() - INTERVAL '1 day')::text
         ORDER BY pr.id DESC
     """).fetchall()
     conn.close()
@@ -1641,7 +1773,7 @@ def daily_briefing(current_user: dict = Depends(get_current_user)):
         WHERE l.user_id = ? AND l.status NOT IN ('won','lost')
         AND l.id NOT IN (
             SELECT lead_id FROM lead_interactions
-            WHERE interaction_date >= date('now', '-14 days')
+            WHERE interaction_date >= (CURRENT_DATE - INTERVAL '14 days')::text
         )
     """, (current_user["id"],)).fetchall()
     watchlist_count = conn.execute("SELECT count(*) c FROM watchlist WHERE user_id = ?", (current_user["id"],)).fetchone()["c"]
@@ -1668,7 +1800,7 @@ def _build_notification_candidates(conn):
     new_opps = conn.execute("""
         SELECT o.id, o.created_at, m.name as company_name, o.reason
         FROM opportunities o JOIN manufacturers m ON m.id = o.manufacturer_id
-        WHERE o.created_at >= date('now', '-30 days')
+        WHERE o.created_at >= (CURRENT_DATE - INTERVAL '30 days')::text
         ORDER BY o.created_at DESC
     """).fetchall()
     for r in new_opps:
@@ -1680,7 +1812,7 @@ def _build_notification_candidates(conn):
 
     upcoming_conf = conn.execute("""
         SELECT id, name, event_date, place FROM conferences
-        WHERE event_date >= date('now') AND event_date <= date('now', '+30 days')
+        WHERE event_date >= CURRENT_DATE::text AND event_date <= (CURRENT_DATE + INTERVAL '30 days')::text
         ORDER BY event_date ASC
     """).fetchall()
     for r in upcoming_conf:
@@ -1693,7 +1825,7 @@ def _build_notification_candidates(conn):
 
     new_conf = conn.execute("""
         SELECT id, name, event_date, place FROM conferences
-        WHERE created_at >= date('now', '-30 days')
+        WHERE created_at >= (CURRENT_DATE - INTERVAL '30 days')::text
         ORDER BY created_at DESC
     """).fetchall()
     for r in new_conf:
@@ -1709,7 +1841,7 @@ def _build_notification_candidates(conn):
         FROM company_distributors cd
         JOIN manufacturers m ON m.id = cd.manufacturer_id
         JOIN distributors d ON d.id = cd.distributor_id
-        WHERE cd.created_at >= date('now', '-30 days')
+        WHERE cd.created_at >= (CURRENT_DATE - INTERVAL '30 days')::text
         ORDER BY cd.created_at DESC
     """).fetchall()
     for r in new_links:
@@ -1801,7 +1933,7 @@ def mark_notification_read(payload: NotificationReadRequest, current_user: dict 
     conn = get_conn()
     try:
         conn.execute(
-            "INSERT OR IGNORE INTO notification_reads (user_id, notification_key) VALUES (?, ?)",
+            "INSERT INTO notification_reads (user_id, notification_key) VALUES (?, ?) ON CONFLICT (user_id, notification_key) DO NOTHING",
             (current_user["id"], payload.key)
         )
         conn.commit()
@@ -1815,7 +1947,7 @@ def mark_all_notifications_read(current_user: dict = Depends(get_current_user)):
     candidates = _build_notification_candidates(conn)
     for c in candidates:
         conn.execute(
-            "INSERT OR IGNORE INTO notification_reads (user_id, notification_key) VALUES (?, ?)",
+            "INSERT INTO notification_reads (user_id, notification_key) VALUES (?, ?) ON CONFLICT (user_id, notification_key) DO NOTHING",
             (current_user["id"], c["key"])
         )
     conn.commit()
