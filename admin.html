@@ -6,7 +6,7 @@
 <title>Admin — MedForsa GCC</title>
 <link rel="icon" href="/logo.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Tajawal:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Tajawal:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#0A0E1C; --surface:#121A33; --surface-2:#1B2547; --line: rgba(237,239,247,0.10);
@@ -19,7 +19,11 @@
   body{background:var(--ink); color:var(--paper); font-family:'Tajawal', sans-serif; min-height:100vh;}
   .mono{font-family:'IBM Plex Mono', monospace;}
   header{display:flex; align-items:center; gap:16px; padding:18px 28px; border-bottom:1px solid var(--line); background:var(--surface);}
-  .brand-name{font-family:'Almarai'; font-weight:800; font-size:16px;}
+  .brand-name{
+    font-family:'Syne', 'Almarai'; font-weight:800; font-size:17px; letter-spacing:.2px;
+    background:linear-gradient(100deg, #2DD4BF 0%, #FFB443 100%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
   .brand-sub{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--assay); letter-spacing:1px;}
   .back-link{color:var(--muted); text-decoration:none; font-size:13px; margin-inline-start:auto;}
   .back-link:hover{color:var(--paper);}

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Doctor AI — MedForsa GCC</title>
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
-<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Tajawal:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Tajawal:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#0A0E1C; --surface:#121A33; --surface-2:#1B2547; --line: rgba(237,239,247,0.10);
@@ -28,7 +28,11 @@
   .brand{display:flex; align-items:center; gap:10px;}
   .brand-mark{width:36px; height:36px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; padding:5px;}
   .brand-mark svg{width:100%; height:100%;}
-  .brand-name{font-family:'Almarai'; font-weight:800; font-size:16px;}
+  .brand-name{
+    font-family:'Syne', 'Almarai'; font-weight:800; font-size:17px; letter-spacing:.2px;
+    background:linear-gradient(100deg, #2DD4BF 0%, #FFB443 100%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
   .brand-sub{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--assay); letter-spacing:1px;}
   .back-link{font-size:13.5px; color:var(--muted); display:flex; align-items:center; gap:6px;}
   .back-link:hover{color:var(--paper);}
