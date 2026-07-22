@@ -819,7 +819,13 @@ document.addEventListener('DOMContentLoaded', function(){
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ content: contentToSend })
       });
-      if(!res.ok) throw new Error('status ' + res.status);
+      if(!res.ok){
+        let detail = 'status ' + res.status;
+        try{ const errData = await res.json(); if(errData.detail) detail = errData.detail; }catch(e){}
+        const err = new Error(detail);
+        err.status = res.status;
+        throw err;
+      }
       const data = await res.json();
       typingEl.remove();
       const replyText = data.reply || '';
@@ -829,7 +835,9 @@ document.addEventListener('DOMContentLoaded', function(){
     }catch(err){
       typingEl.remove();
       const isAr = MedForsaLang.getCurrentLang() === 'ar';
-      addMsg(isAr ? 'معرفناش نوصل للمساعد دلوقتي. جرّب تاني بعد شوية.' : 'Could not reach the assistant right now. Please try again shortly.', 'bot');
+      const genericMsg = isAr ? 'معرفناش نوصل للمساعد دلوقتي. جرّب تاني بعد شوية.' : 'Could not reach the assistant right now. Please try again shortly.';
+      const detailMsg = err && err.message && err.status ? `${genericMsg}<br><span style="opacity:.7;font-size:12px">(${err.status}: ${String(err.message).slice(0,200)})</span>` : genericMsg;
+      addMsg(detailMsg, 'bot');
       ttsEnabledForThisTurn = false;
     }
   }

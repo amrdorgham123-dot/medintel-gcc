@@ -2266,7 +2266,11 @@ def send_patient_chat(patient_id: int, payload: PatientChatMessage):
         patient_context=patient_context, lab_info_block=lab_info_block
     )
 
-    result = call_anthropic(system_prompt, messages)
+    try:
+        result = call_anthropic(system_prompt, messages)
+    except HTTPException:
+        conn.close()
+        raise
     reply_text = "\n".join(b.get("text", "") for b in result.get("content", []) if b.get("type") == "text")
 
     user_content_store = payload.content if isinstance(payload.content, str) else _json.dumps(payload.content)
