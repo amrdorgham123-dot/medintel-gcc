@@ -93,20 +93,24 @@
   .conn-dot.down{background:var(--ent-red);}
 
   .main-col{flex:1;min-width:0;}
-  .topbar{display:flex;align-items:center;gap:14px;padding:14px 32px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:5;}
-  .topbar h1{font-size:17px;margin:0;font-weight:700;flex-shrink:0;font-family:var(--display);color:var(--ent-blue);}
+  .topbar{
+    display:flex;align-items:center;gap:14px;padding:14px 32px;position:sticky;top:0;z-index:5;
+    background:#121A33;border-bottom:1px solid rgba(237,239,247,0.10);
+  }
+  .topbar h1{font-size:17px;margin:0;font-weight:800;flex-shrink:0;font-family:'Almarai',var(--display);color:#EDEFF7;}
   .topbar-icons{display:flex;align-items:center;gap:6px;margin-left:auto;}
-  .topbar-icon-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--ink-soft);cursor:pointer;position:relative;text-decoration:none;}
-  .topbar-icon-btn:hover{background:var(--surface-sunk);}
+  .topbar-icon-btn{width:32px;height:32px;border-radius:8px;border:1px solid rgba(237,239,247,0.10);background:#1B2547;display:flex;align-items:center;justify-content:center;color:#8D95B3;cursor:pointer;position:relative;text-decoration:none;}
+  .topbar-icon-btn:hover{background:#232f57;color:#1FE0CE;border-color:rgba(31,224,206,0.4);}
   .topbar-icon-btn svg{width:16px;height:16px;}
   .topbar-icon-btn .dot{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--ent-red);}
-  .breadcrumb{font-family:var(--mono);font-size:10.5px;color:var(--ink-muted);padding:9px 32px 0;}
+  .breadcrumb{font-family:var(--mono);font-size:10.5px;color:#8D95B3;padding:9px 32px;background:#0A0E1C;}
   .breadcrumb span.sep{margin:0 5px;opacity:.5;}
-  .breadcrumb span.cur{color:var(--ent-blue);font-weight:600;}
+  .breadcrumb span.cur{color:#1FE0CE;font-weight:600;}
   .search-wrap{flex:1;max-width:420px;position:relative;}
-  .search-wrap input{width:100%;padding:9px 12px 9px 34px;border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:13px;background:var(--surface-sunk);}
-  .search-wrap input:focus{background:var(--surface);}
-  .search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--ink-muted);}
+  .search-wrap input{width:100%;padding:9px 12px 9px 34px;border:1px solid rgba(237,239,247,0.10);border-radius:8px;font-family:var(--sans);font-size:13px;background:#1B2547;color:#EDEFF7;}
+  .search-wrap input::placeholder{color:#8D95B3;}
+  .search-wrap input:focus{background:#232f57;outline:1px solid rgba(31,224,206,0.4);}
+  .search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#8D95B3;}
   .search-hint{font-family:var(--mono);font-size:10.5px;color:var(--ink-muted);}
 
   main{padding:16px 32px 60px;max-width:960px;}
@@ -197,7 +201,7 @@
     main{padding:20px 16px 50px;}
     .topbar{padding:14px 16px;}
   }
-  .menu-btn{display:none;background:none;border:1px solid var(--border);border-radius:8px;padding:7px;cursor:pointer;}
+  .menu-btn{display:none;background:#1B2547;color:#8D95B3;border:1px solid rgba(237,239,247,0.10);border-radius:8px;padding:7px;cursor:pointer;}
 
   /* ===== Attieh Medico showcase page — distinct brand skin, scoped to .attieh-page ===== */
   .attieh-page{
