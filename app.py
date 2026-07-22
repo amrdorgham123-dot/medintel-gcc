@@ -463,7 +463,7 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage]
     system: str = ""
 
-def call_anthropic(system: str, messages: list):
+def call_anthropic(system: str, messages: list, tools: list | None = None):
     import json
     import urllib.request
     import urllib.error
@@ -485,12 +485,15 @@ def call_anthropic(system: str, messages: list):
     if not api_key.startswith("sk-ant-"):
         logger.warning("ANTHROPIC_API_KEY does not start with 'sk-ant-' — this is likely the wrong value.")
 
-    body = json.dumps({
+    payload = {
         "model": "claude-sonnet-5",
         "max_tokens": 1500,
         "system": system,
         "messages": messages,
-    }).encode("utf-8")
+    }
+    if tools:
+        payload["tools"] = tools
+    body = json.dumps(payload).encode("utf-8")
 
     req = urllib.request.Request(
         "https://api.anthropic.com/v1/messages",
@@ -503,7 +506,7 @@ def call_anthropic(system: str, messages: list):
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=45) as resp:
+        with urllib.request.urlopen(req, timeout=60) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8")
@@ -2297,7 +2300,15 @@ DOCTOR_AI_PATIENT_SYSTEM = (
     "and always make clear that final diagnosis and treatment decisions rest with the treating physician after "
     "direct clinical evaluation. For medication or dosing questions, give only general reference-level "
     "information and recommend consulting current prescribing references. Reply in the same language the "
-    "user writes in (Arabic or English). Keep responses focused and clinically useful."
+    "user writes in (Arabic or English). Keep responses focused and clinically useful.\n\n"
+    "You have a web search tool. Use it whenever the clinician asks something that benefits from current "
+    "literature, updated guidelines, recent studies, or a specific recommended work-up/investigation panel -- "
+    "don't rely solely on prior knowledge for anything time-sensitive or where an authoritative citation would "
+    "strengthen the answer. When you search, prioritize authoritative sources: PubMed/NCBI, UpToDate, major "
+    "medical society guidelines (e.g. WHO, ACC/AHA, ADA, ASH), Mayo Clinic, StatPearls, and peer-reviewed "
+    "journals -- avoid low-quality or non-clinical sources. Name the source naturally in your answer (e.g. "
+    "'per the 2024 ASH guidelines...' or 'a 2023 study in [journal] found...') so the clinician can verify it "
+    "themselves; never quote search results verbatim -- summarize findings in your own words."
     "{lab_info_block}"
 )
 
@@ -2399,11 +2410,17 @@ def send_patient_chat(patient_id: int, payload: PatientChatMessage):
     )
 
     try:
-        result = call_anthropic(system_prompt, messages)
+        result = call_anthropic(
+            system_prompt, messages,
+            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 4}]
+        )
     except HTTPException:
         conn.close()
         raise
-    reply_text = "\n".join(b.get("text", "") for b in result.get("content", []) if b.get("type") == "text")
+    # Joined with "" rather than "\n": when the model uses web search mid-answer,
+    # its response is split into multiple text blocks around each search call,
+    # but they're meant to read as one continuous answer, not separate paragraphs.
+    reply_text = "".join(b.get("text", "") for b in result.get("content", []) if b.get("type") == "text")
 
     user_content_store = payload.content if isinstance(payload.content, str) else _json.dumps(payload.content)
     conn.execute(
