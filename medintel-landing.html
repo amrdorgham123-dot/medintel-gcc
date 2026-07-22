@@ -55,7 +55,7 @@
     max-width:1180px; margin:0 auto; padding:16px 28px;
     display:flex; align-items:center; justify-content:space-between;
   }
-  .brand{display:flex; align-items:center; gap:10px;}
+  .brand{display:flex; align-items:center; gap:10px; text-decoration:none;}
   .brand-mark{
     width:38px; height:38px; border-radius:11px;
     background:var(--surface-2); border:1px solid var(--line);
@@ -419,10 +419,9 @@
 
 <header class="nav">
   <div class="nav-inner">
-    <div class="brand" dir="ltr">
+    <a class="brand" dir="ltr" href="/" aria-label="MedForsa GCC — home">
       <div class="brand-mark"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="logoGrad" x1="4" y1="2" x2="34" y2="36" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0F6E56"/><stop offset="1" stop-color="#2DD4BF"/></linearGradient></defs><path d="M20 3C20 3 8 17.5 8 25.5a12 12 0 0 0 24 0C32 17.5 20 3 20 3Z" fill="url(#logoGrad)"/><path d="M4 23h9l3.2-8 4.5 16 3-11 2.3 3h10" fill="none" stroke="#0A0E1C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="brand-word">MedForsa GCC<span>IVD & BLOOD BANK INTELLIGENCE</span></div>
-    </div>
+    </a>
     <nav class="nav-links">
       <a href="#categories" data-ar="الفئات" data-en="Categories">الفئات</a>
       <a href="#products" data-ar="المنتجات" data-en="Products">المنتجات</a>
