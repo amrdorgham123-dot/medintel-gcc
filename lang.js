@@ -44,12 +44,7 @@
     });
 
     document.querySelectorAll('[data-lang-toggle]').forEach(function (btn) {
-      const label = btn.querySelector('[data-lang-toggle-label]');
-      if (label) {
-        label.textContent = lang === 'ar' ? 'EN' : 'AR';
-      } else {
-        btn.textContent = lang === 'ar' ? 'EN' : 'AR';
-      }
+      btn.textContent = lang === 'ar' ? 'EN' : 'AR';
     });
 
     const navToggle = document.getElementById('navToggle');
