@@ -768,7 +768,8 @@ def list_hospitals():
 @app.get("/products")
 def list_products(manufacturer_id: int | None = None, origin: str | None = None,
                    department: str | None = None, technology: str | None = None,
-                   distributor_id: int | None = None):
+                   distributor_id: int | None = None,
+                   limit: int | None = None, offset: int = 0):
     conn = get_conn()
     query = """SELECT p.*, m.name as manufacturer_name, m.category, m.confidence_tier, m.origin
                FROM products p JOIN manufacturers m ON m.id = p.manufacturer_id WHERE 1=1"""
@@ -790,6 +791,13 @@ def list_products(manufacturer_id: int | None = None, origin: str | None = None,
             SELECT mt.manufacturer_id FROM manufacturer_technology mt
             JOIN technologies t ON t.id = mt.technology_id WHERE t.name LIKE ?)"""
         params.append(f"%{technology}%")
+    # limit/offset are opt-in: omitting them (the frontend's current behavior)
+    # returns the full filtered list exactly as before -- nothing that already
+    # calls this endpoint needs to change. Passing ?limit=50&offset=0 etc. is
+    # available for any future paginated view without being a breaking change.
+    if limit is not None:
+        query += " ORDER BY p.id LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
     rows = conn.execute(query, params).fetchall()
     conn.close()
     return [dict(r) for r in rows]
