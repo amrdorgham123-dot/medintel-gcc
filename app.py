@@ -39,6 +39,37 @@ LANG_JS_PATH = os.path.join(os.path.dirname(__file__), "lang.js")
 app = FastAPI(title="MedForsa GCC API", version="0.6")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+# ---------------- Rate limiting ----------------
+# Simple in-memory sliding-window limiter, keyed by client IP + a named
+# bucket per endpoint category. No Redis/external store -- fine for a
+# single-instance deployment; resets on restart, which is an acceptable
+# tradeoff here (this exists to blunt abuse/spam/brute-force, not to be a
+# perfectly durable rate-limiting service).
+from collections import defaultdict
+import time as _time
+
+_rate_limit_buckets: dict[str, list[float]] = defaultdict(list)
+
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+def rate_limit(bucket: str, max_requests: int, window_seconds: int):
+    """Returns a FastAPI dependency enforcing max_requests per window_seconds,
+    per client IP, for the given named bucket."""
+    def _dep(request: Request):
+        key = f"{bucket}:{_client_ip(request)}"
+        now = _time.time()
+        window_start = now - window_seconds
+        recent = [t for t in _rate_limit_buckets[key] if t > window_start]
+        if len(recent) >= max_requests:
+            raise HTTPException(status_code=429, detail="Too many requests -- please slow down and try again shortly.")
+        recent.append(now)
+        _rate_limit_buckets[key] = recent
+    return _dep
+
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 # ---------------- Postgres compatibility shim ----------------
@@ -375,7 +406,7 @@ class QuoteRequest(BaseModel):
     message: str | None = None
 
 @app.post("/quote-requests")
-def submit_quote_request(payload: QuoteRequest):
+def submit_quote_request(payload: QuoteRequest, _rl: None = Depends(rate_limit("quote-requests", 5, 3600))):
     """Public lead-capture endpoint, tied to a specific product/manufacturer --
     the 'Request a quote' button on a product page. No login required."""
     conn = get_conn()
@@ -399,7 +430,7 @@ class DemoRequest(BaseModel):
     plan_interest: Literal["trial", "pro", "enterprise"] | None = None
 
 @app.post("/demo-requests")
-def submit_demo_request(payload: DemoRequest):
+def submit_demo_request(payload: DemoRequest, _rl: None = Depends(rate_limit("demo-requests", 5, 3600))):
     """Public lead-capture endpoint -- this is what actually generates business
     before Stripe/Moyasar credentials exist. No login required: this is the
     landing page's 'Request a Demo' form."""
@@ -1312,7 +1343,7 @@ class LoginRequest(BaseModel):
     password: str
 
 @app.post("/auth/register")
-def register(reg: RegisterRequest):
+def register(reg: RegisterRequest, _rl: None = Depends(rate_limit("register", 5, 3600))):
     conn = get_conn()
     existing = conn.execute("SELECT id FROM users WHERE email = ?", (reg.email,)).fetchone()
     if existing:
@@ -1339,7 +1370,7 @@ def register(reg: RegisterRequest):
             "user": {"id": user_id, "email": reg.email, "company_name": reg.company_name, "full_name": reg.full_name, "role": "user"}}
 
 @app.post("/auth/login")
-def login(creds: LoginRequest):
+def login(creds: LoginRequest, _rl: None = Depends(rate_limit("login", 8, 300))):
     conn = get_conn()
     user = conn.execute("SELECT * FROM users WHERE email = ? AND is_active = 1", (creds.email,)).fetchone()
     conn.close()
@@ -1385,7 +1416,7 @@ class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 @app.post("/auth/forgot-password")
-def forgot_password(payload: ForgotPasswordRequest):
+def forgot_password(payload: ForgotPasswordRequest, _rl: None = Depends(rate_limit("forgot-password", 3, 900))):
     """Enter the email you registered with -- if it matches an account, a
     6-digit verification code is generated (emailed if SMTP is configured,
     otherwise logged server-side so the account owner/admin can retrieve it
@@ -2458,7 +2489,7 @@ def build_lab_info_block(matches):
     return "\n".join(lines)
 
 @app.post("/patients/{patient_id}/chat")
-def send_patient_chat(patient_id: int, payload: PatientChatMessage):
+def send_patient_chat(patient_id: int, payload: PatientChatMessage, _rl: None = Depends(rate_limit("doctor-ai-chat", 30, 3600))):
     conn = get_conn()
     patient = conn.execute("SELECT * FROM patients WHERE id = ?", (patient_id,)).fetchone()
     if not patient:
