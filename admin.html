@@ -125,6 +125,30 @@
   </div>
 
   <div class="panel">
+    <h2>Demo requests</h2>
+    <p class="sub" style="margin-bottom:14px;">Leads from the /pricing page's "Request a demo" form.</p>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>Plan interest</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody id="demoRequestsBody"></tbody>
+      </table>
+      <div class="empty" id="demoRequestsEmpty" style="display:none;">No demo requests yet.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Quote requests</h2>
+    <p class="sub" style="margin-bottom:14px;">Leads from the "Request a quote" button on individual product pages.</p>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Product</th><th>Manufacturer</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody id="quoteRequestsBody"></tbody>
+      </table>
+      <div class="empty" id="quoteRequestsEmpty" style="display:none;">No quote requests yet.</div>
+    </div>
+  </div>
+
+  <div class="panel">
     <h2>All users</h2>
     <div style="overflow-x:auto;">
       <table>
@@ -192,6 +216,8 @@
     document.getElementById('whoami').textContent = currentUser.email;
     loadStats();
     loadUsers();
+    loadDemoRequests();
+    loadQuoteRequests();
   }
 
   async function loadStats(){
@@ -299,6 +325,63 @@
       resultEl.textContent = 'Could not reach the server.';
     }
   });
+
+  function fmtDateShort(s){
+    if(!s) return '—';
+    return s.split(' ')[0].split('T')[0];
+  }
+
+  async function loadDemoRequests(){
+    const r = await fetch('/admin/demo-requests', {headers: authHeaders()});
+    if(!r.ok) return;
+    const rows = await r.json();
+    const body = document.getElementById('demoRequestsBody');
+    const empty = document.getElementById('demoRequestsEmpty');
+    if(!rows.length){ body.innerHTML=''; empty.style.display='block'; return; }
+    empty.style.display='none';
+    const statusOptions = ['new','contacted','converted','declined'];
+    body.innerHTML = rows.map(d => `
+      <tr>
+        <td>${d.full_name}</td>
+        <td>${d.company_name}</td>
+        <td class="mono">${d.email}</td>
+        <td class="mono">${d.phone || '—'}</td>
+        <td>${d.plan_interest || '—'}</td>
+        <td><select onchange="updateDemoRequestStatus(${d.id}, this.value)">${statusOptions.map(s => `<option value="${s}" ${s===d.status?'selected':''}>${s}</option>`).join('')}</select></td>
+        <td class="mono" style="color:var(--muted); font-size:12px;">${fmtDateShort(d.created_at)}</td>
+      </tr>
+    `).join('');
+  }
+
+  window.updateDemoRequestStatus = async function(id, status){
+    await fetch(`/admin/demo-requests/${id}/status`, {method:'POST', headers:{...authHeaders(), 'Content-Type':'application/json'}, body: JSON.stringify({status})});
+  };
+
+  async function loadQuoteRequests(){
+    const r = await fetch('/admin/quote-requests', {headers: authHeaders()});
+    if(!r.ok) return;
+    const rows = await r.json();
+    const body = document.getElementById('quoteRequestsBody');
+    const empty = document.getElementById('quoteRequestsEmpty');
+    if(!rows.length){ body.innerHTML=''; empty.style.display='block'; return; }
+    empty.style.display='none';
+    const statusOptions = ['new','contacted','quoted','won','lost'];
+    body.innerHTML = rows.map(q => `
+      <tr>
+        <td>${q.full_name}</td>
+        <td>${q.company_name}</td>
+        <td class="mono">${q.email}</td>
+        <td>${q.product_name || '—'}</td>
+        <td>${q.manufacturer_name || '—'}</td>
+        <td><select onchange="updateQuoteRequestStatus(${q.id}, this.value)">${statusOptions.map(s => `<option value="${s}" ${s===q.status?'selected':''}>${s}</option>`).join('')}</select></td>
+        <td class="mono" style="color:var(--muted); font-size:12px;">${fmtDateShort(q.created_at)}</td>
+      </tr>
+    `).join('');
+  }
+
+  window.updateQuoteRequestStatus = async function(id, status){
+    await fetch(`/admin/quote-requests/${id}/status`, {method:'POST', headers:{...authHeaders(), 'Content-Type':'application/json'}, body: JSON.stringify({status})});
+  };
 
   tryAutoLogin();
 </script>

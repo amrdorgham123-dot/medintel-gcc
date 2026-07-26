@@ -183,6 +183,8 @@
 
   .modal-backdrop{position:fixed;inset:0;background:rgba(22,36,31,.5);display:flex;align-items:flex-start;justify-content:center;padding:60px 16px;overflow-y:auto;z-index:50;}
   .modal{background:var(--surface);border-radius:14px;padding:26px;max-width:480px;width:100%;}
+  .modal input, .modal textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:13.5px;background:var(--surface-sunk);color:var(--ink);box-sizing:border-box;}
+  .modal textarea{resize:vertical;font-family:inherit;}
   .modal h3{margin:0 0 4px;font-size:17px;}
   .modal .sub{font-size:12.5px;color:var(--ink-soft);margin-bottom:18px;line-height:1.5;}
   .field{margin-bottom:14px;}
@@ -284,6 +286,8 @@
   .snibe-banner-cta{font-family:var(--sans); font-size:12.5px; font-weight:600; color:#062338; background:#5CC9E8; border:1px solid #5CC9E8; padding:10px 18px; border-radius:8px; white-space:nowrap;}
   @media(max-width:640px){ .snibe-banner{flex-direction:column; align-items:flex-start;} }
   .kg-stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .kg-network-section{margin-bottom:20px;}
+  .kg-network-section svg{display:block;}
   .kg-stat{background:var(--ent-blue-soft);border:1px solid var(--ent-line);border-radius:8px;padding:10px 16px;font-family:var(--sans);font-size:11.5px;color:var(--ent-ink-soft);}
   .kg-stat b{display:block;font-family:var(--display);font-size:20px;color:var(--ent-blue);font-weight:700;}
   .kg-filter{margin-bottom:16px;}
@@ -441,6 +445,7 @@
   .cert-badge{font-family:var(--sans);font-size:9.5px;font-weight:700;background:var(--ent-emerald-soft);color:var(--ent-emerald);padding:2px 8px;border-radius:999px;border:1px solid var(--ent-emerald);}
   .deployments-block{background:var(--ent-emerald-soft);border:1px solid var(--ent-emerald);border-radius:10px;padding:12px 14px;margin-bottom:14px;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 </head>
 <body>
 
@@ -1663,6 +1668,64 @@ async function renderRegulatory(){
   } catch(err){ main.innerHTML = `<div class="conn-error">${err.message}</div>`; }
 }
 
+function renderDistributorNetworkGraph(kg){
+  const container = document.getElementById('kg-network-graph');
+  if(!container || typeof d3 === 'undefined') return;
+  const width = container.clientWidth || 800;
+  const height = 440;
+
+  const distNodes = kg.nodes.filter(n => n.type === 'distributor');
+  const distEdges = kg.edges.filter(e => e.relation === 'distributes');
+  const connectedCompanyIds = new Set(distEdges.map(e => e.target));
+  const companyNodes = kg.nodes.filter(n => n.type === 'company' && connectedCompanyIds.has(n.id));
+  const nodes = [...distNodes, ...companyNodes].map(n => ({...n}));
+  const nodeIds = new Set(nodes.map(n => n.id));
+  const links = distEdges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target)).map(e => ({...e}));
+
+  if(!nodes.length){
+    container.innerHTML = '<div class="empty" style="padding:40px;text-align:center;">No distributor relationships recorded yet.</div>';
+    return;
+  }
+
+  const svg = d3.select(container).append('svg').attr('width', '100%').attr('height', height).attr('viewBox', `0 0 ${width} ${height}`);
+  const g = svg.append('g');
+  svg.call(d3.zoom().scaleExtent([0.4, 3]).on('zoom', (e) => g.attr('transform', e.transform)));
+
+  const color = { distributor: '#eb6834', company: '#1FE0CE' };
+
+  const sim = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(70).strength(0.5))
+    .force('charge', d3.forceManyBody().strength(-140))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collide', d3.forceCollide().radius(26));
+
+  const link = g.append('g').selectAll('line').data(links).join('line')
+    .attr('stroke', 'var(--border)').attr('stroke-width', 1.2).attr('stroke-opacity', 0.6);
+
+  const node = g.append('g').selectAll('g').data(nodes).join('g')
+    .style('cursor', 'pointer')
+    .call(d3.drag()
+      .on('start', (e, d) => { if(!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+      .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+      .on('end', (e, d) => { if(!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }));
+
+  node.append('circle')
+    .attr('r', d => d.type === 'distributor' ? 9 : 6)
+    .attr('fill', d => color[d.type])
+    .attr('stroke', 'var(--surface-sunk)').attr('stroke-width', 1.5);
+
+  node.append('title').text(d => `${d.label}${d.type === 'distributor' ? ' (distributor)' : ''}`);
+
+  node.append('text').text(d => d.label.length > 22 ? d.label.slice(0, 20) + '…' : d.label)
+    .attr('x', 12).attr('y', 4).attr('font-size', 10.5).attr('fill', 'var(--ink-soft)')
+    .style('pointer-events', 'none');
+
+  sim.on('tick', () => {
+    link.attr('x1', d => d.source.x).attr('y1', d => d.source.y).attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    node.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+}
+
 async function renderKnowledgeGraph(){
   const main = document.getElementById('main');
   try {
@@ -1679,11 +1742,16 @@ async function renderKnowledgeGraph(){
         <div class="kg-stat"><b>${byType.distributor.length}</b>Distributors</div>
         <div class="kg-stat"><b>${kg.edge_count}</b>Relationships</div>
       </div>
+      <div class="kg-network-section">
+        <div class="dir-section-title">Distributor network <span style="font-weight:400;color:var(--ink-muted);font-size:12px;">— who represents whom, drag to explore</span></div>
+        <div id="kg-network-graph" style="position:relative;width:100%;height:440px;background:var(--surface-sunk);border:1px solid var(--border);border-radius:10px;overflow:hidden;"></div>
+      </div>
       <div class="kg-filter">
         <input type="text" id="kg-search" placeholder="Filter companies...">
       </div>
       <div id="kg-list" class="kg-list"></div>
     `;
+    renderDistributorNetworkGraph(kg);
     function paint(filter){
       const f = (filter||'').toLowerCase();
       const companies = byType.company.filter(c => !f || c.label.toLowerCase().includes(f));
@@ -1824,7 +1892,8 @@ function openProductDetail(p){
       ${p.certifications ? `<div class="pdetail-section-title">Certifications</div><div class="pcard-certs">${certBadges(p.certifications)}</div>` : ''}
       ${p.source ? `<div class="pdetail-section-title">Source</div><div class="pdetail-desc" style="font-size:11.5px;">${p.source}</div>` : ''}
       <div class="modal-actions">
-        ${p.brochure_url ? `<a class="ghost" href="${p.brochure_url}" target="_blank" rel="noopener">Brochure ↗</a>` : ''}
+        ${p.brochure_url ? `<a class="ghost" href="${p.brochure_url}" target="_blank" rel="noopener">Datasheet ↗</a>` : ''}
+        <button class="primary" onclick="openQuoteRequestModal(${p.id}, '${(p.product_name||'').replace(/'/g,"\\'")}', '${(p.manufacturer_name||'').replace(/'/g,"\\'")}')">Request a quote</button>
         <button class="ghost" onclick="document.getElementById('product-detail-modal').remove()">Close</button>
       </div>
     </div>
@@ -1839,6 +1908,51 @@ function openProductDetail(p){
       });
     });
   }
+}
+
+function openQuoteRequestModal(productId, productName, manufacturerName){
+  const existing = document.getElementById('quote-request-modal');
+  if(existing) existing.remove();
+  const div = document.createElement('div');
+  div.className = 'modal-backdrop';
+  div.id = 'quote-request-modal';
+  div.onclick = (e) => { if(e.target === div) div.remove(); };
+  div.innerHTML = `
+    <div class="modal" style="max-width:420px;">
+      <h3>Request a quote</h3>
+      <p class="sub">${productName}${manufacturerName ? ' — ' + manufacturerName : ''}</p>
+      <form id="quoteRequestForm" style="display:flex;flex-direction:column;gap:10px;margin-top:14px;">
+        <input name="full_name" required placeholder="Full name">
+        <input name="company_name" required placeholder="Company name">
+        <input name="email" type="email" required placeholder="Email">
+        <input name="phone" placeholder="Phone (optional)">
+        <textarea name="message" placeholder="Quantity, timeline, or any details (optional)" rows="3"></textarea>
+        <button type="submit" class="primary">Send request</button>
+        <p id="quoteRequestMsg" style="font-size:12.5px; color:var(--assay); min-height:16px;"></p>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(div);
+  document.getElementById('quoteRequestForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(this));
+    data.product_id = productId;
+    const msgEl = document.getElementById('quoteRequestMsg');
+    try{
+      const res = await fetch('/quote-requests', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)});
+      if(res.ok){
+        msgEl.textContent = "Thanks — we'll follow up with a quote shortly.";
+        this.querySelectorAll('input,textarea,button').forEach(el => el.disabled = true);
+        setTimeout(() => div.remove(), 1800);
+      } else {
+        msgEl.style.color = 'var(--ent-red)';
+        msgEl.textContent = 'Something went wrong — please try again.';
+      }
+    }catch(err){
+      msgEl.style.color = 'var(--ent-red)';
+      msgEl.textContent = 'Could not reach the server.';
+    }
+  });
 }
 function certBadges(certifications){
   if(!certifications) return '';

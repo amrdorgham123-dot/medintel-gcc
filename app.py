@@ -363,6 +363,31 @@ def robots_txt():
     body = f"User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /app\nSitemap: {SITE_URL}/sitemap.xml\n"
     return Response(content=body, media_type="text/plain")
 
+# ---------------- RFQ: "Request a quote" per product (like MedicalExpo's RFQ service) ----------------
+
+class QuoteRequest(BaseModel):
+    product_id: int | None = None
+    manufacturer_id: int | None = None
+    full_name: str = Field(..., min_length=1, max_length=150)
+    company_name: str = Field(..., min_length=1, max_length=150)
+    email: EmailStr
+    phone: str | None = None
+    message: str | None = None
+
+@app.post("/quote-requests")
+def submit_quote_request(payload: QuoteRequest):
+    """Public lead-capture endpoint, tied to a specific product/manufacturer --
+    the 'Request a quote' button on a product page. No login required."""
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO quote_requests (product_id, manufacturer_id, full_name, company_name, email, phone, message) VALUES (?,?,?,?,?,?,?)",
+        (payload.product_id, payload.manufacturer_id, payload.full_name, payload.company_name, payload.email, payload.phone, payload.message)
+    )
+    conn.commit()
+    conn.close()
+    logger.info(f"New quote request: {payload.full_name} ({payload.company_name}) -- product_id={payload.product_id}")
+    return {"status": "received", "message": "Thanks -- we'll follow up with a quote shortly."}
+
 # ---------------- Phase F: growth infrastructure (demo requests, public pricing page) ----------------
 
 class DemoRequest(BaseModel):
@@ -1045,6 +1070,34 @@ def admin_update_demo_request_status(request_id: int, payload: DemoRequestStatus
         conn.close()
         raise HTTPException(status_code=404, detail="Demo request not found")
     conn.execute("UPDATE demo_requests SET status = ? WHERE id = ?", (payload.status, request_id))
+    conn.commit()
+    conn.close()
+    return {"id": request_id, "status": payload.status}
+
+@app.get("/admin/quote-requests")
+def admin_list_quote_requests(current_user: dict = Depends(require_admin)):
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT qr.*, p.product_name, m.name as manufacturer_name
+        FROM quote_requests qr
+        LEFT JOIN products p ON p.id = qr.product_id
+        LEFT JOIN manufacturers m ON m.id = qr.manufacturer_id
+        ORDER BY qr.id DESC
+    """).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+class QuoteRequestStatusUpdate(BaseModel):
+    status: Literal["new", "contacted", "quoted", "won", "lost"]
+
+@app.post("/admin/quote-requests/{request_id}/status")
+def admin_update_quote_request_status(request_id: int, payload: QuoteRequestStatusUpdate, current_user: dict = Depends(require_admin)):
+    conn = get_conn()
+    existing = conn.execute("SELECT id FROM quote_requests WHERE id = ?", (request_id,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Quote request not found")
+    conn.execute("UPDATE quote_requests SET status = ? WHERE id = ?", (payload.status, request_id))
     conn.commit()
     conn.close()
     return {"id": request_id, "status": payload.status}
@@ -2129,15 +2182,17 @@ def company_regulatory(company_id: int):
 @app.get("/knowledge-graph")
 def knowledge_graph():
     """Graph view of verified relationships already in the database.
-    Every node and edge here is derived from existing rows — nothing is
-    invented for this endpoint. Company-distributor edges reuse the same
-    LIKE-based matching rule as /companies/{id} for consistency."""
+    Every node and edge here is derived from existing rows -- nothing is
+    invented for this endpoint. Company-distributor edges come from the
+    company_distributors junction table (populated from NUPCO tender
+    awards and direct manufacturer confirmations), not string-matching."""
     conn = get_conn()
     companies = conn.execute("SELECT id, name, category, status_tag FROM manufacturers").fetchall()
     products = conn.execute("SELECT id, product_name, manufacturer_id FROM products").fetchall()
     techs = conn.execute("SELECT id, name FROM technologies").fetchall()
     mtech = conn.execute("SELECT manufacturer_id, technology_id FROM manufacturer_technology").fetchall()
-    dists = conn.execute("SELECT id, name, represents FROM distributors").fetchall()
+    dists = conn.execute("SELECT id, name, country FROM distributors").fetchall()
+    dist_links = conn.execute("SELECT manufacturer_id, distributor_id FROM company_distributors").fetchall()
     conn.close()
 
     nodes = []
@@ -2153,10 +2208,8 @@ def knowledge_graph():
         edges.append({"source": f"company-{mt['manufacturer_id']}", "target": f"tech-{mt['technology_id']}", "relation": "uses"})
     for d in dists:
         nodes.append({"id": f"dist-{d['id']}", "label": d["name"], "type": "distributor"})
-        for c in companies:
-            name_key = c["name"].split(" (")[0]
-            if d["represents"] and name_key.lower() in d["represents"].lower():
-                edges.append({"source": f"dist-{d['id']}", "target": f"company-{c['id']}", "relation": "distributes"})
+    for link in dist_links:
+        edges.append({"source": f"dist-{link['distributor_id']}", "target": f"company-{link['manufacturer_id']}", "relation": "distributes"})
 
     return {"nodes": nodes, "edges": edges, "node_count": len(nodes), "edge_count": len(edges),
             "note": "Every node/edge is derived from existing verified database rows — this is a graph view of real data, not a generated network."}
