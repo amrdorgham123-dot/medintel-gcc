@@ -408,6 +408,20 @@ def robots_txt():
     body = f"User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /app\nSitemap: {SITE_URL}/sitemap.xml\n"
     return Response(content=body, media_type="text/plain")
 
+@app.get("/health", include_in_schema=False)
+def health_check():
+    """Lightweight liveness check for uptime monitoring -- confirms the
+    process is up and the database is reachable, without the overhead of
+    rendering the full landing page (what Render would otherwise hit)."""
+    try:
+        conn = get_conn()
+        conn.execute("SELECT 1")
+        conn.close()
+        db_ok = True
+    except Exception:
+        db_ok = False
+    return {"status": "ok" if db_ok else "degraded", "database": "connected" if db_ok else "unreachable"}
+
 # ---------------- RFQ: "Request a quote" per product (like MedicalExpo's RFQ service) ----------------
 
 class QuoteRequest(BaseModel):
@@ -1066,8 +1080,21 @@ def delete_company(company_id: int):
 
 JWT_SECRET = os.environ.get("JWT_SECRET")
 if not JWT_SECRET:
-    JWT_SECRET = "insecure-local-dev-secret-change-me"
-    logger.warning("JWT_SECRET env var not set -- using an insecure local-dev default. Set a real secret before deploying anywhere reachable by others.")
+    # SECURITY: never fall back to a hardcoded string here -- a fixed default
+    # baked into public source code means anyone who reads this file (it's
+    # on GitHub) can forge a valid JWT for ANY user, including admin. A
+    # random secret generated fresh each time the process boots is far
+    # safer: no one can pre-compute a forged token against it. The tradeoff
+    # is that every restart invalidates existing sessions -- set a real,
+    # persistent JWT_SECRET env var on Render to avoid that and get the
+    # intended "stay logged in for a year" behavior.
+    JWT_SECRET = secrets.token_hex(32)
+    logger.warning(
+        "JWT_SECRET env var is NOT set -- generated a random secret for this "
+        "process only. Every user will be logged out on the next restart/deploy. "
+        "Set a real, persistent JWT_SECRET in Render > Environment to fix this "
+        "and to prevent anyone from forging tokens using a predictable default."
+    )
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_HOURS = 24 * 365  # ~1 year -- effectively "stay logged in until you log out"
 
