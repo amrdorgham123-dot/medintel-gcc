@@ -1444,12 +1444,13 @@ def admin_pending_password_resets(current_user: dict = Depends(require_admin)):
     """Until SMTP is configured, this lets an admin see recently-generated
     reset codes (e.g. their own) instead of digging through server logs."""
     conn = get_conn()
+    one_day_ago = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
     rows = conn.execute("""
         SELECT pr.id, u.email, pr.code, pr.expires_at, pr.used, pr.created_at
         FROM password_resets pr JOIN users u ON u.id = pr.user_id
-        WHERE pr.created_at >= (NOW() - INTERVAL '1 day')::text
+        WHERE pr.created_at >= ?
         ORDER BY pr.id DESC
-    """).fetchall()
+    """, (one_day_ago,)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
@@ -1823,15 +1824,16 @@ def daily_briefing(current_user: dict = Depends(get_current_user)):
     upcoming = conn.execute("SELECT * FROM conferences ORDER BY event_date").fetchall()
     today = datetime.now()
     upcoming_soon = [dict(c) for c in upcoming if 0 <= (datetime.strptime(c["event_date"], "%Y-%m-%d") - today).days <= 30]
+    fourteen_days_ago = (today - timedelta(days=14)).strftime("%Y-%m-%d")
     stale_leads = conn.execute("""
         SELECT l.*, m.name as company_name FROM leads l
         JOIN manufacturers m ON m.id = l.manufacturer_id
         WHERE l.user_id = ? AND l.status NOT IN ('won','lost')
         AND l.id NOT IN (
             SELECT lead_id FROM lead_interactions
-            WHERE interaction_date >= (CURRENT_DATE - INTERVAL '14 days')::text
+            WHERE interaction_date >= ?
         )
-    """, (current_user["id"],)).fetchall()
+    """, (current_user["id"], fourteen_days_ago)).fetchall()
     watchlist_count = conn.execute("SELECT count(*) c FROM watchlist WHERE user_id = ?", (current_user["id"],)).fetchone()["c"]
     conn.close()
     return {
@@ -1852,13 +1854,16 @@ def daily_briefing(current_user: dict = Depends(get_current_user)):
 
 def _build_notification_candidates(conn):
     candidates = []
+    today = datetime.now().strftime("%Y-%m-%d")
+    thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+    thirty_days_ahead = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
 
     new_opps = conn.execute("""
         SELECT o.id, o.created_at, m.name as company_name, o.reason
         FROM opportunities o JOIN manufacturers m ON m.id = o.manufacturer_id
-        WHERE o.created_at >= (CURRENT_DATE - INTERVAL '30 days')::text
+        WHERE o.created_at >= ?
         ORDER BY o.created_at DESC
-    """).fetchall()
+    """, (thirty_days_ago,)).fetchall()
     for r in new_opps:
         candidates.append({
             "key": f"opportunity:{r['id']}", "type": "opportunity", "created_at": r["created_at"],
@@ -1868,9 +1873,9 @@ def _build_notification_candidates(conn):
 
     upcoming_conf = conn.execute("""
         SELECT id, name, event_date, place FROM conferences
-        WHERE event_date >= CURRENT_DATE::text AND event_date <= (CURRENT_DATE + INTERVAL '30 days')::text
+        WHERE event_date >= ? AND event_date <= ?
         ORDER BY event_date ASC
-    """).fetchall()
+    """, (today, thirty_days_ahead)).fetchall()
     for r in upcoming_conf:
         candidates.append({
             "key": f"conference-soon:{r['id']}", "type": "conference",
@@ -1881,9 +1886,9 @@ def _build_notification_candidates(conn):
 
     new_conf = conn.execute("""
         SELECT id, name, event_date, place FROM conferences
-        WHERE created_at >= (CURRENT_DATE - INTERVAL '30 days')::text
+        WHERE created_at >= ?
         ORDER BY created_at DESC
-    """).fetchall()
+    """, (thirty_days_ago,)).fetchall()
     for r in new_conf:
         candidates.append({
             "key": f"conference-new:{r['id']}", "type": "conference",
@@ -1897,15 +1902,42 @@ def _build_notification_candidates(conn):
         FROM company_distributors cd
         JOIN manufacturers m ON m.id = cd.manufacturer_id
         JOIN distributors d ON d.id = cd.distributor_id
-        WHERE cd.created_at >= (CURRENT_DATE - INTERVAL '30 days')::text
+        WHERE cd.created_at >= ?
         ORDER BY cd.created_at DESC
-    """).fetchall()
+    """, (thirty_days_ago,)).fetchall()
     for r in new_links:
         candidates.append({
             "key": f"distributor-link:{r['id']}", "type": "distributor_change",
             "created_at": r["created_at"],
             "title": f"Distributor confirmed: {r['company_name']}",
             "detail": f"Now linked to {r['distributor_name']}", "url": "#distributors",
+        })
+
+    new_demo_requests = conn.execute("""
+        SELECT id, created_at, full_name, company_name FROM demo_requests
+        WHERE created_at >= ? AND status = 'new'
+        ORDER BY created_at DESC
+    """, (thirty_days_ago,)).fetchall()
+    for r in new_demo_requests:
+        candidates.append({
+            "key": f"demo-request:{r['id']}", "type": "demo_request",
+            "created_at": r["created_at"],
+            "title": f"New demo request: {r['full_name']}",
+            "detail": r["company_name"], "url": "#admin",
+        })
+
+    new_quote_requests = conn.execute("""
+        SELECT qr.id, qr.created_at, qr.full_name, qr.company_name, p.product_name
+        FROM quote_requests qr LEFT JOIN products p ON p.id = qr.product_id
+        WHERE qr.created_at >= ? AND qr.status = 'new'
+        ORDER BY qr.created_at DESC
+    """, (thirty_days_ago,)).fetchall()
+    for r in new_quote_requests:
+        candidates.append({
+            "key": f"quote-request:{r['id']}", "type": "quote_request",
+            "created_at": r["created_at"],
+            "title": f"New quote request: {r['full_name']}",
+            "detail": f"{r['company_name']}" + (f" -- {r['product_name']}" if r["product_name"] else ""), "url": "#admin",
         })
 
     candidates.sort(key=lambda c: c["created_at"], reverse=True)
