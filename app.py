@@ -36,7 +36,21 @@ FRONTEND_PATH = os.path.join(os.path.dirname(__file__), "frontend.html")
 LANDING_PATH = os.path.join(os.path.dirname(__file__), "medintel-landing.html")
 LANG_JS_PATH = os.path.join(os.path.dirname(__file__), "lang.js")
 
-app = FastAPI(title="MedForsa GCC API", version="0.6")
+app = FastAPI(
+    title="MedForsa GCC API",
+    version="0.7",
+    description=(
+        "API for MedForsa GCC -- IVD and blood bank market intelligence for Saudi Arabia and the GCC.\n\n"
+        "**Authentication**: most endpoints are public (read-only market data). Endpoints under "
+        "`/export/*` and `/opportunities` require either a logged-in session (`Authorization: Bearer <token>` "
+        "from `POST /auth/login`) or an API key (`X-API-Key: <key>` header, generated via `POST /api-keys` "
+        "by a Pro/Enterprise subscriber).\n\n"
+        "**Rate limits** apply to authentication and lead-capture endpoints (see individual endpoint "
+        "descriptions) -- exceeding them returns `429`.\n\n"
+        "Contact: amr@attieh-medico.com for Enterprise API access."
+    ),
+    contact={"name": "MedForsa GCC", "email": "amr@attieh-medico.com"},
+)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 # ---------------- Rate limiting ----------------
@@ -1247,7 +1261,7 @@ def require_subscription_flexible(
 class ApiKeyCreate(BaseModel):
     label: str = Field(..., min_length=1, max_length=100)
 
-@app.post("/api-keys")
+@app.post("/api-keys", tags=["API access (Enterprise)"])
 def create_api_key(payload: ApiKeyCreate, current_user: dict = Depends(require_subscription)):
     """Generates a new API key for the logged-in (subscribed) user. The raw
     key is returned exactly once -- only its hash is stored, matching how
@@ -1264,7 +1278,7 @@ def create_api_key(payload: ApiKeyCreate, current_user: dict = Depends(require_s
     return {"id": key_id, "label": payload.label, "api_key": raw_key,
             "warning": "Save this key now -- it will not be shown again."}
 
-@app.get("/api-keys")
+@app.get("/api-keys", tags=["API access (Enterprise)"])
 def list_api_keys(current_user: dict = Depends(get_current_user)):
     conn = get_conn()
     rows = conn.execute(
@@ -1274,7 +1288,7 @@ def list_api_keys(current_user: dict = Depends(get_current_user)):
     conn.close()
     return [dict(r) for r in rows]
 
-@app.delete("/api-keys/{key_id}")
+@app.delete("/api-keys/{key_id}", tags=["API access (Enterprise)"])
 def revoke_api_key(key_id: int, current_user: dict = Depends(get_current_user)):
     conn = get_conn()
     row = conn.execute("SELECT id FROM api_keys WHERE id = ? AND user_id = ?", (key_id, current_user["id"])).fetchone()
@@ -1298,14 +1312,14 @@ def _csv_response(rows: list[dict], filename: str) -> Response:
     return Response(content=buf.getvalue(), media_type="text/csv",
                      headers={"Content-Disposition": f"attachment; filename={filename}"})
 
-@app.get("/export/companies.csv")
+@app.get("/export/companies.csv", tags=["Data export (Pro/Enterprise)"])
 def export_companies_csv(current_user: dict = Depends(require_subscription_flexible)):
     conn = get_conn()
     rows = conn.execute("SELECT name, category, origin, headquarters, website, ksa_status, status_tag FROM manufacturers WHERE is_published = 1 ORDER BY name").fetchall()
     conn.close()
     return _csv_response([dict(r) for r in rows], "medforsa-companies.csv")
 
-@app.get("/export/products.csv")
+@app.get("/export/products.csv", tags=["Data export (Pro/Enterprise)"])
 def export_products_csv(current_user: dict = Depends(require_subscription_flexible)):
     conn = get_conn()
     rows = conn.execute("""
@@ -1315,14 +1329,14 @@ def export_products_csv(current_user: dict = Depends(require_subscription_flexib
     conn.close()
     return _csv_response([dict(r) for r in rows], "medforsa-products.csv")
 
-@app.get("/export/distributors.csv")
+@app.get("/export/distributors.csv", tags=["Data export (Pro/Enterprise)"])
 def export_distributors_csv(current_user: dict = Depends(require_subscription_flexible)):
     conn = get_conn()
     rows = conn.execute("SELECT name, country, represents, market_strength_tier FROM distributors ORDER BY name").fetchall()
     conn.close()
     return _csv_response([dict(r) for r in rows], "medforsa-distributors.csv")
 
-@app.get("/export/opportunities.csv")
+@app.get("/export/opportunities.csv", tags=["Data export (Pro/Enterprise)"])
 def export_opportunities_csv(current_user: dict = Depends(require_subscription_flexible)):
     conn = get_conn()
     rows = conn.execute("""
@@ -1333,7 +1347,7 @@ def export_opportunities_csv(current_user: dict = Depends(require_subscription_f
     conn.close()
     return _csv_response([dict(r) for r in rows], "medforsa-opportunities.csv")
 
-@app.get("/export/lab-tests.csv")
+@app.get("/export/lab-tests.csv", tags=["Data export (Pro/Enterprise)"])
 def export_lab_tests_csv(current_user: dict = Depends(require_subscription_flexible)):
     conn = get_conn()
     rows = conn.execute("SELECT name_en, category, specimen_type, purpose_en FROM lab_tests WHERE is_published = 1 ORDER BY category, name_en").fetchall()
