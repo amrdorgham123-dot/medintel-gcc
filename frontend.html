@@ -7,37 +7,41 @@
 <title>MedForsa GCC — Blood Bank Intelligence Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#16241F; --ink-soft:#4A5750; --ink-muted:#7C8A82;
-    --paper:#F2F5F7; --surface:#FFFFFF; --surface-sunk:#EFF2EE; --border:#DCE1DC; --border-strong:#C3CBC3;
-    --accent:#0E5C53; --accent-deep:#0A4038; --accent-soft:#E3F1EC;
-    --gold:#9C7A1F; --gold-bg:#FBF2DA; --gold-brand:#CFA74A;
-    --silver:#64707A; --silver-bg:#ECEFF1;
-    --bronze:#8B4B26; --bronze-bg:#F6E7DC;
-    --signal:#B3492E; --signal-bg:#FBEAE5;
-    --sans:'Poppins',-apple-system,BlinkMacSystemFont,sans-serif;
-    --display:'Playfair Display',Georgia,serif;
-    --mono:'JetBrains Mono',SFMono-Regular,Menlo,monospace;
+    /* MedForsa brand system -- shared with the public landing page (navy / assay-teal / gold / plasma-red) */
+    --ink:#0F1626; --ink-soft:#4A5568; --ink-muted:#7C8898;
+    --paper:#F7F8FC; --surface:#FFFFFF; --surface-sunk:#F0F2F8; --border:#E1E5F0; --border-strong:#C7CEDD;
+    --accent:#0EA99A; --accent-deep:#0B7C71; --accent-soft:#E3F8F5;
+    --gold:#B9821E; --gold-bg:#FBF2DA; --gold-brand:#D4A73C;
+    --silver:#5B6B7F; --silver-bg:#EDEFF3;
+    --bronze:#9C5A2E; --bronze-bg:#F7E9DD;
+    --signal:#D6294A; --signal-bg:#FCE6EA;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    --display:'Space Grotesk',-apple-system,sans-serif;
+    --mono:'IBM Plex Mono',SFMono-Regular,Menlo,monospace;
     --radius:10px;
-    /* Enterprise chrome layer -- nav shell, topbar, KG/Regulatory pages */
-    --ent-blue:#0B3B66; --ent-blue-deep:#072944; --ent-blue-soft:#E6EEF6;
-    --ent-cyan:#1FA8C9; --ent-cyan-soft:#E3F6FB;
-    --ent-emerald:#0F9D6B; --ent-emerald-soft:#E5F7EF;
-    --ent-amber:#C58A1F; --ent-amber-soft:#FBF1DC;
-    --ent-red:#C1432E; --ent-red-soft:#FBE9E5;
-    --ent-ink:#101820; --ent-ink-soft:#4C5A68; --ent-line:#DDE4EA;
-    /* Global platform theme -- medical sky-blue + carbon, toggled via [data-theme] */
-    --sky:#0EA5E9; --sky-soft:#E3F4FC; --sky-deep:#0876AC;
-    --carbon:#111827; --carbon-panel:#1A2333; --carbon-line:#2A3549;
+    /* Enterprise chrome -- rail nav / topbar stays dark navy in both themes, Bloomberg-terminal style */
+    --ent-blue:#121A33; --ent-blue-deep:#0A0E1C; --ent-blue-soft:#E3F8F5;
+    --ent-cyan:#1FE0CE; --ent-cyan-soft:#E3F8F5;
+    --ent-emerald:#14B8A6; --ent-emerald-soft:#E3F8F5;
+    --ent-amber:#D4A73C; --ent-amber-soft:#FBF2DA;
+    --ent-red:#D6294A; --ent-red-soft:#FCE6EA;
+    --ent-ink:#EDEFF7; --ent-ink-soft:#B9C0D4; --ent-line:rgba(237,239,247,0.12);
     --glass-bg:rgba(255,255,255,.6); --glass-border:rgba(255,255,255,.4); --glass-blur:14px;
   }
   [data-theme="dark"]{
-    --ink:#E7ECF3; --ink-soft:#AEB9C7; --ink-muted:#7C8898;
-    --paper:#0B1220; --surface:#141C2C; --surface-sunk:#101828; --border:#233047; --border-strong:#324362;
-    --accent:var(--sky); --accent-deep:var(--sky-deep); --accent-soft:#0F2C3D;
-    --ent-blue-soft:#122439; --ent-cyan-soft:#0F2C3D; --ent-line:#233047;
+    --ink:#EDEFF7; --ink-soft:#B9C0D4; --ink-muted:#8D95B3;
+    --paper:#0A0E1C; --surface:#121A33; --surface-sunk:#0E1428; --border:rgba(237,239,247,0.10); --border-strong:rgba(237,239,247,0.18);
+    --accent:#1FE0CE; --accent-deep:#14A89A; --accent-soft:rgba(31,224,206,0.14);
+    --gold:#FFB443; --gold-bg:rgba(255,180,67,0.14); --gold-brand:#FFB443;
+    --silver:#A9B4C9; --silver-bg:rgba(169,180,201,0.14);
+    --bronze:#E08A4F; --bronze-bg:rgba(224,138,79,0.14);
+    --signal:#FF3B5C; --signal-bg:rgba(255,59,92,0.16);
+    --ent-blue-soft:rgba(31,224,206,0.08); --ent-cyan-soft:rgba(31,224,206,0.12);
+    --ent-emerald-soft:rgba(45,212,191,0.12); --ent-amber-soft:rgba(255,180,67,0.12); --ent-red-soft:rgba(255,59,92,0.12);
+    --ent-line:rgba(237,239,247,0.10);
     --glass-bg:rgba(20,28,44,.55); --glass-border:rgba(255,255,255,.08);
   }
   *{box-sizing:border-box;}
@@ -142,13 +146,16 @@
   .card-top h3{margin:0;font-size:14.5px;font-weight:600;}
   .card-top .meta{font-size:12px;color:var(--ink-soft);margin-top:4px;}
 
-  .badge{font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 8px;border-radius:5px;white-space:nowrap;letter-spacing:.2px;}
-  .badge.gold{background:var(--gold-bg);color:var(--gold);}
-  .badge.silver{background:var(--silver-bg);color:var(--silver);}
-  .badge.bronze{background:var(--bronze-bg);color:var(--bronze);}
-  .badge.open{background:var(--signal-bg);color:var(--signal);}
-  .badge.unclear{background:var(--gold-bg);color:var(--gold);}
-  .badge.covered{background:var(--silver-bg);color:var(--silver);}
+  .badge{font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 9px 3px 7px;border-radius:999px;white-space:nowrap;letter-spacing:.3px;display:inline-flex;align-items:center;gap:5px;border:1px solid transparent;}
+  .badge::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0;background:currentColor;}
+  .badge.gold{background:var(--gold-bg);color:var(--gold);border-color:var(--gold-bg);}
+  .badge.silver{background:var(--silver-bg);color:var(--silver);border-color:var(--silver-bg);}
+  .badge.bronze{background:var(--bronze-bg);color:var(--bronze);border-color:var(--bronze-bg);}
+  .badge.open{background:var(--signal-bg);color:var(--signal);border-color:var(--signal-bg);}
+  .badge.unclear{background:var(--gold-bg);color:var(--gold);border-color:var(--gold-bg);}
+  .badge.covered{background:var(--silver-bg);color:var(--silver);border-color:var(--silver-bg);}
+  .badge.silver::before{opacity:.7;}
+  .badge.bronze::before{opacity:.5;}
 
   .score-num{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--accent-deep);}
   .score-bar-track{background:var(--border);border-radius:5px;height:8px;overflow:hidden;margin:8px 0;}
