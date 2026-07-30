@@ -395,7 +395,10 @@ def sitemap_xml():
     tests = conn.execute("SELECT slug, updated_at FROM lab_tests WHERE is_published = 1").fetchall()
     conn.close()
     urls = [f"<url><loc>{SITE_URL}/</loc><changefreq>daily</changefreq></url>",
-            f"<url><loc>{SITE_URL}/lab-info</loc><changefreq>weekly</changefreq></url>"]
+            f"<url><loc>{SITE_URL}/lab-info</loc><changefreq>weekly</changefreq></url>",
+            f"<url><loc>{SITE_URL}/pricing</loc><changefreq>monthly</changefreq></url>",
+            f"<url><loc>{SITE_URL}/terms</loc><changefreq>yearly</changefreq></url>",
+            f"<url><loc>{SITE_URL}/privacy</loc><changefreq>yearly</changefreq></url>"]
     for c in companies:
         urls.append(f"<url><loc>{SITE_URL}/company/{c['slug']}</loc><changefreq>monthly</changefreq></url>")
     for t in tests:
@@ -517,6 +520,230 @@ async function submitDemoRequest(form){{
 """
     json_ld = {"@context": "https://schema.org", "@type": "PriceSpecification", "name": "MedForsa GCC Plans"}
     return _seo_page_shell("Plans and pricing", "MedForsa GCC subscription plans -- Trial, Pro, and Enterprise access to IVD and blood bank market intelligence across Saudi Arabia and the GCC.", "/pricing", body, json_ld)
+
+@app.get("/terms", response_class=HTMLResponse)
+def terms_page():
+    """Terms of Service. DRAFT -- written to match the platform's actual current
+    features (subscriptions, Doctor AI, WhatsApp assistant, API access, data
+    sourcing practices). This is NOT a substitute for review by a qualified
+    lawyer licensed in Saudi Arabia before commercial launch -- flagged clearly
+    on the page itself and should be re-flagged to Amr before go-live."""
+    updated = datetime.utcnow().strftime("%Y-%m-%d")
+    body = f"""
+<h1>Terms of Service</h1>
+<p class="sub">Last updated: {updated}</p>
+<div class="card">
+  <p style="color:var(--assay);font-weight:600;">Draft notice: this document has not yet been reviewed by a lawyer.
+  It should be reviewed by qualified legal counsel licensed in the Kingdom of Saudi Arabia before the platform is
+  used commercially or relied upon in a dispute.</p>
+</div>
+
+<div class="card">
+  <h2>1. Who we are</h2>
+  <p>MedForsa GCC ("the Platform", "we", "us") is a market-intelligence service for the in vitro diagnostics (IVD)
+  and blood bank sector across Saudi Arabia and the GCC, operated by Amr Elmorshedy in connection with
+  Attieh Medico Ltd. Contact: <a href="mailto:amr@attieh-medico.com">amr@attieh-medico.com</a>.</p>
+</div>
+
+<div class="card">
+  <h2>2. What the Platform provides</h2>
+  <p>The Platform provides a searchable database of manufacturers, products, distributors, technologies,
+  conferences and market opportunities in the IVD and blood bank sector; a laboratory reference-value library
+  ("Lab Info"); an AI-assisted patient information tool ("Doctor AI"); calculators and wizards for laboratory
+  procurement decisions; and, for paid tiers, data export, API access, and related tools.</p>
+</div>
+
+<div class="card">
+  <h2>3. Accounts and subscriptions</h2>
+  <p>Some features require a registered account. You are responsible for keeping your login credentials
+  confidential and for all activity under your account. Subscription tiers (Trial, Pro, Enterprise) and their
+  features/pricing are described on the <a href="/pricing">Pricing page</a> and may change with notice. Fees, once
+  paid, are generally non-refundable except as required by applicable law or as we may agree in writing.</p>
+</div>
+
+<div class="card">
+  <h2>4. Data accuracy and "as-is" basis</h2>
+  <p>The Platform aggregates publicly available and manually researched information about manufacturers, products,
+  and market conditions. We make reasonable efforts to verify and flag the confidence level of this data, but the
+  IVD/diagnostics market changes constantly (products are discontinued, distributors change, specifications are
+  updated). <strong>The Platform is provided "as is" and "as available," without warranty that any listing, price
+  reference, specification, or market intelligence is complete, current, or error-free.</strong> You should
+  independently verify any information before relying on it for a commercial, clinical, or regulatory decision.</p>
+</div>
+
+<div class="card">
+  <h2>5. Doctor AI -- not medical advice</h2>
+  <p>Doctor AI is an informational tool that can help interpret uploaded lab results and answer general health
+  questions using AI models and public medical literature (e.g. PubMed/NCBI, UpToDate). <strong>It is not a
+  substitute for professional medical advice, diagnosis, or treatment, and it is not a licensed healthcare
+  provider.</strong> Always seek the advice of a qualified physician or other licensed healthcare provider with any
+  questions you may have regarding a medical condition. Never disregard professional medical advice or delay
+  seeking it because of something you read from Doctor AI. If you believe you may have a medical emergency, call
+  your local emergency number immediately.</p>
+</div>
+
+<div class="card">
+  <h2>6. Acceptable use</h2>
+  <p>You agree not to: scrape, bulk-extract, or resell the Platform's data outside your subscription's permitted
+  use; attempt to breach the Platform's security or access another user's account; upload content that is
+  unlawful, infringing, or that you do not have the right to share; or use the Platform to build a directly
+  competing product without our written consent.</p>
+</div>
+
+<div class="card">
+  <h2>7. Intellectual property</h2>
+  <p>The Platform's software, design, and original written content are owned by us. Manufacturer names, product
+  names, and trademarks referenced on the Platform belong to their respective owners and are used for identification
+  and market-reference purposes only; such use does not imply endorsement or affiliation.</p>
+</div>
+
+<div class="card">
+  <h2>8. Limitation of liability</h2>
+  <p>To the maximum extent permitted by applicable law, we are not liable for any indirect, incidental, or
+  consequential damages arising from your use of, or inability to use, the Platform, including damages arising from
+  reliance on data, market intelligence, or Doctor AI output. Nothing in these Terms limits liability that cannot
+  be limited under Saudi law.</p>
+</div>
+
+<div class="card">
+  <h2>9. Governing law</h2>
+  <p>These Terms are governed by the laws of the Kingdom of Saudi Arabia. Any dispute will be subject to the
+  jurisdiction of the competent courts of Saudi Arabia, without prejudice to any mandatory consumer-protection or
+  other rights you may have under applicable law.</p>
+</div>
+
+<div class="card">
+  <h2>10. Changes to these Terms</h2>
+  <p>We may update these Terms from time to time. Material changes will be reflected by an updated "Last updated"
+  date above. Continued use of the Platform after changes take effect constitutes acceptance of the revised Terms.</p>
+</div>
+
+<div class="card">
+  <h2>11. Contact</h2>
+  <p>Questions about these Terms: <a href="mailto:amr@attieh-medico.com">amr@attieh-medico.com</a>.</p>
+</div>
+"""
+    json_ld = {"@context": "https://schema.org", "@type": "WebPage", "name": "Terms of Service"}
+    return _seo_page_shell("Terms of Service", "MedForsa GCC Terms of Service.", "/terms", body, json_ld)
+
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy_page():
+    """Privacy Policy. DRAFT -- written with reference to Saudi Arabia's Personal
+    Data Protection Law (PDPL, enforced by SDAIA) since MedForsa GCC operates in
+    and targets the KSA/GCC market. NOT a substitute for review by a qualified
+    lawyer before commercial launch -- flagged clearly on the page itself."""
+    updated = datetime.utcnow().strftime("%Y-%m-%d")
+    body = f"""
+<h1>Privacy Policy</h1>
+<p class="sub">Last updated: {updated}</p>
+<div class="card">
+  <p style="color:var(--assay);font-weight:600;">Draft notice: this document has not yet been reviewed by a lawyer.
+  It should be reviewed by qualified legal counsel licensed in the Kingdom of Saudi Arabia -- including for
+  compliance with the Saudi Personal Data Protection Law (PDPL) enforced by SDAIA -- before the platform is used
+  commercially or relied upon in a dispute.</p>
+</div>
+
+<div class="card">
+  <h2>1. Who this policy covers</h2>
+  <p>This Privacy Policy explains how MedForsa GCC ("the Platform"), operated by Amr Elmorshedy in connection with
+  Attieh Medico Ltd., collects, uses, and protects personal data of people who use the Platform's website, mobile
+  interfaces, WhatsApp assistant, and related services. Contact:
+  <a href="mailto:amr@attieh-medico.com">amr@attieh-medico.com</a>.</p>
+</div>
+
+<div class="card">
+  <h2>2. What we collect</h2>
+  <p><strong>Account data:</strong> name, email, company name, and password (stored as a salted hash, never in
+  plain text) when you register.</p>
+  <p><strong>Usage data:</strong> pages visited, searches performed, and API usage, used to operate and improve the
+  Platform and to enforce subscription limits.</p>
+  <p><strong>Lead/contact data:</strong> information you submit through demo-request, quote-request, or contact
+  forms (name, company, email, phone, and message content).</p>
+  <p><strong>Doctor AI data:</strong> if you use Doctor AI, we process the health-related information you choose to
+  share -- including uploaded lab results (PDFs/images) and chat messages -- in order to provide the interpretation
+  and conversation features. This is sensitive personal data; see Section 5 below for how we handle it.</p>
+  <p><strong>WhatsApp data:</strong> if you message the Platform's WhatsApp assistant, we process your phone number
+  and message content to respond to you, secured via Twilio's webhook signature verification.</p>
+</div>
+
+<div class="card">
+  <h2>3. How we use your data</h2>
+  <p>To provide and maintain the Platform; to authenticate your account and enforce subscription tiers; to respond
+  to demo/quote requests and other inquiries; to send you service-related notifications (e.g. new opportunities
+  matching your account, if you opt in); to improve the Platform's features and data quality; and to comply with
+  legal obligations.</p>
+  <p>We do not sell your personal data to third parties. We do not use your data to train external AI models beyond
+  what is needed to generate your own Doctor AI responses in real time.</p>
+</div>
+
+<div class="card">
+  <h2>4. Legal basis and your rights (Saudi PDPL)</h2>
+  <p>Under the Saudi Personal Data Protection Law, you generally have the right to be informed about how your data
+  is processed, to access your data, to request correction or deletion, and to withdraw consent where processing is
+  based on consent. To exercise any of these rights, contact
+  <a href="mailto:amr@attieh-medico.com">amr@attieh-medico.com</a>. We will respond within the timeframe required
+  by applicable law.</p>
+</div>
+
+<div class="card">
+  <h2>5. Sensitive data -- Doctor AI</h2>
+  <p>Health-related information you share with Doctor AI (lab results, symptoms, chat history) is processed to
+  generate the interpretation/response you requested and, where you have an account, retained as part of your
+  patient history within the tool so you can refer back to past visits. This data is not shared with third parties
+  except the underlying AI model provider(s) and literature-search services strictly as needed to generate a
+  response, and is not used for advertising. You may request deletion of your Doctor AI history at any time by
+  contacting us.</p>
+</div>
+
+<div class="card">
+  <h2>6. Data retention</h2>
+  <p>We retain account and usage data for as long as your account is active, plus a reasonable period afterward for
+  legal, accounting, or dispute-resolution purposes. Demo/quote-request data is retained as needed for follow-up
+  and our business records. You may request earlier deletion, subject to any legal retention obligations.</p>
+</div>
+
+<div class="card">
+  <h2>7. Security</h2>
+  <p>We use industry-standard measures to protect your data, including password hashing (bcrypt), signed session
+  tokens (JWT), rate limiting on authentication and lead-capture endpoints, and webhook signature verification for
+  WhatsApp integration. No system is 100% secure, and we cannot guarantee absolute security of data transmitted to
+  or stored by the Platform.</p>
+</div>
+
+<div class="card">
+  <h2>8. Data location</h2>
+  <p>The Platform's infrastructure is hosted on Render. Data may be processed on servers located outside Saudi
+  Arabia depending on hosting-provider infrastructure; where this applies, we aim to apply protections consistent
+  with the Saudi PDPL's requirements for cross-border data transfer.</p>
+</div>
+
+<div class="card">
+  <h2>9. Third-party services</h2>
+  <p>Depending on the feature you use, the Platform relies on third-party infrastructure providers (e.g. hosting,
+  AI model providers, Twilio for WhatsApp, and, once activated, a payment processor for subscriptions). These
+  providers process data only as needed to deliver the relevant feature and are bound by their own privacy
+  practices and applicable data-processing agreements.</p>
+</div>
+
+<div class="card">
+  <h2>10. Children's privacy</h2>
+  <p>The Platform is intended for business/professional use by adults working in or with the laboratory diagnostics
+  sector. It is not directed at children, and we do not knowingly collect personal data from children.</p>
+</div>
+
+<div class="card">
+  <h2>11. Changes to this policy</h2>
+  <p>We may update this Privacy Policy from time to time. Material changes will be reflected by an updated
+  "Last updated" date above.</p>
+</div>
+
+<div class="card">
+  <h2>12. Contact</h2>
+  <p>Questions about this Privacy Policy or your data: <a href="mailto:amr@attieh-medico.com">amr@attieh-medico.com</a>.</p>
+</div>
+"""
+    json_ld = {"@context": "https://schema.org", "@type": "WebPage", "name": "Privacy Policy"}
+    return _seo_page_shell("Privacy Policy", "MedForsa GCC Privacy Policy.", "/privacy", body, json_ld)
 
 @app.get("/lab-tests")
 def lab_tests_page_legacy():
