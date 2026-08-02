@@ -864,10 +864,14 @@ def list_companies(status: str | None = None, q: str | None = None, category: st
     query += " ORDER BY id LIMIT ? OFFSET ?"
     params += [limit, offset]
     rows = conn.execute(query, params).fetchall()
+    results = [dict(r) for r in rows]
+    scores = _bulk_intelligence_scores(conn, [r["id"] for r in results])
+    for r in results:
+        r["intelligence_score"] = scores.get(r["id"], 0)
     conn.close()
     logger.info(f"GET /companies status={status} category={category} origin={origin} q={q} -> {len(rows)}/{total} results")
     return {
-        "results": [dict(r) for r in rows],
+        "results": results,
         "total": total,
         "limit": limit,
         "offset": offset,
@@ -1097,6 +1101,54 @@ def opportunities_by_category():
     conn.close()
     return result
 
+def _score_from_counts(confidence_tier, status_tag, n_products, n_technologies, n_evidence, n_events):
+    """The single source of truth for the 0-100 intelligence score formula.
+    Shared by the per-company breakdown endpoint and the bulk list endpoint so the
+    two can never drift out of sync with each other."""
+    tier_points = {"gold": 30, "silver": 18, "bronze": 6}
+    confidence_points = tier_points.get(confidence_tier, 0)
+    product_points = min(n_products * 5, 20)          # cap at 20 (4+ products)
+    technology_points = min(n_technologies * 5, 15)    # cap at 15 (3+ technologies)
+    evidence_points = min(n_evidence * 5, 20)          # cap at 20 (4+ evidence entries)
+    event_points = min(n_events * 5, 10)               # cap at 10 (2+ events)
+    distribution_points = 5 if status_tag == "covered" else 0  # a resolved status, not "open is better"
+    total = confidence_points + product_points + technology_points + evidence_points + event_points + distribution_points
+    return total, {
+        "confidence_tier": {"points": confidence_points, "max": 30, "basis": f"tier = {confidence_tier}"},
+        "product_portfolio": {"points": product_points, "max": 20, "basis": f"{n_products} products on file"},
+        "technology_diversity": {"points": technology_points, "max": 15, "basis": f"{n_technologies} technology links"},
+        "evidence_coverage": {"points": evidence_points, "max": 20, "basis": f"{n_evidence} evidence entries"},
+        "market_event_history": {"points": event_points, "max": 10, "basis": f"{n_events} logged events"},
+        "ksa_status_resolved": {"points": distribution_points, "max": 5, "basis": status_tag},
+    }
+
+def _bulk_intelligence_scores(conn, manufacturer_ids):
+    """Compute the 0-100 score for many manufacturers at once using 4 grouped
+    queries instead of N+1 per-row lookups -- used by the /companies list
+    endpoint so every card can show a real score without a separate API call
+    per company."""
+    if not manufacturer_ids:
+        return {}
+    placeholders = ",".join("?" for _ in manufacturer_ids)
+    counts = {mid: {"products": 0, "technologies": 0, "evidence": 0, "events": 0} for mid in manufacturer_ids}
+    for table, key in [("products", "products"), ("manufacturer_technology", "technologies"),
+                        ("evidence", "evidence"), ("market_events", "events")]:
+        rows = conn.execute(
+            f"SELECT manufacturer_id, count(*) c FROM {table} WHERE manufacturer_id IN ({placeholders}) GROUP BY manufacturer_id",
+            manufacturer_ids
+        ).fetchall()
+        for r in rows:
+            counts[r["manufacturer_id"]][key] = r["c"]
+    tiers_and_status = conn.execute(
+        f"SELECT id, confidence_tier, status_tag FROM manufacturers WHERE id IN ({placeholders})", manufacturer_ids
+    ).fetchall()
+    scores = {}
+    for r in tiers_and_status:
+        c = counts[r["id"]]
+        total, _ = _score_from_counts(r["confidence_tier"], r["status_tag"], c["products"], c["technologies"], c["evidence"], c["events"])
+        scores[r["id"]] = total
+    return scores
+
 @app.get("/companies/{company_id}/intelligence-score")
 def intelligence_score(company_id: int):
     """A transparent, explainable score computed from real fields already in the database.
@@ -1114,35 +1166,23 @@ def intelligence_score(company_id: int):
     n_events = conn.execute("SELECT count(*) c FROM market_events WHERE manufacturer_id = ?", (company_id,)).fetchone()["c"]
     conn.close()
 
-    tier_points = {"gold": 30, "silver": 18, "bronze": 6}
-    confidence_points = tier_points.get(company["confidence_tier"], 0)
-    product_points = min(n_products * 5, 20)          # cap at 20 (4+ products)
-    technology_points = min(n_technologies * 5, 15)    # cap at 15 (3+ technologies)
-    evidence_points = min(n_evidence * 5, 20)          # cap at 20 (4+ evidence entries)
-    event_points = min(n_events * 5, 10)               # cap at 10 (2+ events)
-    distribution_points = 5 if company["status_tag"] == "covered" else 0  # a resolved status, not "open is better"
-
-    total = confidence_points + product_points + technology_points + evidence_points + event_points + distribution_points
+    total, breakdown = _score_from_counts(company["confidence_tier"], company["status_tag"], n_products, n_technologies, n_evidence, n_events)
 
     return {
         "company": company["name"],
         "score": total,
         "max_possible": 100,
-        "breakdown": {
-            "confidence_tier": {"points": confidence_points, "max": 30, "basis": f"tier = {company['confidence_tier']}"},
-            "product_portfolio": {"points": product_points, "max": 20, "basis": f"{n_products} products on file"},
-            "technology_diversity": {"points": technology_points, "max": 15, "basis": f"{n_technologies} technology links"},
-            "evidence_coverage": {"points": evidence_points, "max": 20, "basis": f"{n_evidence} evidence entries"},
-            "market_event_history": {"points": event_points, "max": 10, "basis": f"{n_events} logged events"},
-            "ksa_status_resolved": {"points": distribution_points, "max": 5, "basis": company["status_tag"]},
-        },
+        "breakdown": breakdown,
         "note": "Every point above is computed from real database counts -- not an estimate or an AI judgment call."
     }
 
 @app.get("/companies/{company_id}/competitors")
 def company_competitors(company_id: int):
-    """Competitors derived from shared technology links -- not researched separately, purely
-    computed from data already in the database."""
+    """Competitors/'similar companies' derived from data already in the database --
+    never independently researched. Tries shared technology links first (the more
+    precise signal); if a company has no technology links recorded yet (true for
+    most of the catalog today), falls back to same-category + same-origin overlap
+    so the panel isn't empty just because technology tagging hasn't caught up."""
     conn = get_conn()
     company = conn.execute("SELECT * FROM manufacturers WHERE id = ?", (company_id,)).fetchone()
     if not company:
@@ -1157,11 +1197,26 @@ def company_competitors(company_id: int):
            WHERE mt1.manufacturer_id = ?""",
         (company_id,)
     ).fetchall()
+    if rows:
+        conn.close()
+        return {"company": company["name"], "competitors": [dict(r) for r in rows], "basis": "shared_technology",
+                "note": "Derived purely from shared Technology links already in the database -- not independently researched competitor analysis."}
+
+    # Fallback: same category (+ prefer same origin when available), published only, excluding self
+    fallback_rows = conn.execute(
+        """SELECT id, name, category, origin FROM manufacturers
+           WHERE category = ? AND id != ? AND is_published = 1
+           ORDER BY (origin = ?) DESC, confidence_tier = 'gold' DESC, id LIMIT 6""",
+        (company["category"], company_id, company["origin"])
+    ).fetchall()
     conn.close()
-    if not rows:
-        return {"company": company["name"], "competitors": [], "note": "No shared-technology links found -- either this company has no technology links recorded, or no other company shares one."}
-    return {"company": company["name"], "competitors": [dict(r) for r in rows],
-            "note": "Derived purely from shared Technology links already in the database -- not independently researched competitor analysis."}
+    if not fallback_rows:
+        return {"company": company["name"], "competitors": [], "basis": "none",
+                "note": "No shared-technology links and no other published company in the same category -- nothing to compare against yet."}
+    return {"company": company["name"],
+            "competitors": [{"id": r["id"], "name": r["name"], "category": r["category"], "shared_technology": f"same category ({r['category']})"} for r in fallback_rows],
+            "basis": "category_fallback",
+            "note": "No shared-technology links recorded for this company yet, so this list falls back to other published companies in the same category (same-origin companies ranked first) -- a coarser signal than a real technology match."}
 
 @app.get("/market-events")
 def market_events():

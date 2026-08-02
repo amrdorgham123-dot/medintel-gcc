@@ -154,12 +154,16 @@
   .badge.open{background:var(--signal-bg);color:var(--signal);border-color:var(--signal-bg);}
   .badge.unclear{background:var(--gold-bg);color:var(--gold);border-color:var(--gold-bg);}
   .badge.covered{background:var(--silver-bg);color:var(--silver);border-color:var(--silver-bg);}
+  .badge.defunct{background:var(--border);color:var(--ink-muted);border-color:var(--border);}
+  .badge.defunct::before{opacity:.4;}
   .badge.silver::before{opacity:.7;}
   .badge.bronze::before{opacity:.5;}
 
   .score-num{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--accent-deep);}
   .score-bar-track{background:var(--border);border-radius:5px;height:8px;overflow:hidden;margin:8px 0;}
   .score-bar-fill{background:var(--accent);height:100%;}
+  .score-chip{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent-deep);background:var(--accent-soft);padding:3px 8px;border-radius:999px;white-space:nowrap;flex-shrink:0;letter-spacing:.2px;}
+  .score-chip-max{font-weight:500;color:var(--ink-muted);font-size:9px;}
 
   .row{display:flex;gap:10px;margin-bottom:9px;font-size:13.5px;}
   .row .label{min-width:150px;font-weight:600;color:var(--ink);flex-shrink:0;}
@@ -612,6 +616,15 @@ function setConn(live){
 }
 
 function badge(tag, label){ return `<span class="badge ${tag}">${label}</span>`; }
+function statusBadgeLabel(status_tag, style){
+  // style 'short' is used on the compact Watchlist cards, 'full' everywhere else
+  const map = {
+    open: style === 'short' ? 'Open' : 'Open opportunity',
+    unclear: style === 'short' ? 'Unclear' : 'Needs outreach',
+    defunct: style === 'short' ? 'Dissolved' : 'Company dissolved',
+  };
+  return map[status_tag] || (style === 'short' ? 'Covered' : 'Covered');
+}
 const ORIGIN_STYLES = {
   American: {bg:'#E6F1FB', fg:'#0C447C', label:'US'},
   European: {bg:'#EAF3DE', fg:'#27500A', label:'EU'},
@@ -845,7 +858,8 @@ async function loadManufacturerGrid(){
           <div><h3>${m.name}</h3><div class="meta">${originFlag(m.origin)} ${m.headquarters} · ${m.category} · ${m.portfolio}</div></div>
           <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
             <button class="star-btn ${watchedIds.has(m.id)?'starred':''}" onclick="event.stopPropagation();toggleWatch(${m.id}, this)" title="Add to watchlist">${watchedIds.has(m.id)?'★':'☆'}</button>
-            ${badge(m.status_tag, m.status_tag==='open'?'Open opportunity':m.status_tag==='unclear'?'Needs outreach':'Covered')}
+            ${badge(m.status_tag, statusBadgeLabel(m.status_tag, 'full'))}
+            <span class="score-chip" title="Intelligence score — computed from confidence tier, product/technology coverage, evidence, and market events on file">${m.intelligence_score ?? 0}<span class="score-chip-max">/100</span></span>
             ${badge(m.confidence_tier, (m.confidence_tier||"unrated").toUpperCase())}
           </div>
         </div>
@@ -1212,7 +1226,7 @@ async function renderWatchlistPage(){
       <div class="opp-unlocked-bar">👤 Logged in as ${JSON.parse(localStorage.getItem('medintel-user')||'{}').company_name || 'you'} <button class="opp-lock-btn" onclick="logout()">Log out</button></div>
       <div class="grid">${items.map(m => `
         <div class="card" onclick="activeTab='manufacturers';openCompany(${m.id})">
-          <div class="card-top"><div><h3>${m.name}</h3><div class="meta">${originFlag(m.origin)} ${m.category} · added ${m.added_at.split(' ')[0]}</div></div>${badge(m.status_tag, m.status_tag==='open'?'Open':m.status_tag==='unclear'?'Unclear':'Covered')}</div>
+          <div class="card-top"><div><h3>${m.name}</h3><div class="meta">${originFlag(m.origin)} ${m.category} · added ${m.added_at.split(' ')[0]}</div></div>${badge(m.status_tag, statusBadgeLabel(m.status_tag, 'short'))}</div>
         </div>`).join('') || '<div class="empty">Nothing pinned yet — star a company from the Companies page.</div>'}</div>
     `;
   } catch(err){
@@ -1582,7 +1596,7 @@ async function renderDirectory(){
           <h2>${m.name}</h2>
           <div class="dir-profile-hq">${m.headquarters}</div>
         </div>
-        ${badge(m.status_tag, m.status_tag==='open'?'Open opportunity':m.status_tag==='unclear'?'Needs outreach':'Covered')}
+        ${badge(m.status_tag, statusBadgeLabel(m.status_tag, 'full'))}
       </div>
       <p class="dir-profile-portfolio">${m.portfolio}</p>
       <div class="dir-section-title">Authorized KSA distributor${m.distributors.length>1?'s':''}</div>
