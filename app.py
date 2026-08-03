@@ -261,9 +261,9 @@ def snibe_ad():
 def snibe_biochem_ad():
     return FileResponse(os.path.join(os.path.dirname(__file__), "snibe-biochem-ad.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
 
-@app.get("/blood-bank-ad.html")
-def blood_bank_ad():
-    return FileResponse(os.path.join(os.path.dirname(__file__), "blood-bank-ad.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
+@app.get("/blood-bank-banner-ad.html")
+def blood_bank_banner_ad():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "blood-bank-banner-ad.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
 
 @app.get("/doctor-ai")
 def doctor_ai_page():

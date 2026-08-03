@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<title>Blood Bank Automation — Banner Ad</title>
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  *{margin:0; padding:0; box-sizing:border-box;}
+  body{background:#000; display:flex; align-items:center; justify-content:center; min-height:100vh; overflow:hidden;}
+
+  .banner{
+    width:1600px; height:900px; position:relative; overflow:hidden;
+    font-family:'Almarai', sans-serif; color:#fff; background:#050B14;
+  }
+
+  .bg{
+    position:absolute; inset:-4%; background-size:cover; background-position:center 35%;
+    background-image:url('https://s7d1.scene7.com/is/image/orthoclinical/1x1-product-detail-vision:1-1?wid=1200&hei=1200');
+    animation:kenburns 14s ease-in-out infinite alternate;
+  }
+  @keyframes kenburns{
+    0%{transform:scale(1) translate(0,0);}
+    100%{transform:scale(1.09) translate(-1.5%, -1%);}
+  }
+
+  .wash{
+    position:absolute; inset:0;
+    background:linear-gradient(260deg, rgba(5,11,20,0.94) 0%, rgba(5,11,20,0.75) 32%, rgba(5,11,20,0.25) 58%, rgba(5,11,20,0.55) 100%),
+               linear-gradient(0deg, rgba(5,11,20,0.9) 0%, transparent 42%);
+  }
+
+  .topbar{
+    position:absolute; top:0; left:0; right:0; height:96px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 56px; z-index:3;
+  }
+  .topbar-brand{display:flex; align-items:center; gap:12px;}
+  .topbar-mark{
+    width:34px; height:34px; border-radius:9px; background:#121A33; border:1px solid rgba(255,255,255,0.18);
+    display:flex; align-items:center; justify-content:center; padding:5px;
+  }
+  .topbar-mark svg{width:100%; height:100%;}
+  .topbar-name{font-family:'Space Grotesk'; font-weight:700; font-size:16px; letter-spacing:.2px;}
+  .topbar-via{font-family:'IBM Plex Mono'; font-size:12px; color:rgba(255,255,255,0.55); letter-spacing:1px;}
+
+  .content{
+    position:absolute; bottom:76px; right:64px; left:64px; z-index:3;
+    max-width:760px;
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:9px;
+    font-family:'IBM Plex Mono'; font-size:14px; letter-spacing:2.5px; color:#FF7FA0;
+    margin-bottom:22px; opacity:0; animation:rise 1s ease-out .3s forwards;
+  }
+  .eyebrow::before{content:''; width:26px; height:2px; background:#FF7FA0;}
+
+  h1{
+    font-size:64px; font-weight:800; line-height:1.18; margin-bottom:20px;
+    opacity:0; transform:translateY(24px); animation:rise 1s ease-out .55s forwards;
+  }
+  .sub{
+    font-size:19px; color:rgba(255,255,255,0.82); line-height:1.7; margin-bottom:34px; max-width:620px;
+    opacity:0; transform:translateY(20px); animation:rise 1s ease-out .8s forwards;
+  }
+  .sub b{color:#fff; font-weight:700;}
+
+  @keyframes rise{
+    to{opacity:1; transform:translateY(0);}
+  }
+
+  .cta-row{
+    display:flex; align-items:center; gap:22px;
+    opacity:0; transform:translateY(16px); animation:rise 1s ease-out 1.05s forwards;
+  }
+  .cta{
+    font-family:'IBM Plex Mono'; font-size:15px; font-weight:500;
+    background:#fff; color:#0A1730; padding:15px 34px; border-radius:999px;
+  }
+  .range{font-family:'IBM Plex Mono'; font-size:12.5px; color:rgba(255,255,255,0.6); letter-spacing:.5px;}
+  .range b{color:#FF7FA0;}
+
+  .accent-line{
+    position:absolute; bottom:0; left:0; height:5px; width:0;
+    background:linear-gradient(90deg, #FF4D6D, #FFB443);
+    animation:grow-line 1.4s ease-out 1.3s forwards;
+  }
+  @keyframes grow-line{ to{width:100%;} }
+</style>
+</head>
+<body>
+
+<div class="banner" dir="ltr">
+  <div class="bg"></div>
+  <div class="wash"></div>
+
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-mark">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="4" y1="2" x2="34" y2="36" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FF3B5C"/><stop offset="1" stop-color="#FFB443"/></linearGradient></defs><path d="M20 3C20 3 8 17.5 8 25.5a12 12 0 0 0 24 0C32 17.5 20 3 20 3Z" fill="url(#lg)"/><path d="M4 23h9l3.2-8 4.5 16 3-11 2.3 3h10" fill="none" stroke="#0A0E1C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="topbar-name">MedForsa GCC</div>
+    </div>
+    <div class="topbar-via">ORTHO CLINICAL DIAGNOSTICS · BLOOD BANK LINE</div>
+  </div>
+
+  <div class="content" style="right:auto; left:64px; text-align:left;">
+    <span class="eyebrow">IMMUNOHEMATOLOGY / TRANSFUSION MEDICINE</span>
+    <h1>One tube. One test.<br>One clear answer.</h1>
+    <p class="sub">Fully automated blood typing and antibody screening with <b>Ortho VISION Max</b> — walk-away from sample load to interpreted result, built for the volume and complexity of a modern transfusion service.</p>
+    <div class="cta-row">
+      <div class="cta">Explore the full blood bank line inside the platform &rarr;</div>
+      <div class="range">Available: <b>VISION Max &middot; VISION &middot; NEO Iris &middot; Reveos</b></div>
+    </div>
+  </div>
+
+  <div class="accent-line"></div>
+</div>
+
+</body>
+</html>
