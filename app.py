@@ -261,6 +261,10 @@ def snibe_ad():
 def snibe_biochem_ad():
     return FileResponse(os.path.join(os.path.dirname(__file__), "snibe-biochem-ad.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
 
+@app.get("/blood-bank-ad.html")
+def blood_bank_ad():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "blood-bank-ad.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
+
 @app.get("/doctor-ai")
 def doctor_ai_page():
     return FileResponse(os.path.join(os.path.dirname(__file__), "doctor-ai.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
@@ -758,6 +762,10 @@ def compatibility_wizard_page():
 def tco_calculator_page():
     return FileResponse(os.path.join(os.path.dirname(__file__), "tco-calculator.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
 
+@app.get("/marketing-gallery")
+def marketing_gallery_clean_url():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "marketing.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
+
 @app.get("/logo.svg")
 def logo():
     return FileResponse(os.path.join(os.path.dirname(__file__), "logo.svg"), media_type="image/svg+xml")
@@ -1228,6 +1236,60 @@ def market_events():
     conn.close()
     return [dict(r) for r in rows]
 
+class MarketingAssetCreate(BaseModel):
+    product_id: int
+    headline: str
+    tagline: str | None = None
+    body_copy: str | None = None
+    hero_image_url: str | None = None
+    video_script: str | None = None
+    status: Literal["draft", "published"] = "published"
+
+@app.get("/marketing")
+def list_marketing_assets(department: str | None = None):
+    """Public gallery of device launch-ad style promotional designs, organized by
+    department. Only published assets are returned (draft assets are admin-only
+    via /admin/marketing)."""
+    conn = get_conn()
+    query = """
+        SELECT ma.*, p.product_name, p.image_url as product_image_url, m.name as manufacturer_name
+        FROM marketing_assets ma
+        JOIN products p ON p.id = ma.product_id
+        JOIN manufacturers m ON m.id = p.manufacturer_id
+        WHERE ma.status = 'published'
+    """
+    params: list = []
+    if department:
+        query += " AND ma.department = ?"
+        params.append(department)
+    query += " ORDER BY ma.created_at DESC"
+    rows = conn.execute(query, params).fetchall()
+    departments = conn.execute(
+        """SELECT DISTINCT ma.department FROM marketing_assets ma
+           WHERE ma.status = 'published' AND ma.department IS NOT NULL ORDER BY ma.department"""
+    ).fetchall()
+    conn.close()
+    return {
+        "results": [dict(r) for r in rows],
+        "departments": [d["department"] for d in departments],
+    }
+
+@app.get("/marketing/{asset_id}")
+def get_marketing_asset(asset_id: int):
+    conn = get_conn()
+    row = conn.execute(
+        """SELECT ma.*, p.product_name, p.image_url as product_image_url, m.name as manufacturer_name
+           FROM marketing_assets ma
+           JOIN products p ON p.id = ma.product_id
+           JOIN manufacturers m ON m.id = p.manufacturer_id
+           WHERE ma.id = ? AND ma.status = 'published'""",
+        (asset_id,)
+    ).fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Marketing asset not found")
+    return dict(row)
+
 @app.get("/companies/{company_id}")
 def get_company(company_id: int):
     conn = get_conn()
@@ -1413,6 +1475,41 @@ def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
+
+@app.post("/admin/marketing")
+def admin_create_marketing_asset(payload: MarketingAssetCreate, current_user: dict = Depends(require_admin)):
+    conn = get_conn()
+    product = conn.execute("SELECT department FROM products WHERE id = ?", (payload.product_id,)).fetchone()
+    if not product:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Product not found")
+    cur = conn.execute(
+        """INSERT INTO marketing_assets
+           (product_id, department, headline, tagline, body_copy, hero_image_url, video_script, status, created_by)
+           VALUES (?,?,?,?,?,?,?,?,?)""",
+        (payload.product_id, product["department"], payload.headline, payload.tagline,
+         payload.body_copy, payload.hero_image_url, payload.video_script, payload.status,
+         current_user.get("email"))
+    )
+    conn.commit()
+    new_id = cur.lastrowid
+    conn.close()
+    logger.info(f"Admin {current_user.get('email')} created marketing asset id {new_id} for product {payload.product_id}")
+    return {"id": new_id, "status": "created"}
+
+@app.get("/admin/marketing/all")
+def admin_list_all_marketing_assets(current_user: dict = Depends(require_admin)):
+    """Admin view including drafts, unlike the public /marketing endpoint."""
+    conn = get_conn()
+    rows = conn.execute(
+        """SELECT ma.*, p.product_name, m.name as manufacturer_name
+           FROM marketing_assets ma
+           JOIN products p ON p.id = ma.product_id
+           JOIN manufacturers m ON m.id = p.manufacturer_id
+           ORDER BY ma.created_at DESC"""
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 @app.get("/admin/demo-requests")
 def admin_list_demo_requests(current_user: dict = Depends(require_admin)):
