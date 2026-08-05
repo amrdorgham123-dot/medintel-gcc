@@ -766,6 +766,14 @@ def tco_calculator_page():
 def marketing_gallery_clean_url():
     return FileResponse(os.path.join(os.path.dirname(__file__), "marketing.html"), media_type="text/html", headers=NO_CACHE_HEADERS)
 
+@app.get("/media/biossays-240plus-ad.mp4")
+def biossays_ad_video():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "media", "biossays-240plus-ad.mp4"), media_type="video/mp4", headers=NO_CACHE_HEADERS)
+
+@app.get("/media/biossays-240plus-demo.mp4")
+def biossays_demo_video():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "media", "biossays-240plus-demo.mp4"), media_type="video/mp4", headers=NO_CACHE_HEADERS)
+
 @app.get("/logo.svg")
 def logo():
     return FileResponse(os.path.join(os.path.dirname(__file__), "logo.svg"), media_type="image/svg+xml")

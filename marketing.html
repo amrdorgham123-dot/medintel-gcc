@@ -60,6 +60,7 @@
   .card:hover{transform:translateY(-3px); box-shadow:0 12px 32px rgba(15,22,38,0.08);}
   .card-image{height:200px; background:var(--surface-sunk); display:flex; align-items:center; justify-content:center; overflow:hidden;}
   .card-image img{width:100%; height:100%; object-fit:contain; padding:20px;}
+  .card-image video{width:100%; height:100%; object-fit:cover;}
   .card-body{padding:20px 22px 22px; display:flex; flex-direction:column; gap:10px; flex:1;}
   .card-dept{font-family:var(--mono); font-size:11px; color:var(--accent-deep); text-transform:uppercase; letter-spacing:1px;}
   .card-manufacturer{font-family:var(--mono); font-size:11.5px; color:var(--ink-muted);}
@@ -128,6 +129,16 @@ function scriptBlock(script){
   return `<details class="script-note"><summary>View video storyboard / script</summary><pre>${script.replace(/</g,'&lt;')}</pre></details>`;
 }
 
+function cardMedia(a){
+  if(a.video_url){
+    return `<video src="${a.video_url}" muted loop playsinline autoplay controls preload="metadata"></video>`;
+  }
+  if(a.hero_image_url){
+    return `<img src="${a.hero_image_url}" alt="${a.product_name}" loading="lazy">`;
+  }
+  return '';
+}
+
 function renderCards(results){
   const content = document.getElementById('content');
   if(results.length === 0){
@@ -138,7 +149,7 @@ function renderCards(results){
   grid.className = 'grid';
   grid.innerHTML = results.map(a => `
     <div class="card">
-      <div class="card-image">${a.hero_image_url ? `<img src="${a.hero_image_url}" alt="${a.product_name}" loading="lazy">` : ''}</div>
+      <div class="card-image">${cardMedia(a)}</div>
       <div class="card-body">
         <div class="card-dept">${a.department || 'Uncategorized'}</div>
         <div class="card-manufacturer">${a.manufacturer_name} — ${a.product_name}</div>
@@ -146,6 +157,7 @@ function renderCards(results){
         <div class="card-tagline">${a.tagline || ''}</div>
         <div class="card-actions">
           ${a.animated_ad_url ? `<a class="btn-primary" href="${a.animated_ad_url}" target="_blank" rel="noopener">Watch animated ad</a>` : ''}
+          ${a.demo_video_url ? `<a class="btn-secondary" href="${a.demo_video_url}" target="_blank" rel="noopener">Product demo footage</a>` : ''}
           <a class="btn-secondary" href="/app?product=${a.product_id}">View product</a>
         </div>
         ${scriptBlock(a.video_script)}
