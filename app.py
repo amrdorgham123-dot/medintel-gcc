@@ -2412,6 +2412,20 @@ def _build_notification_candidates(conn):
             "detail": f"{r['company_name']}" + (f" -- {r['product_name']}" if r["product_name"] else ""), "url": "#admin",
         })
 
+    new_events = conn.execute("""
+        SELECT e.id, e.created_at, e.event_type, e.description, m.name as company_name
+        FROM market_events e JOIN manufacturers m ON m.id = e.manufacturer_id
+        WHERE e.created_at >= ?
+        ORDER BY e.created_at DESC
+    """, (thirty_days_ago,)).fetchall()
+    for r in new_events:
+        candidates.append({
+            "key": f"market-event:{r['id']}", "type": "market_event",
+            "created_at": r["created_at"],
+            "title": f"Market move: {r['company_name']} -- {r['event_type']}",
+            "detail": (r["description"] or "")[:180], "url": "#market-events",
+        })
+
     candidates.sort(key=lambda c: c["created_at"], reverse=True)
     return candidates
 
