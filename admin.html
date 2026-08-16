@@ -125,6 +125,38 @@
   </div>
 
   <div class="panel">
+    <h2>Marketing assets (Product Launch Gallery)</h2>
+    <p class="sub" style="margin-bottom:14px;">Ad copy, video ads, and animated launch pages shown at /marketing-gallery. Find a product_id on the /products page or via the API.</p>
+    <div class="grant-form" style="flex-wrap:wrap;">
+      <input type="number" id="maProductId" placeholder="Product ID" style="width:100px;">
+      <input type="text" id="maHeadline" placeholder="Headline" style="flex:1; min-width:200px;">
+      <input type="text" id="maTagline" placeholder="Tagline (optional)" style="flex:1; min-width:200px;">
+      <select id="maStatus">
+        <option value="published" selected>Published</option>
+        <option value="draft">Draft</option>
+      </select>
+    </div>
+    <div class="grant-form" style="flex-wrap:wrap; margin-top:8px;">
+      <input type="text" id="maHeroImage" placeholder="Hero image URL (optional)" style="flex:1; min-width:200px;">
+      <input type="text" id="maVideoUrl" placeholder="Video ad URL, e.g. /media/x.mp4 (optional)" style="flex:1; min-width:200px;">
+      <input type="text" id="maAnimatedAdUrl" placeholder="Animated ad page URL, e.g. /x-ad.html (optional)" style="flex:1; min-width:200px;">
+    </div>
+    <div style="margin-top:8px;">
+      <textarea id="maBodyCopy" placeholder="Body copy (optional)" style="width:100%; min-height:60px; background:var(--surface-2); border:1px solid var(--line); border-radius:8px; color:var(--paper); padding:10px; font-family:inherit; font-size:13px;"></textarea>
+    </div>
+    <button class="btn-mini" id="maCreateBtn" style="border-color:var(--assay); color:var(--assay); margin-top:10px;">Add marketing asset</button>
+    <span id="maCreateResult" class="mono" style="font-size:12px; color:var(--muted); margin-inline-start:10px;"></span>
+
+    <div style="overflow-x:auto; margin-top:18px;">
+      <table>
+        <thead><tr><th>Product</th><th>Headline</th><th>Department</th><th>Media</th><th>Status</th><th>Added</th><th></th></tr></thead>
+        <tbody id="marketingAssetsBody"></tbody>
+      </table>
+      <div class="empty" id="marketingAssetsEmpty" style="display:none;">No marketing assets yet.</div>
+    </div>
+  </div>
+
+  <div class="panel">
     <h2>Demo requests</h2>
     <p class="sub" style="margin-bottom:14px;">Leads from the /pricing page's "Request a demo" form.</p>
     <div style="overflow-x:auto;">
@@ -218,6 +250,7 @@
     loadUsers();
     loadDemoRequests();
     loadQuoteRequests();
+    loadMarketingAssets();
   }
 
   async function loadStats(){
@@ -330,6 +363,78 @@
     if(!s) return '—';
     return s.split(' ')[0].split('T')[0];
   }
+
+  async function loadMarketingAssets(){
+    const r = await fetch('/admin/marketing/all', {headers: authHeaders()});
+    if(!r.ok) return;
+    const rows = await r.json();
+    const body = document.getElementById('marketingAssetsBody');
+    const empty = document.getElementById('marketingAssetsEmpty');
+    if(!rows.length){ body.innerHTML=''; empty.style.display='block'; return; }
+    empty.style.display='none';
+    body.innerHTML = rows.map(a => {
+      const media = [a.video_url ? 'Video' : null, a.animated_ad_url ? 'Animated' : null, a.hero_image_url ? 'Image' : null].filter(Boolean).join(', ') || '—';
+      return `
+      <tr>
+        <td>${a.product_name} <span class="mono" style="color:var(--muted); font-size:11px;">(#${a.product_id})</span></td>
+        <td>${a.headline}</td>
+        <td>${a.department || '—'}</td>
+        <td class="mono" style="font-size:12px;">${media}</td>
+        <td><select onchange="updateMarketingAssetStatus(${a.id}, this.value)">
+          <option value="published" ${a.status==='published'?'selected':''}>published</option>
+          <option value="draft" ${a.status==='draft'?'selected':''}>draft</option>
+        </select></td>
+        <td class="mono" style="color:var(--muted); font-size:12px;">${fmtDateShort(a.created_at)}</td>
+        <td><button class="btn-mini" style="border-color:#D6294A; color:#D6294A;" onclick="deleteMarketingAsset(${a.id})">Delete</button></td>
+      </tr>
+    `;
+    }).join('');
+  }
+
+  window.updateMarketingAssetStatus = async function(id, status){
+    await fetch(`/admin/marketing/${id}/status`, {method:'POST', headers:{...authHeaders(), 'Content-Type':'application/json'}, body: JSON.stringify({status})});
+  };
+
+  window.deleteMarketingAsset = async function(id){
+    if(!confirm('Delete this marketing asset? This cannot be undone.')) return;
+    await fetch(`/admin/marketing/${id}`, {method:'DELETE', headers: authHeaders()});
+    loadMarketingAssets();
+  };
+
+  document.getElementById('maCreateBtn').addEventListener('click', async () => {
+    const result = document.getElementById('maCreateResult');
+    const productId = parseInt(document.getElementById('maProductId').value, 10);
+    const headline = document.getElementById('maHeadline').value.trim();
+    if(!productId || !headline){
+      result.textContent = 'Product ID and headline are required.';
+      return;
+    }
+    const payload = {
+      product_id: productId,
+      headline,
+      tagline: document.getElementById('maTagline').value.trim() || null,
+      body_copy: document.getElementById('maBodyCopy').value.trim() || null,
+      hero_image_url: document.getElementById('maHeroImage').value.trim() || null,
+      video_url: document.getElementById('maVideoUrl').value.trim() || null,
+      animated_ad_url: document.getElementById('maAnimatedAdUrl').value.trim() || null,
+      status: document.getElementById('maStatus').value,
+    };
+    const r = await fetch('/admin/marketing', {method:'POST', headers:{...authHeaders(), 'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+    if(r.ok){
+      result.textContent = 'Added.';
+      document.getElementById('maProductId').value = '';
+      document.getElementById('maHeadline').value = '';
+      document.getElementById('maTagline').value = '';
+      document.getElementById('maBodyCopy').value = '';
+      document.getElementById('maHeroImage').value = '';
+      document.getElementById('maVideoUrl').value = '';
+      document.getElementById('maAnimatedAdUrl').value = '';
+      loadMarketingAssets();
+    } else {
+      const err = await r.json().catch(() => ({}));
+      result.textContent = err.detail || 'Failed to add.';
+    }
+  });
 
   async function loadDemoRequests(){
     const r = await fetch('/admin/demo-requests', {headers: authHeaders()});

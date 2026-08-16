@@ -1256,6 +1256,9 @@ class MarketingAssetCreate(BaseModel):
     body_copy: str | None = None
     hero_image_url: str | None = None
     video_script: str | None = None
+    animated_ad_url: str | None = None
+    video_url: str | None = None
+    demo_video_url: str | None = None
     status: Literal["draft", "published"] = "published"
 
 @app.get("/marketing")
@@ -1498,17 +1501,48 @@ def admin_create_marketing_asset(payload: MarketingAssetCreate, current_user: di
         raise HTTPException(status_code=404, detail="Product not found")
     cur = conn.execute(
         """INSERT INTO marketing_assets
-           (product_id, department, headline, tagline, body_copy, hero_image_url, video_script, status, created_by)
-           VALUES (?,?,?,?,?,?,?,?,?)""",
+           (product_id, department, headline, tagline, body_copy, hero_image_url, video_script,
+            animated_ad_url, video_url, demo_video_url, status, created_by)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
         (payload.product_id, product["department"], payload.headline, payload.tagline,
-         payload.body_copy, payload.hero_image_url, payload.video_script, payload.status,
-         current_user.get("email"))
+         payload.body_copy, payload.hero_image_url, payload.video_script,
+         payload.animated_ad_url, payload.video_url, payload.demo_video_url,
+         payload.status, current_user.get("email"))
     )
     conn.commit()
     new_id = cur.lastrowid
     conn.close()
     logger.info(f"Admin {current_user.get('email')} created marketing asset id {new_id} for product {payload.product_id}")
     return {"id": new_id, "status": "created"}
+
+class MarketingAssetStatusUpdate(BaseModel):
+    status: Literal["draft", "published"]
+
+@app.post("/admin/marketing/{asset_id}/status")
+def admin_update_marketing_asset_status(asset_id: int, payload: MarketingAssetStatusUpdate, current_user: dict = Depends(require_admin)):
+    conn = get_conn()
+    existing = conn.execute("SELECT id FROM marketing_assets WHERE id = ?", (asset_id,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Marketing asset not found")
+    conn.execute("UPDATE marketing_assets SET status = ? WHERE id = ?", (payload.status, asset_id))
+    conn.commit()
+    conn.close()
+    logger.info(f"Admin {current_user.get('email')} set marketing asset {asset_id} status -> {payload.status}")
+    return {"id": asset_id, "status": payload.status}
+
+@app.delete("/admin/marketing/{asset_id}")
+def admin_delete_marketing_asset(asset_id: int, current_user: dict = Depends(require_admin)):
+    conn = get_conn()
+    existing = conn.execute("SELECT id, headline FROM marketing_assets WHERE id = ?", (asset_id,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Marketing asset not found")
+    conn.execute("DELETE FROM marketing_assets WHERE id = ?", (asset_id,))
+    conn.commit()
+    conn.close()
+    logger.warning(f"Admin {current_user.get('email')} deleted marketing asset {asset_id} ({existing['headline']})")
+    return {"id": asset_id, "status": "deleted"}
 
 @app.get("/admin/marketing/all")
 def admin_list_all_marketing_assets(current_user: dict = Depends(require_admin)):
