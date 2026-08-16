@@ -401,6 +401,9 @@ def sitemap_xml():
     urls = [f"<url><loc>{SITE_URL}/</loc><changefreq>daily</changefreq></url>",
             f"<url><loc>{SITE_URL}/lab-info</loc><changefreq>weekly</changefreq></url>",
             f"<url><loc>{SITE_URL}/pricing</loc><changefreq>monthly</changefreq></url>",
+            f"<url><loc>{SITE_URL}/compatibility-wizard</loc><changefreq>monthly</changefreq></url>",
+            f"<url><loc>{SITE_URL}/tco-calculator</loc><changefreq>monthly</changefreq></url>",
+            f"<url><loc>{SITE_URL}/marketing-gallery</loc><changefreq>weekly</changefreq></url>",
             f"<url><loc>{SITE_URL}/terms</loc><changefreq>yearly</changefreq></url>",
             f"<url><loc>{SITE_URL}/privacy</loc><changefreq>yearly</changefreq></url>"]
     for c in companies:
