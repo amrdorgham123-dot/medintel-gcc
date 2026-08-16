@@ -918,32 +918,37 @@ def universal_search(q: str, limit_per_type: int = 5):
     conn = get_conn()
     results = []
 
-    def rank(name: str) -> int:
+    def rank(name: str, matched_secondary: bool = False) -> int:
         n = name.lower()
         ql = q.lower()
         if n == ql:
             return 0
         if n.startswith(ql):
             return 1
-        return 2
+        if ql in n:
+            return 2
+        # Name itself didn't match at all -- this result only matched on a
+        # secondary field (description, specs_json, portfolio). Still useful,
+        # but should rank below any real name match.
+        return 3 if matched_secondary else 2
 
     mfrs = conn.execute(
-        "SELECT id, name, category FROM manufacturers WHERE is_published = 1 AND name LIKE ? LIMIT ?",
-        (like, limit_per_type)
+        "SELECT id, name, category FROM manufacturers WHERE is_published = 1 AND (name LIKE ? OR portfolio LIKE ?) LIMIT ?",
+        (like, like, limit_per_type)
     ).fetchall()
     for m in mfrs:
         results.append({"type": "company", "id": m["id"], "title": m["name"], "subtitle": m["category"],
-                         "url": f"/app#company-{m['id']}", "rank": rank(m["name"])})
+                         "url": f"/app#company-{m['id']}", "rank": rank(m["name"], matched_secondary=True)})
 
     products = conn.execute(
         """SELECT p.id, p.product_name, m.name as mfr_name FROM products p
            LEFT JOIN manufacturers m ON p.manufacturer_id = m.id
-           WHERE p.product_name LIKE ? LIMIT ?""",
-        (like, limit_per_type)
+           WHERE p.product_name LIKE ? OR p.description LIKE ? OR p.specs_json LIKE ? LIMIT ?""",
+        (like, like, like, limit_per_type)
     ).fetchall()
     for p in products:
         results.append({"type": "product", "id": p["id"], "title": p["product_name"], "subtitle": p["mfr_name"],
-                         "url": f"/app#product-{p['id']}", "rank": rank(p["product_name"])})
+                         "url": f"/app#product-{p['id']}", "rank": rank(p["product_name"], matched_secondary=True)})
 
     techs = conn.execute(
         "SELECT id, name, description FROM technologies WHERE name LIKE ? LIMIT ?",
