@@ -1226,7 +1226,7 @@ async function renderWatchlistPage(){
       <div class="opp-unlocked-bar">👤 Logged in as ${JSON.parse(localStorage.getItem('medintel-user')||'{}').company_name || 'you'} <button class="opp-lock-btn" onclick="logout()">Log out</button></div>
       <div class="grid">${items.map(m => `
         <div class="card" onclick="activeTab='manufacturers';openCompany(${m.id})">
-          <div class="card-top"><div><h3>${m.name}</h3><div class="meta">${originFlag(m.origin)} ${m.category} · added ${m.added_at.split(' ')[0]}</div></div>${badge(m.status_tag, statusBadgeLabel(m.status_tag, 'short'))}</div>
+          <div class="card-top"><div><h3>${m.name}</h3><div class="meta">${originFlag(m.origin)} ${m.category} · added ${m.added_at.split(' ')[0]}</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">${badge(m.status_tag, statusBadgeLabel(m.status_tag, 'short'))}<span class="score-chip" title="Intelligence score">${m.intelligence_score ?? 0}<span class="score-chip-max">/100</span></span></div></div>
         </div>`).join('') || '<div class="empty">Nothing pinned yet — star a company from the Companies page.</div>'}</div>
     `;
   } catch(err){

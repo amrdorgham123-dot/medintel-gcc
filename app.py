@@ -2251,8 +2251,12 @@ def list_watchlist(current_user: dict = Depends(get_current_user)):
         WHERE w.user_id = ?
         ORDER BY w.added_at DESC
     """, (current_user["id"],)).fetchall()
+    results = [dict(r) for r in rows]
+    scores = _bulk_intelligence_scores(conn, [r["id"] for r in results])
+    for r in results:
+        r["intelligence_score"] = scores.get(r["id"], 0)
     conn.close()
-    return [dict(r) for r in rows]
+    return results
 
 @app.post("/watchlist/{manufacturer_id}")
 def add_to_watchlist(manufacturer_id: int, current_user: dict = Depends(get_current_user)):
