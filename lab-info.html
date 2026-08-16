@@ -42,7 +42,7 @@
   .header-right{display:flex; align-items:center; gap:14px;}
   .lang-toggle{
     font-family:'IBM Plex Mono'; font-size:12.5px; font-weight:500; color:var(--paper);
-    background:var(--surface-2); border:1px solid var(--line); border-radius:999px;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:999px;white-space:nowrap;flex-shrink:0;
     padding:8px 14px; cursor:pointer; letter-spacing:.5px;
   }
   .lang-toggle:hover{border-color:var(--assay); color:var(--assay);}
@@ -77,7 +77,7 @@
   .set-card:hover{border-color:var(--assay);}
   .set-card .cat-tag{
     display:inline-block; font-family:'IBM Plex Mono'; font-size:10.5px; letter-spacing:.5px;
-    color:var(--gold); background:var(--gold-dim); padding:4px 10px; border-radius:999px; margin-bottom:10px;
+    color:var(--gold); background:var(--gold-dim); padding:4px 10px; border-radius:999px;white-space:nowrap;flex-shrink:0; margin-bottom:10px;
   }
   .set-card h3{font-size:16px; font-weight:700; margin-bottom:6px;}
   .set-card p{font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:12px;}
@@ -103,7 +103,7 @@
   .test-card:hover{border-color:var(--assay);}
   .test-card .cat-tag{
     display:inline-block; font-family:'IBM Plex Mono'; font-size:10.5px; letter-spacing:.5px;
-    color:var(--assay); background:var(--assay-dim); padding:4px 10px; border-radius:999px; margin-bottom:10px;
+    color:var(--assay); background:var(--assay-dim); padding:4px 10px; border-radius:999px;white-space:nowrap;flex-shrink:0; margin-bottom:10px;
   }
   .test-card h3{font-size:16px; font-weight:700; margin-bottom:4px;}
   .test-card .alt-name{font-size:12.5px; color:var(--muted); margin-bottom:10px;}
@@ -140,7 +140,7 @@
   .detail-title{margin-bottom:26px;}
   .detail-title .cat-tag{
     display:inline-block; font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:.5px;
-    color:var(--assay); background:var(--assay-dim); padding:5px 12px; border-radius:999px; margin-bottom:12px;
+    color:var(--assay); background:var(--assay-dim); padding:5px 12px; border-radius:999px;white-space:nowrap;flex-shrink:0; margin-bottom:12px;
   }
   .detail-title h1{font-size:26px; font-weight:800; margin-bottom:6px;}
   .detail-title .alt{font-size:13.5px; color:var(--muted);}
@@ -170,7 +170,7 @@
   .range-table .note{color:var(--muted); font-size:12px;}
 
   .verify-badge{
-    display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:6px 12px; border-radius:999px;
+    display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:6px 12px; border-radius:999px;white-space:nowrap;flex-shrink:0;
     margin-bottom:14px;
   }
   .verify-badge.verified{background:var(--assay-dim); color:var(--assay);}
@@ -188,7 +188,7 @@
   .related-chips{display:flex; flex-wrap:wrap; gap:10px;}
   .related-chip{
     background:var(--ink); border:1px solid var(--line); color:var(--paper);
-    font-size:13px; padding:9px 16px; border-radius:999px; cursor:pointer; transition:border-color .15s, color .15s;
+    font-size:13px; padding:9px 16px; border-radius:999px;white-space:nowrap;flex-shrink:0; cursor:pointer; transition:border-color .15s, color .15s;
   }
   .related-chip:hover{border-color:var(--assay); color:var(--assay);}
   .source-list li{font-size:13px; color:var(--muted); padding-inline-start:16px; position:relative; line-height:1.7;}
